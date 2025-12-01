@@ -8,9 +8,26 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { 
   ArrowLeft, Settings, Star, CheckCircle, Calendar, 
-  MapPin, ChevronRight, User, ListTodo, HelpCircle, Edit3
+  MapPin, ChevronRight, User, ListTodo, HelpCircle, Edit3, Shield
 } from 'lucide-react';
 import type { User as UserType } from '@shared/schema';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06, delayChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { type: "spring", stiffness: 300, damping: 24 }
+  }
+};
 
 const ProfileScreen = memo(function ProfileScreen() {
   const { userId } = useParams<{ userId?: string }>();
@@ -35,21 +52,21 @@ const ProfileScreen = memo(function ProfileScreen() {
       value: user?.rating ? parseFloat(String(user.rating)).toFixed(1) : '0.0',
       icon: Star,
       color: 'text-warning',
-      bgColor: 'bg-warning/15'
+      bgColor: 'bg-gradient-to-br from-warning/20 to-warning/5'
     },
     { 
       label: 'Completed', 
       value: user?.completedTasks || 0,
       icon: CheckCircle,
       color: 'text-success',
-      bgColor: 'bg-success/15'
+      bgColor: 'bg-gradient-to-br from-success/20 to-success/5'
     },
     { 
-      label: 'Since', 
+      label: 'Member Since', 
       value: user?.createdAt ? new Date(user.createdAt).getFullYear() : new Date().getFullYear(),
       icon: Calendar,
       color: 'text-primary',
-      bgColor: 'bg-primary/15'
+      bgColor: 'bg-gradient-to-br from-primary/20 to-primary/5'
     },
   ], [user]);
 
@@ -61,15 +78,15 @@ const ProfileScreen = memo(function ProfileScreen() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-primary/5 pt-safe px-6 py-6">
+      <div className="min-h-screen gradient-mesh pt-safe px-5 py-5">
         <div className="flex items-center justify-center mb-8">
           <Skeleton className="w-28 h-28 rounded-full" />
         </div>
-        <Skeleton className="h-8 w-48 mx-auto mb-2" />
-        <Skeleton className="h-4 w-32 mx-auto mb-6" />
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <Skeleton className="h-8 w-48 mx-auto mb-2 rounded-lg" />
+        <Skeleton className="h-4 w-32 mx-auto mb-6 rounded-lg" />
+        <div className="grid grid-cols-3 gap-3 mb-8">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-24 rounded-2xl" />
+            <Skeleton key={i} className="h-28 rounded-2xl" />
           ))}
         </div>
       </div>
@@ -77,63 +94,74 @@ const ProfileScreen = memo(function ProfileScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 pt-safe pb-24">
+    <div className="min-h-screen gradient-mesh pt-safe pb-32">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.4, scale: 1 }}
+          transition={{ duration: 1 }}
+          className="absolute top-20 -right-24 w-72 h-72 bg-gradient-to-br from-accent/25 to-accent/5 rounded-full blur-3xl"
+        />
+        <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.3 }}
-          className="absolute top-20 -right-20 w-64 h-64 bg-accent/20 rounded-full blur-3xl"
+          animate={{ opacity: 0.25 }}
+          transition={{ delay: 0.3 }}
+          className="absolute bottom-60 -left-16 w-48 h-48 bg-gradient-to-tr from-primary/20 to-transparent rounded-full blur-3xl"
         />
       </div>
 
-      <div className="relative z-10 px-6 py-6">
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="relative z-10 px-5 py-5"
+      >
         <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-8"
+          variants={itemVariants}
+          className="flex items-center justify-between mb-6"
         >
           {!isOwnProfile ? (
             <motion.button 
               whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.92 }}
               onClick={() => window.history.back()}
               className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
               data-testid="button-back"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-5 h-5 text-foreground/80" />
             </motion.button>
           ) : <div className="w-11" />}
           
-          <h1 className="text-2xl font-extrabold text-foreground">
+          <h1 className="text-xl font-bold text-foreground">
             {isOwnProfile ? 'Profile' : 'User Profile'}
           </h1>
           
           {isOwnProfile ? (
             <motion.button
               whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.92 }}
               onClick={() => setLocation('/settings')}
               className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
               data-testid="button-settings"
             >
-              <Settings className="w-5 h-5" />
+              <Settings className="w-5 h-5 text-foreground/80" />
             </motion.button>
           ) : <div className="w-11" />}
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex flex-col items-center mb-8"
+          variants={itemVariants}
+          className="flex flex-col items-center mb-7"
         >
-          <div className="relative mb-6">
+          <div className="relative mb-5">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200, damping: 20 }}
+              className="relative"
             >
-              <Avatar className="w-28 h-28 border-4 border-white/20 shadow-2xl">
+              <div className="absolute -inset-1 bg-gradient-to-br from-primary/40 to-accent/40 rounded-full blur-md" />
+              <Avatar className="relative w-28 h-28 border-4 border-white/50 dark:border-white/20 shadow-2xl">
                 <AvatarImage src={user?.avatar || undefined} alt={user?.name} />
                 <AvatarFallback className="gradient-primary text-white text-3xl font-bold">
                   {user?.name ? getInitials(user.name) : 'U'}
@@ -143,9 +171,9 @@ const ProfileScreen = memo(function ProfileScreen() {
             {isOwnProfile && (
               <Link href="/profile/edit">
                 <motion.button 
-                  whileHover={{ scale: 1.1 }}
+                  whileHover={{ scale: 1.1, rotate: 5 }}
                   whileTap={{ scale: 0.9 }}
-                  className="absolute -bottom-1 -right-1 w-10 h-10 gradient-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30"
+                  className="absolute -bottom-1 -right-1 w-10 h-10 gradient-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 border-2 border-white/50"
                   data-testid="button-edit-profile"
                 >
                   <Edit3 className="w-4 h-4" />
@@ -154,29 +182,28 @@ const ProfileScreen = memo(function ProfileScreen() {
             )}
           </div>
           
-          <h2 className="text-2xl font-extrabold text-foreground mb-1">{user?.name || 'Guest'}</h2>
-          <p className="text-muted-foreground mb-4">@{user?.username || 'guest'}</p>
+          <h2 className="text-2xl font-extrabold text-foreground mb-1 tracking-tight">{user?.name || 'Guest'}</h2>
+          <p className="text-muted-foreground text-sm mb-4">@{user?.username || 'guest'}</p>
           
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2 }}
             className={cn(
-              "px-4 py-2 rounded-full text-sm font-bold uppercase tracking-widest border",
+              "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider",
               userRole === 'tasker' 
-                ? "bg-success/15 text-success border-success/20" 
-                : "bg-primary/15 text-primary border-primary/20"
+                ? "bg-success/15 text-success" 
+                : "bg-primary/15 text-primary"
             )}
           >
+            <Shield className="w-3.5 h-3.5" />
             {userRole === 'tasker' ? 'Tasker' : 'Client'}
           </motion.div>
         </motion.div>
 
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="grid grid-cols-3 gap-4 mb-8"
+          variants={itemVariants}
+          className="grid grid-cols-3 gap-3 mb-6"
         >
           {stats.map((stat, index) => {
             const Icon = stat.icon;
@@ -186,13 +213,13 @@ const ProfileScreen = memo(function ProfileScreen() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25 + index * 0.05 }}
-                className="glass rounded-3xl p-4 text-center"
+                className="glass rounded-[20px] p-4 text-center"
               >
-                <div className={cn("w-10 h-10 rounded-xl mx-auto mb-3 flex items-center justify-center", stat.bgColor)}>
-                  <Icon className={cn("w-5 h-5", stat.color)} />
+                <div className={cn("w-9 h-9 rounded-xl mx-auto mb-2.5 flex items-center justify-center", stat.bgColor)}>
+                  <Icon className={cn("w-4 h-4", stat.color)} />
                 </div>
-                <p className="text-2xl font-extrabold text-foreground">{stat.value}</p>
-                <p className="text-xs text-muted-foreground font-medium">{stat.label}</p>
+                <p className="text-xl font-extrabold text-foreground">{stat.value}</p>
+                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mt-0.5">{stat.label}</p>
               </motion.div>
             );
           })}
@@ -200,30 +227,26 @@ const ProfileScreen = memo(function ProfileScreen() {
 
         {user?.bio && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="glass rounded-3xl p-5 mb-6"
+            variants={itemVariants}
+            className="glass rounded-[20px] p-5 mb-4"
           >
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">About</h3>
-            <p className="text-foreground leading-relaxed">{user.bio}</p>
+            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2.5">About</h3>
+            <p className="text-foreground leading-relaxed text-sm">{user.bio}</p>
           </motion.div>
         )}
 
         {user?.location && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
-            className="glass rounded-3xl p-5 mb-6"
+            variants={itemVariants}
+            className="glass rounded-[20px] p-4 mb-5"
           >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center">
-                <MapPin className="w-6 h-6 text-primary" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                <MapPin className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Location</p>
-                <p className="font-bold text-foreground text-lg">{user.location}</p>
+                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Location</p>
+                <p className="font-bold text-foreground">{user.location}</p>
               </div>
             </div>
           </motion.div>
@@ -231,11 +254,10 @@ const ProfileScreen = memo(function ProfileScreen() {
 
         {isOwnProfile && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="space-y-3"
+            variants={itemVariants}
+            className="space-y-2.5"
           >
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1 mb-2">Quick Actions</p>
             {menuItems.map((item, index) => {
               const Icon = item.icon;
               return (
@@ -247,17 +269,18 @@ const ProfileScreen = memo(function ProfileScreen() {
                 >
                   <Link href={item.path}>
                     <motion.button 
+                      whileHover={{ x: 4 }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full h-16 glass rounded-2xl font-bold flex items-center justify-between px-5"
+                      className="w-full glass rounded-[18px] font-semibold flex items-center justify-between p-4"
                       data-testid={item.testId}
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
-                          <Icon className="w-5 h-5 text-primary" />
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
+                          <Icon className="w-4 h-4 text-primary" />
                         </div>
-                        <span className="text-foreground">{item.label}</span>
+                        <span className="text-foreground text-sm">{item.label}</span>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
                     </motion.button>
                   </Link>
                 </motion.div>
@@ -265,7 +288,7 @@ const ProfileScreen = memo(function ProfileScreen() {
             })}
           </motion.div>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 });

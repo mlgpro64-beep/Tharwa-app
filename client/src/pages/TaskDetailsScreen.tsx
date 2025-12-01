@@ -12,10 +12,27 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { 
   ArrowLeft, Heart, Edit3, MapPin, Clock, DollarSign, 
-  MessageCircle, Star, AlertCircle, Loader2, Send
+  MessageCircle, Star, AlertCircle, Loader2, Send, Calendar, Sparkles
 } from 'lucide-react';
 import TaskLocationMap from '@/components/TaskLocationMap';
 import type { TaskWithDetails, BidWithTasker } from '@shared/schema';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06, delayChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { type: "spring", stiffness: 300, damping: 24 }
+  }
+};
 
 const TaskDetailsScreen = memo(function TaskDetailsScreen() {
   const { id } = useParams<{ id: string }>();
@@ -82,14 +99,14 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
     }).format(num);
   }, []);
 
-  const getStatusStyles = useCallback((status: string) => {
+  const getStatusConfig = useCallback((status: string) => {
     switch (status) {
-      case 'open': return 'bg-success/15 text-success border-success/20';
-      case 'assigned': return 'bg-warning/15 text-warning border-warning/20';
-      case 'in_progress': return 'bg-primary/15 text-primary border-primary/20';
-      case 'completed': return 'bg-muted text-muted-foreground border-border';
-      case 'cancelled': return 'bg-destructive/15 text-destructive border-destructive/20';
-      default: return 'bg-muted text-muted-foreground border-border';
+      case 'open': return { bg: 'bg-success/15', text: 'text-success', label: 'Open' };
+      case 'assigned': return { bg: 'bg-warning/15', text: 'text-warning', label: 'Assigned' };
+      case 'in_progress': return { bg: 'bg-primary/15', text: 'text-primary', label: 'In Progress' };
+      case 'completed': return { bg: 'bg-muted', text: 'text-muted-foreground', label: 'Completed' };
+      case 'cancelled': return { bg: 'bg-destructive/15', text: 'text-destructive', label: 'Cancelled' };
+      default: return { bg: 'bg-muted', text: 'text-muted-foreground', label: status };
     }
   }, []);
 
@@ -103,37 +120,40 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-primary/5 pt-safe px-6 py-6">
-        <Skeleton className="h-11 w-11 rounded-2xl mb-6" />
-        <Skeleton className="h-6 w-24 mb-2" />
-        <Skeleton className="h-8 w-3/4 mb-4" />
-        <Skeleton className="h-24 w-full rounded-2xl mb-6" />
-        <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="min-h-screen gradient-mesh pt-safe px-5 py-5">
+        <div className="flex items-center gap-3 mb-6">
+          <Skeleton className="h-11 w-11 rounded-2xl" />
+          <Skeleton className="h-6 w-24 rounded-lg" />
+        </div>
+        <Skeleton className="h-8 w-3/4 mb-4 rounded-lg" />
+        <Skeleton className="h-20 w-full rounded-2xl mb-5" />
+        <div className="grid grid-cols-2 gap-3 mb-5">
           <Skeleton className="h-24 rounded-2xl" />
           <Skeleton className="h-24 rounded-2xl" />
         </div>
-        <Skeleton className="h-20 rounded-2xl" />
+        <Skeleton className="h-32 rounded-2xl mb-5" />
+        <Skeleton className="h-24 rounded-2xl" />
       </div>
     );
   }
 
   if (!task) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-primary/5 pt-safe flex items-center justify-center px-6">
+      <div className="min-h-screen gradient-mesh pt-safe flex items-center justify-center px-5">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center"
+          className="text-center glass-premium rounded-3xl p-8"
         >
-          <div className="w-20 h-20 rounded-3xl bg-destructive/10 flex items-center justify-center mx-auto mb-6">
-            <AlertCircle className="w-10 h-10 text-destructive" />
+          <div className="w-16 h-16 rounded-2xl bg-destructive/15 flex items-center justify-center mx-auto mb-5">
+            <AlertCircle className="w-8 h-8 text-destructive" />
           </div>
           <h3 className="text-xl font-bold text-foreground mb-2">Task not found</h3>
-          <p className="text-muted-foreground mb-6">This task may have been removed</p>
+          <p className="text-muted-foreground mb-6 text-sm">This task may have been removed</p>
           <Link href="/home">
             <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
               className="gradient-primary text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-primary/25"
             >
               Go back home
@@ -144,44 +164,57 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
     );
   }
 
+  const statusConfig = getStatusConfig(task.status);
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 pt-safe pb-32">
+    <div className="min-h-screen gradient-mesh pt-safe pb-32">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.4, scale: 1 }}
+          transition={{ duration: 1 }}
+          className="absolute top-20 -right-24 w-72 h-72 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-3xl"
+        />
+        <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.3 }}
-          className="absolute top-20 -right-20 w-64 h-64 bg-primary/15 rounded-full blur-3xl"
+          animate={{ opacity: 0.25 }}
+          transition={{ delay: 0.3 }}
+          className="absolute bottom-40 -left-16 w-48 h-48 bg-gradient-to-tr from-accent/20 to-transparent rounded-full blur-3xl"
         />
       </div>
 
-      <div className="relative z-10 px-6 py-6">
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="relative z-10 px-5 py-5"
+      >
         <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-8"
+          variants={itemVariants}
+          className="flex items-center justify-between mb-6"
         >
           <motion.button 
             whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileTap={{ scale: 0.92 }}
             onClick={handleBack}
             className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
             data-testid="button-back"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 text-foreground/80" />
           </motion.button>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             {isTasker && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.92 }}
                 onClick={handleToggleSave}
                 className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
                 data-testid="button-save-task"
               >
                 <Heart className={cn(
-                  "w-5 h-5 transition-colors",
-                  isSaved && "fill-destructive text-destructive"
+                  "w-5 h-5 transition-all",
+                  isSaved ? "fill-destructive text-destructive" : "text-foreground/80"
                 )} />
               </motion.button>
             )}
@@ -189,71 +222,58 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
               <Link href={`/task/${id}/edit`}>
                 <motion.button 
                   whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileTap={{ scale: 0.92 }}
                   className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
                   data-testid="button-edit-task"
                 >
-                  <Edit3 className="w-5 h-5" />
+                  <Edit3 className="w-5 h-5 text-foreground/80" />
                 </motion.button>
               </Link>
             )}
           </div>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-primary/10 text-primary border border-primary/20">
+        <motion.div variants={itemVariants}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary">
               {task.category}
             </span>
             <span className={cn(
-              "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest border",
-              getStatusStyles(task.status)
+              "px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider",
+              statusConfig.bg, statusConfig.text
             )}>
-              {task.status.replace('_', ' ')}
+              {statusConfig.label}
             </span>
           </div>
 
-          <h1 className="text-3xl font-extrabold text-foreground mb-4 leading-tight">
+          <h1 className="text-2xl font-extrabold text-foreground mb-3 leading-tight tracking-tight">
             {task.title}
           </h1>
 
-          <p className="text-muted-foreground leading-relaxed mb-8 text-lg">
+          <p className="text-muted-foreground leading-relaxed mb-6">
             {task.description}
           </p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="grid grid-cols-2 gap-4 mb-4"
-        >
-          <div className="glass rounded-3xl p-5">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
-              <MapPin className="w-5 h-5 text-primary" />
+        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3 mb-3">
+          <div className="glass rounded-[20px] p-4">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center mb-2.5">
+              <MapPin className="w-4 h-4 text-primary" />
             </div>
-            <p className="text-xs text-muted-foreground font-medium mb-1">Location</p>
-            <p className="font-bold text-foreground">{task.location}</p>
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">Location</p>
+            <p className="font-bold text-foreground text-sm truncate">{task.location}</p>
           </div>
-          <div className="glass rounded-3xl p-5">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
-              <Clock className="w-5 h-5 text-primary" />
+          <div className="glass rounded-[20px] p-4">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent/15 to-accent/5 flex items-center justify-center mb-2.5">
+              <Calendar className="w-4 h-4 text-accent" />
             </div>
-            <p className="text-xs text-muted-foreground font-medium mb-1">When</p>
-            <p className="font-bold text-foreground">{task.date} at {task.time}</p>
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">When</p>
+            <p className="font-bold text-foreground text-sm">{task.date}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{task.time}</p>
           </div>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.22 }}
-          className="mb-6"
-        >
+        <motion.div variants={itemVariants} className="mb-5">
           <TaskLocationMap 
             latitude={task.latitude}
             longitude={task.longitude}
@@ -261,50 +281,48 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
           />
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="glass-premium rounded-3xl p-6 mb-6 gradient-border"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground font-medium mb-1">Budget</p>
-              <p className="text-4xl font-extrabold gradient-text">{formatCurrency(task.budget)}</p>
-            </div>
-            <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center shadow-lg shadow-primary/25">
-              <DollarSign className="w-8 h-8 text-white" />
+        <motion.div variants={itemVariants} className="relative overflow-hidden rounded-[24px] mb-5">
+          <div className="absolute inset-0 glass-premium" />
+          <div className="absolute inset-0 gradient-border" />
+          
+          <div className="relative p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Budget</p>
+                <p className="text-3xl font-extrabold gradient-text-primary">{formatCurrency(task.budget)}</p>
+              </div>
+              <motion.div 
+                whileHover={{ rotate: 5 }}
+                className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center shadow-lg shadow-primary/30"
+              >
+                <DollarSign className="w-7 h-7 text-white" />
+              </motion.div>
             </div>
           </div>
         </motion.div>
 
         {task.client && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="glass rounded-3xl p-5 mb-6"
-          >
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4">Posted by</p>
-            <div className="flex items-center gap-4">
-              <Avatar className="w-14 h-14 border-2 border-white/20 shadow-lg">
+          <motion.div variants={itemVariants} className="glass rounded-[24px] p-5 mb-5">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-3">Posted by</p>
+            <div className="flex items-center gap-3">
+              <Avatar className="w-12 h-12 border-2 border-white/30 shadow-lg">
                 <AvatarImage src={task.client.avatar || undefined} />
-                <AvatarFallback className="gradient-primary text-white font-bold text-lg">
+                <AvatarFallback className="gradient-primary text-white font-bold">
                   {task.client.name?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1">
-                <p className="font-bold text-foreground text-lg">{task.client.name}</p>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Star className="w-4 h-4 fill-warning text-warning" />
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-foreground truncate">{task.client.name}</p>
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Star className="w-3.5 h-3.5 fill-warning text-warning" />
                   <span className="font-medium">{parseFloat(String(task.client.rating || 0)).toFixed(1)}</span>
                 </div>
               </div>
               <Link href={`/chat/${task.id}`}>
                 <motion.button 
                   whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-12 h-12 flex items-center justify-center rounded-2xl gradient-primary text-white shadow-lg shadow-primary/25"
+                  whileTap={{ scale: 0.92 }}
+                  className="w-11 h-11 flex items-center justify-center rounded-xl gradient-primary text-white shadow-md shadow-primary/25"
                   data-testid="button-chat"
                 >
                   <MessageCircle className="w-5 h-5" />
@@ -315,22 +333,22 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
         )}
 
         {isClient && bids && bids.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
-            className="mb-6"
-          >
-            <h2 className="text-xl font-bold text-foreground mb-4">
-              Offers <span className="text-primary">({bids.length})</span>
-            </h2>
-            <div className="space-y-4">
+          <motion.div variants={itemVariants} className="mb-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-foreground">
+                Offers
+              </h2>
+              <span className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-bold">
+                {bids.length}
+              </span>
+            </div>
+            <div className="space-y-3">
               {bids.map((bid, index) => (
                 <motion.div
                   key={bid.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 + index * 0.05 }}
+                  transition={{ delay: 0.1 + index * 0.05 }}
                 >
                   <OfferCard 
                     offer={bid}
@@ -342,24 +360,25 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
             </div>
           </motion.div>
         )}
-      </div>
+      </motion.div>
 
       <AnimatePresence>
         {isTasker && task.status === 'open' && (
           <motion.div 
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
-            exit={{ y: 100 }}
-            className="fixed bottom-0 left-0 right-0 p-6 bg-background/80 backdrop-blur-2xl border-t border-white/10 pb-safe"
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed bottom-0 left-0 right-0 p-5 glass-premium border-t-0 rounded-t-[28px] pb-safe"
           >
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setShowBidModal(true)}
-              className="w-full h-14 gradient-primary text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/25 flex items-center justify-center gap-2"
+              className="w-full h-14 gradient-primary text-white rounded-2xl font-bold text-base shadow-xl shadow-primary/30 flex items-center justify-center gap-2.5"
               data-testid="button-make-offer"
             >
-              <Send className="w-5 h-5" />
+              <Sparkles className="w-5 h-5" />
               Make an Offer
             </motion.button>
           </motion.div>
@@ -367,16 +386,17 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
 
         {task.status === 'in_progress' && (
           <motion.div 
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
-            exit={{ y: 100 }}
-            className="fixed bottom-0 left-0 right-0 p-6 bg-background/80 backdrop-blur-2xl border-t border-white/10 pb-safe"
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed bottom-0 left-0 right-0 p-5 glass-premium border-t-0 rounded-t-[28px] pb-safe"
           >
             <Link href={`/task/${id}/progress`}>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full h-14 gradient-primary text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/25"
+                className="w-full h-14 gradient-primary text-white rounded-2xl font-bold text-base shadow-xl shadow-primary/30"
                 data-testid="button-view-progress"
               >
                 View Progress
@@ -396,7 +416,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
             whileTap={{ scale: 0.98 }}
             onClick={() => placeBidMutation.mutate()}
             disabled={!bidAmount || placeBidMutation.isPending}
-            className="w-full h-14 gradient-primary text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/25 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full h-14 gradient-primary text-white rounded-2xl font-bold shadow-xl shadow-primary/30 disabled:opacity-50 flex items-center justify-center gap-2.5"
             data-testid="button-submit-offer"
           >
             {placeBidMutation.isPending ? (
@@ -413,7 +433,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
           </motion.button>
         }
       >
-        <div className="space-y-5">
+        <div className="space-y-4">
           <div className="relative">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
               <DollarSign className="w-5 h-5" />
@@ -423,7 +443,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
               value={bidAmount}
               onChange={(e) => setBidAmount(e.target.value)}
               placeholder="Your offer amount"
-              className="w-full h-14 pl-12 pr-5 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full h-13 pl-12 pr-5 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none text-base"
               data-testid="input-bid-amount"
             />
           </div>
@@ -432,10 +452,10 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
             onChange={(e) => setBidMessage(e.target.value)}
             placeholder="Tell them why you're a great fit... (optional)"
             rows={3}
-            className="w-full p-4 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+            className="w-full p-4 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none resize-none text-base"
             data-testid="input-bid-message"
           />
-          <div className="text-center">
+          <div className="text-center py-2">
             <p className="text-sm text-muted-foreground">
               Client's budget: <span className="font-bold text-primary">{formatCurrency(task.budget)}</span>
             </p>

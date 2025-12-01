@@ -6,8 +6,32 @@ import { useQuery } from '@tanstack/react-query';
 import { TaskCardSkeleton, EmptyState } from '@/components/ui/animated';
 import { cn } from '@/lib/utils';
 import { TASK_CATEGORIES } from '@shared/schema';
-import { Map, Search, SearchX, X } from 'lucide-react';
+import { Map, Search, SearchX, X, Filter, SlidersHorizontal } from 'lucide-react';
 import type { TaskWithDetails } from '@shared/schema';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.06,
+      delayChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 24
+    }
+  }
+};
 
 const TasksFeedScreen = memo(function TasksFeedScreen() {
   const [, setLocation] = useLocation();
@@ -36,39 +60,55 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
     setSearchQuery('');
   }, []);
 
+  const taskCount = filteredTasks.length;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 pt-safe pb-24">
+    <div className="min-h-screen gradient-mesh pt-safe pb-32">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.4, scale: 1 }}
+          transition={{ duration: 1 }}
+          className="absolute top-32 -left-24 w-72 h-72 bg-gradient-to-br from-accent/25 to-accent/5 rounded-full blur-3xl"
+        />
+        <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.3 }}
-          className="absolute top-20 -left-20 w-64 h-64 bg-accent/20 rounded-full blur-3xl"
+          animate={{ opacity: 0.25 }}
+          transition={{ duration: 1.2, delay: 0.3 }}
+          className="absolute bottom-60 -right-16 w-48 h-48 bg-gradient-to-tl from-primary/20 to-transparent rounded-full blur-3xl"
         />
       </div>
 
-      <div className="relative z-10 px-6 py-6">
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="relative z-10 px-5 py-5"
+      >
         <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
+          variants={itemVariants}
           className="flex items-center justify-between mb-6"
         >
-          <h1 className="text-2xl font-extrabold text-foreground">Browse Tasks</h1>
+          <div>
+            <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Browse Tasks</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {taskCount} {taskCount === 1 ? 'task' : 'tasks'} available
+            </p>
+          </div>
           <motion.button
             whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileTap={{ scale: 0.92 }}
             onClick={() => setLocation('/map')}
-            className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
+            className="w-11 h-11 flex items-center justify-center rounded-2xl glass transition-all duration-200"
             data-testid="button-map-view"
           >
-            <Map className="w-5 h-5" />
+            <Map className="w-5 h-5 text-foreground/80" />
           </motion.button>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="relative mb-6"
+          variants={itemVariants}
+          className="relative mb-5"
         >
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <input
@@ -76,7 +116,7 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
             placeholder="Search tasks..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-14 pl-12 pr-12 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+            className="w-full h-13 pl-12 pr-12 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all text-base"
             data-testid="input-search-tasks"
           />
           <AnimatePresence>
@@ -86,53 +126,57 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
                 onClick={handleClearSearch}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-muted"
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full bg-muted/80 hover:bg-muted transition-colors"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5 text-muted-foreground" />
               </motion.button>
             )}
           </AnimatePresence>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="flex gap-2 overflow-x-auto no-scrollbar pb-4 -mx-6 px-6"
+          variants={itemVariants}
+          className="mb-6"
         >
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => handleCategorySelect(null)}
-            data-testid="button-category-all"
-            className={cn(
-              "px-5 py-2.5 rounded-2xl font-bold text-sm whitespace-nowrap transition-all",
-              selectedCategory === null
-                ? "gradient-primary text-white shadow-lg shadow-primary/25"
-                : "glass text-muted-foreground"
-            )}
-          >
-            All
-          </motion.button>
-          {TASK_CATEGORIES.map((category) => (
+          <div className="flex items-center gap-2 mb-3">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Categories</span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-5 px-5">
             <motion.button
-              key={category}
               whileTap={{ scale: 0.95 }}
-              onClick={() => handleCategorySelect(category)}
-              data-testid={`button-filter-${category.toLowerCase().replace(/\s+/g, '-')}`}
+              onClick={() => handleCategorySelect(null)}
+              data-testid="button-category-all"
               className={cn(
-                "px-5 py-2.5 rounded-2xl font-bold text-sm whitespace-nowrap transition-all",
-                selectedCategory === category
+                "px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-200",
+                selectedCategory === null
                   ? "gradient-primary text-white shadow-lg shadow-primary/25"
-                  : "glass text-muted-foreground"
+                  : "glass text-muted-foreground hover:text-foreground"
               )}
             >
-              {category}
+              All Tasks
             </motion.button>
-          ))}
+            {TASK_CATEGORIES.map((category) => (
+              <motion.button
+                key={category}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleCategorySelect(category)}
+                data-testid={`button-filter-${category.toLowerCase().replace(/\s+/g, '-')}`}
+                className={cn(
+                  "px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-200",
+                  selectedCategory === category
+                    ? "gradient-primary text-white shadow-lg shadow-primary/25"
+                    : "glass text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {category}
+              </motion.button>
+            ))}
+          </div>
         </motion.div>
-      </div>
+      </motion.div>
 
-      <div className="relative z-10 px-6 space-y-4">
+      <div className="relative z-10 px-5">
         <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div
@@ -146,21 +190,23 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
           ) : filteredTasks.length > 0 ? (
             <motion.div
               key="tasks"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-4"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="space-y-3"
             >
               {filteredTasks.map((task, index) => (
-                <TaskCard key={task.id} task={task} index={index} />
+                <motion.div key={task.id} variants={itemVariants}>
+                  <TaskCard task={task} index={index} />
+                </motion.div>
               ))}
             </motion.div>
           ) : (
             <motion.div
               key="empty"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
             >
               <EmptyState
                 icon={<SearchX className="w-8 h-8" />}
@@ -171,14 +217,15 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
                 action={
                   (searchQuery || selectedCategory) && (
                     <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
                       onClick={() => {
                         setSearchQuery('');
                         setSelectedCategory(null);
                       }}
-                      className="glass text-foreground px-6 py-3 rounded-2xl font-bold"
+                      className="glass-premium text-foreground px-6 py-3 rounded-2xl font-bold flex items-center gap-2"
                     >
+                      <X className="w-4 h-4" />
                       Clear Filters
                     </motion.button>
                   )
