@@ -217,7 +217,11 @@
     "privacy_policy": "Privacy Policy",
     "logout": "Logout",
     "deleteAccount": "Delete Account",
-    "version": "Version"
+    "version": "Version",
+    "preferences": "Preferences",
+    "changePassword": "Change Password",
+    "switchToTasker": "Switch to Tasker Mode",
+    "switchToClient": "Switch to Client Mode"
   },
   "map": {
     "title": "Map",

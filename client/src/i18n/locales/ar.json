@@ -217,7 +217,11 @@
     "privacy_policy": "سياسة الخصوصية",
     "logout": "تسجيل الخروج",
     "deleteAccount": "حذف الحساب",
-    "version": "الإصدار"
+    "version": "الإصدار",
+    "preferences": "التفضيلات",
+    "changePassword": "تغيير كلمة المرور",
+    "switchToTasker": "التبديل لوضع المنفذ",
+    "switchToClient": "التبديل لوضع العميل"
   },
   "map": {
     "title": "الخريطة",

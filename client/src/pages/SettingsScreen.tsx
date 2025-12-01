@@ -1,11 +1,12 @@
 import { memo, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
 import { 
   ArrowLeft, User, Lock, Bell, Moon, Sun, ArrowLeftRight, 
-  HelpCircle, FileText, Shield, LogOut, ChevronRight 
+  HelpCircle, FileText, Shield, LogOut, ChevronRight, Languages 
 } from 'lucide-react';
 
 interface SettingItem {
@@ -24,48 +25,65 @@ interface SettingGroup {
 
 const SettingsScreen = memo(function SettingsScreen() {
   const [, setLocation] = useLocation();
+  const { t, i18n } = useTranslation();
   const { theme, toggleTheme, userRole, switchRole, logout } = useApp();
+  
+  const isArabic = i18n.language === 'ar';
 
   const handleLogout = useCallback(() => {
     logout();
     setLocation('/');
   }, [logout, setLocation]);
+  
+  const toggleLanguage = useCallback(() => {
+    const newLang = i18n.language === 'ar' ? 'en' : 'ar';
+    i18n.changeLanguage(newLang);
+  }, [i18n]);
 
   const settingsGroups: SettingGroup[] = useMemo(() => [
     {
-      title: 'Account',
+      title: t('settings.account'),
       items: [
-        { icon: User, label: 'Edit Profile', path: '/profile/edit' },
-        { icon: Lock, label: 'Change Password', action: () => {} },
-        { icon: Bell, label: 'Notifications', action: () => {} },
+        { icon: User, label: t('profile.editProfile'), path: '/profile/edit' },
+        { icon: Lock, label: t('settings.changePassword', 'Change Password'), action: () => {} },
+        { icon: Bell, label: t('settings.notifications'), action: () => {} },
       ]
     },
     {
-      title: 'Preferences',
+      title: t('settings.preferences', 'Preferences'),
       items: [
         { 
+          icon: Languages, 
+          label: t('settings.language'), 
+          toggle: true, 
+          value: isArabic,
+          action: toggleLanguage 
+        },
+        { 
           icon: theme === 'dark' ? Moon : Sun, 
-          label: 'Dark Mode', 
+          label: t('settings.darkMode'), 
           toggle: true, 
           value: theme === 'dark',
           action: toggleTheme 
         },
         { 
           icon: ArrowLeftRight, 
-          label: `Switch to ${userRole === 'client' ? 'Tasker' : 'Client'} Mode`, 
+          label: userRole === 'client' 
+            ? t('settings.switchToTasker', 'Switch to Tasker Mode')
+            : t('settings.switchToClient', 'Switch to Client Mode'), 
           action: () => switchRole(userRole === 'client' ? 'tasker' : 'client')
         },
       ]
     },
     {
-      title: 'Support',
+      title: t('settings.support'),
       items: [
-        { icon: HelpCircle, label: 'Help Center', path: '/help' },
-        { icon: FileText, label: 'Terms of Service', path: '/terms' },
-        { icon: Shield, label: 'Privacy Policy', path: '/privacy' },
+        { icon: HelpCircle, label: t('settings.help'), path: '/help' },
+        { icon: FileText, label: t('settings.terms'), path: '/terms' },
+        { icon: Shield, label: t('settings.privacy_policy'), path: '/privacy' },
       ]
     },
-  ], [theme, toggleTheme, userRole, switchRole]);
+  ], [t, theme, toggleTheme, userRole, switchRole, isArabic, toggleLanguage]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 pt-safe pb-24">
@@ -90,9 +108,9 @@ const SettingsScreen = memo(function SettingsScreen() {
             className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
             data-testid="button-back"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
           </motion.button>
-          <h1 className="text-2xl font-extrabold text-foreground">Settings</h1>
+          <h1 className="text-2xl font-extrabold text-foreground">{t('settings.title')}</h1>
         </motion.div>
 
         <div className="space-y-6">
@@ -109,26 +127,23 @@ const SettingsScreen = memo(function SettingsScreen() {
               <div className="glass rounded-3xl overflow-hidden">
                 {group.items.map((item, idx) => {
                   const Icon = item.icon;
-                  const content = (
-                    <motion.div 
-                      whileTap={{ scale: 0.98 }}
-                      className={cn(
-                        "flex items-center justify-between p-4 transition-all hover:bg-white/5",
-                        idx < group.items.length - 1 && "border-b border-white/10"
-                      )}
-                      data-testid={`button-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                    >
+                  const itemClasses = cn(
+                    "flex items-center justify-between p-4 transition-all hover:bg-white/5 w-full",
+                    idx < group.items.length - 1 && "border-b border-white/10"
+                  );
+                  
+                  const itemContent = (
+                    <>
                       <div className="flex items-center gap-4">
                         <div className="w-11 h-11 bg-primary/15 rounded-2xl flex items-center justify-center">
                           <Icon className="w-5 h-5 text-primary" />
                         </div>
-                        <span className="font-medium text-foreground">{item.label}</span>
+                        <span className="font-medium text-foreground text-start">{item.label}</span>
                       </div>
                       {item.toggle ? (
-                        <button
-                          onClick={item.action}
+                        <div
                           className={cn(
-                            "w-14 h-8 rounded-full transition-all relative",
+                            "w-14 h-8 rounded-full transition-all relative flex-shrink-0",
                             item.value ? "gradient-primary shadow-lg shadow-primary/30" : "bg-muted"
                           )}
                         >
@@ -137,21 +152,37 @@ const SettingsScreen = memo(function SettingsScreen() {
                             transition={{ type: "spring", stiffness: 500, damping: 30 }}
                             className="w-6 h-6 bg-white rounded-full absolute top-1 shadow-sm"
                           />
-                        </button>
+                        </div>
                       ) : (
-                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                        <ChevronRight className="w-5 h-5 text-muted-foreground rtl:rotate-180" />
                       )}
-                    </motion.div>
+                    </>
                   );
 
                   if (item.path) {
-                    return <Link key={item.label} href={item.path}>{content}</Link>;
+                    return (
+                      <Link key={item.label} href={item.path}>
+                        <motion.div 
+                          whileTap={{ scale: 0.98 }}
+                          className={itemClasses}
+                          data-testid={`link-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                        >
+                          {itemContent}
+                        </motion.div>
+                      </Link>
+                    );
                   }
                   
                   return (
-                    <button key={item.label} onClick={item.action} className="w-full text-left">
-                      {content}
-                    </button>
+                    <motion.button 
+                      key={item.label} 
+                      onClick={item.action} 
+                      whileTap={{ scale: 0.98 }}
+                      className={itemClasses}
+                      data-testid={`button-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      {itemContent}
+                    </motion.button>
                   );
                 })}
               </div>
@@ -169,7 +200,7 @@ const SettingsScreen = memo(function SettingsScreen() {
             data-testid="button-logout"
           >
             <LogOut className="w-5 h-5" />
-            Sign Out
+            {t('settings.logout')}
           </motion.button>
 
           <motion.p 
@@ -178,7 +209,7 @@ const SettingsScreen = memo(function SettingsScreen() {
             transition={{ delay: 0.5 }}
             className="text-center text-xs text-muted-foreground py-4"
           >
-            TaskField v1.0.0
+            {t('welcome.title')} v1.0.0
           </motion.p>
         </div>
       </div>
