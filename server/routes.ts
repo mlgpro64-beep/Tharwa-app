@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { storage } from "./storage";
 import { insertUserSchema, insertTaskSchema, insertBidSchema, insertMessageSchema } from "@shared/schema";
 import type { User } from "@shared/schema";
+import "express-session";
 
 let bcrypt: any;
 try {
@@ -15,6 +16,13 @@ try {
 
 export const router = Router();
 
+// Extend session type to include userId
+declare module "express-session" {
+  interface SessionData {
+    userId: string;
+  }
+}
+
 declare global {
   namespace Express {
     interface Request {
@@ -22,6 +30,12 @@ declare global {
       user?: User;
     }
   }
+}
+
+// Helper to strip password from user objects
+function sanitizeUser(user: User): Omit<User, 'password'> {
+  const { password, ...safeUser } = user;
+  return safeUser;
 }
 
 // Middleware to get current user
@@ -56,7 +70,7 @@ router.post("/api/auth/register", async (req, res) => {
     });
     
     req.session!.userId = user.id;
-    res.json({ user });
+    res.json({ user: sanitizeUser(user) });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -77,7 +91,7 @@ router.post("/api/auth/login", async (req, res) => {
     }
     
     req.session!.userId = user.id;
-    res.json({ user });
+    res.json({ user: sanitizeUser(user) });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -94,7 +108,7 @@ router.get("/api/users/me", (req, res) => {
   if (!req.user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
-  res.json(req.user);
+  res.json(sanitizeUser(req.user));
 });
 
 router.patch("/api/users/me", async (req, res) => {
@@ -102,7 +116,7 @@ router.patch("/api/users/me", async (req, res) => {
     if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
     
     const updated = await storage.updateUser(req.userId, req.body);
-    res.json(updated);
+    res.json(sanitizeUser(updated));
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

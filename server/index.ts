@@ -29,7 +29,7 @@ app.use(express.urlencoded({ extended: false }));
 const MemoryStore = createMemoryStore(session);
 app.use(
   session({
-    store: new MemoryStore(),
+    store: new MemoryStore({ checkPeriod: 86400000 }),
     secret: process.env.SESSION_SECRET || "secret",
     resave: false,
     saveUninitialized: false,

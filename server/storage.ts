@@ -22,13 +22,13 @@ export interface IStorage {
   getTask(id: string): Promise<Task | undefined>;
   getTasks(filters?: { clientId?: string; status?: string; category?: string }): Promise<Task[]>;
   createTask(data: InsertTask): Promise<Task>;
-  updateTask(id: string, data: Partial<InsertTask>): Promise<Task>;
+  updateTask(id: string, data: Partial<Task>): Promise<Task>;
   
   // Bids
   getBid(id: string): Promise<Bid | undefined>;
   getBidsForTask(taskId: string): Promise<Bid[]>;
   createBid(data: InsertBid): Promise<Bid>;
-  updateBid(id: string, data: Partial<InsertBid>): Promise<Bid>;
+  updateBid(id: string, data: Partial<Bid>): Promise<Bid>;
   
   // Messages
   getMessage(id: string): Promise<Message | undefined>;
@@ -87,17 +87,21 @@ export const storage: IStorage = {
   },
   
   async getTasks(filters?: { clientId?: string; status?: string; category?: string }) {
-    let query = db.select().from(tasks);
+    const conditions = [];
     if (filters?.clientId) {
-      query = query.where(eq(tasks.clientId, filters.clientId));
+      conditions.push(eq(tasks.clientId, filters.clientId));
     }
     if (filters?.status) {
-      query = query.where(eq(tasks.status, filters.status as any));
+      conditions.push(eq(tasks.status, filters.status as any));
     }
     if (filters?.category) {
-      query = query.where(eq(tasks.category, filters.category));
+      conditions.push(eq(tasks.category, filters.category));
     }
-    return query.orderBy(desc(tasks.createdAt));
+    
+    if (conditions.length > 0) {
+      return db.select().from(tasks).where(and(...conditions)).orderBy(desc(tasks.createdAt));
+    }
+    return db.select().from(tasks).orderBy(desc(tasks.createdAt));
   },
   
   async createTask(data: InsertTask) {
@@ -105,8 +109,8 @@ export const storage: IStorage = {
     return result[0];
   },
   
-  async updateTask(id: string, data: Partial<InsertTask>) {
-    const result = await db.update(tasks).set(data).where(eq(tasks.id, id)).returning();
+  async updateTask(id: string, data: Partial<Task>) {
+    const result = await db.update(tasks).set(data as any).where(eq(tasks.id, id)).returning();
     return result[0];
   },
   
@@ -126,8 +130,8 @@ export const storage: IStorage = {
     return result[0];
   },
   
-  async updateBid(id: string, data: Partial<InsertBid>) {
-    const result = await db.update(bids).set(data).where(eq(bids.id, id)).returning();
+  async updateBid(id: string, data: Partial<Bid>) {
+    const result = await db.update(bids).set(data as any).where(eq(bids.id, id)).returning();
     return result[0];
   },
   
@@ -179,7 +183,7 @@ export const storage: IStorage = {
     return result;
   },
   
-  async createNotification(data: InsertNotificationSchema) {
+  async createNotification(data: InsertNotification) {
     const result = await db.insert(notifications).values(data).returning();
     return result[0];
   },
