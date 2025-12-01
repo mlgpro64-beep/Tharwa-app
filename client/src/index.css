@@ -89,8 +89,8 @@
   --chart-4: 171 76% 47%;
   --chart-5: 280 85% 60%;
   
-  /* Typography */
-  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* Typography - Cairo font for Arabic support */
+  --font-sans: "Cairo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: "SF Mono", Menlo, monospace;
   --radius: .875rem;
