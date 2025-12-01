@@ -62,77 +62,91 @@ export const BottomNav = memo(function BottomNav() {
 
   return (
     <motion.div 
-      initial={{ y: 100 }}
-      animate={{ y: 0 }}
-      className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-2xl border-t border-white/10 dark:border-white/5 pb-safe pt-3 px-6 z-50"
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      className="fixed bottom-0 left-0 right-0 z-50"
     >
-      <div className="flex justify-between items-center h-16 max-w-md mx-auto">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.path);
-          
-          return (
-            <Link
-              key={item.path}
-              href={item.path}
-              data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-            >
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                className="flex flex-col items-center justify-center gap-1.5 w-16 group relative"
-              >
-                <motion.div 
-                  animate={{ 
-                    y: active ? -4 : 0,
-                    scale: active ? 1.1 : 1
-                  }}
-                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                  className={cn(
-                    "relative p-2.5 rounded-2xl transition-colors duration-300",
-                    active 
-                      ? "bg-primary/15" 
-                      : "hover:bg-muted/50"
-                  )}
+      <div className="mx-4 mb-4 pb-safe">
+        <div className="glass-premium rounded-[28px] px-2 py-2 max-w-md mx-auto">
+          <div className="flex justify-between items-center">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.path);
+              
+              return (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                  className="flex-1"
                 >
-                  <AnimatePresence>
-                    {active && (
-                      <motion.div
-                        layoutId="navIndicator"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 rounded-2xl bg-primary/15 -z-10"
-                      />
-                    )}
-                  </AnimatePresence>
-                  
-                  <Icon 
+                  <motion.button
+                    whileTap={{ scale: 0.92 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 20 }}
                     className={cn(
-                      "w-6 h-6 transition-colors duration-300",
-                      active 
-                        ? "text-primary" 
-                        : "text-muted-foreground group-hover:text-foreground"
+                      "relative w-full flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-[22px] transition-all duration-300",
+                      active && "bg-primary/10 dark:bg-primary/20"
                     )}
-                    strokeWidth={active ? 2.5 : 2}
-                  />
-                </motion.div>
-                
-                <AnimatePresence>
-                  {active && (
+                  >
+                    <AnimatePresence mode="wait">
+                      {active && (
+                        <motion.div
+                          layoutId="activeNavPill"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                          className="absolute inset-0 rounded-[22px] bg-gradient-to-r from-primary/15 to-accent/10 dark:from-primary/25 dark:to-accent/15"
+                        />
+                      )}
+                    </AnimatePresence>
+                    
+                    <motion.div
+                      animate={{ 
+                        scale: active ? 1 : 0.95,
+                        y: active ? -2 : 0
+                      }}
+                      transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                      className="relative"
+                    >
+                      <Icon 
+                        className={cn(
+                          "w-[22px] h-[22px] transition-all duration-300",
+                          active 
+                            ? "text-primary drop-shadow-[0_0_8px_rgba(59,91,255,0.4)]" 
+                            : "text-muted-foreground"
+                        )}
+                        strokeWidth={active ? 2.5 : 2}
+                      />
+                      {active && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary"
+                        />
+                      )}
+                    </motion.div>
+                    
                     <motion.span 
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      className="text-[10px] font-bold text-primary"
+                      initial={false}
+                      animate={{
+                        opacity: active ? 1 : 0.6,
+                        fontWeight: active ? 700 : 500,
+                      }}
+                      className={cn(
+                        "text-[10px] tracking-wide transition-colors duration-300",
+                        active ? "text-primary" : "text-muted-foreground"
+                      )}
                     >
                       {item.label}
                     </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.button>
-            </Link>
-          );
-        })}
+                  </motion.button>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </motion.div>
   );
