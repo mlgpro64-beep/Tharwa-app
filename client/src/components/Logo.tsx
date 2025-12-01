@@ -4,10 +4,9 @@ import { cn } from '@/lib/utils';
 interface LogoProps {
   className?: string;
   size?: number;
-  variant?: 'full' | 'icon';
 }
 
-const Logo = memo(function Logo({ className, size = 48, variant = 'icon' }: LogoProps) {
+const Logo = memo(function Logo({ className, size = 48 }: LogoProps) {
   return (
     <svg
       width={size}
@@ -18,93 +17,87 @@ const Logo = memo(function Logo({ className, size = 48, variant = 'icon' }: Logo
       className={cn('flex-shrink-0', className)}
       data-testid="logo"
     >
-      {/* Top person */}
-      <circle cx="50" cy="12" r="6" fill="url(#primaryGradient)" />
+      {/* Top person - head */}
+      <circle cx="50" cy="8" r="5" fill="#3B5BFF" />
+      {/* Top person - body (V shape like checkmark) */}
       <path
-        d="M40 28 L50 22 L60 28"
-        stroke="url(#primaryGradient)"
-        strokeWidth="8"
+        d="M42 18 C42 18 50 28 50 28 C50 28 58 18 58 18"
+        stroke="#3B5BFF"
+        strokeWidth="6"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
       
-      {/* Top-right person */}
-      <circle cx="82" cy="27" r="6" fill="url(#primaryGradient)" />
+      {/* Top-right person - head */}
+      <circle cx="83" cy="25" r="5" fill="#3B5BFF" />
+      {/* Top-right person - body */}
       <path
-        d="M72 43 L78 34 L88 37"
-        stroke="url(#primaryGradient)"
-        strokeWidth="8"
+        d="M73 30 C73 30 78 42 78 42 C78 42 88 35 88 35"
+        stroke="#3B5BFF"
+        strokeWidth="6"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
       
-      {/* Bottom-right person */}
-      <circle cx="82" cy="73" r="6" fill="url(#primaryGradient)" />
+      {/* Bottom-right person - head */}
+      <circle cx="83" cy="75" r="5" fill="#3B5BFF" />
+      {/* Bottom-right person - body */}
       <path
-        d="M88 63 L78 66 L72 57"
-        stroke="url(#primaryGradient)"
-        strokeWidth="8"
+        d="M88 65 C88 65 78 58 78 58 C78 58 73 70 73 70"
+        stroke="#3B5BFF"
+        strokeWidth="6"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
       
-      {/* Bottom person */}
-      <circle cx="50" cy="88" r="6" fill="url(#primaryGradient)" />
+      {/* Bottom person - head */}
+      <circle cx="50" cy="92" r="5" fill="#3B5BFF" />
+      {/* Bottom person - body (inverted V) */}
       <path
-        d="M60 72 L50 78 L40 72"
-        stroke="url(#primaryGradient)"
-        strokeWidth="8"
+        d="M58 82 C58 82 50 72 50 72 C50 72 42 82 42 82"
+        stroke="#3B5BFF"
+        strokeWidth="6"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
       
-      {/* Bottom-left person */}
-      <circle cx="18" cy="73" r="6" fill="url(#primaryGradient)" />
+      {/* Bottom-left person - head */}
+      <circle cx="17" cy="75" r="5" fill="#3B5BFF" />
+      {/* Bottom-left person - body */}
       <path
-        d="M12 63 L22 66 L28 57"
-        stroke="url(#primaryGradient)"
-        strokeWidth="8"
+        d="M12 65 C12 65 22 58 22 58 C22 58 27 70 27 70"
+        stroke="#3B5BFF"
+        strokeWidth="6"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
       
-      {/* Top-left person */}
-      <circle cx="18" cy="27" r="6" fill="url(#primaryGradient)" />
+      {/* Top-left person - head */}
+      <circle cx="17" cy="25" r="5" fill="#3B5BFF" />
+      {/* Top-left person - body */}
       <path
-        d="M28 43 L22 34 L12 37"
-        stroke="url(#primaryGradient)"
-        strokeWidth="8"
+        d="M27 30 C27 30 22 42 22 42 C22 42 12 35 12 35"
+        stroke="#3B5BFF"
+        strokeWidth="6"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
       
-      {/* Center checkmark */}
+      {/* Center checkmark - accent color (turquoise) */}
       <path
-        d="M32 52 L45 65 L70 35"
-        stroke="url(#accentGradient)"
-        strokeWidth="10"
+        d="M30 52 L44 66 L72 34"
+        stroke="#2ED1C4"
+        strokeWidth="9"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
-      
-      {/* Gradients */}
-      <defs>
-        <linearGradient id="primaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#3B5BFF" />
-          <stop offset="100%" stopColor="#6F86FF" />
-        </linearGradient>
-        <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#2ED1C4" />
-          <stop offset="100%" stopColor="#1FA697" />
-        </linearGradient>
-      </defs>
     </svg>
   );
 });
