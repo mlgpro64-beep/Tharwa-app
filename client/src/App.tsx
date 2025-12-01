@@ -93,7 +93,11 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes() {
 });
 
 const AppContent = memo(function AppContent() {
-  const { isAuthenticated } = useApp();
+  const { isAuthenticated, isLoading } = useApp();
+
+  if (isLoading) {
+    return <PageLoader />;
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">

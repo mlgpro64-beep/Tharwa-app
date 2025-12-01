@@ -8,6 +8,7 @@ interface AppContextType {
   userRole: UserRole;
   theme: 'light' | 'dark';
   isAuthenticated: boolean;
+  isLoading: boolean;
   savedTaskIds: string[];
   setUser: (user: User | null) => void;
   toggleTheme: () => void;
@@ -37,6 +38,7 @@ const getInitialTheme = (): 'light' | 'dark' => {
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('userRole') as UserRole) || 'client';
@@ -55,6 +57,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
     return [];
   });
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/users/me', { credentials: 'include' });
+        if (res.ok) {
+          const userData = await res.json();
+          setUser(userData);
+          if (userData.role) {
+            setUserRole(userData.role as UserRole);
+          }
+        }
+      } catch {
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -97,13 +118,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     userRole,
     theme,
     isAuthenticated: !!user,
+    isLoading,
     savedTaskIds,
     setUser,
     toggleTheme,
     switchRole,
     toggleSavedTask,
     logout,
-  }), [user, userRole, theme, savedTaskIds, toggleTheme, switchRole, toggleSavedTask, logout]);
+  }), [user, userRole, theme, isLoading, savedTaskIds, toggleTheme, switchRole, toggleSavedTask, logout]);
 
   return (
     <AppContext.Provider value={contextValue}>
