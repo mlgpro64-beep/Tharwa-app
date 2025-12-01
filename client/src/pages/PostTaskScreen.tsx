@@ -8,7 +8,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Loader2, MapPin, CheckCircle2 } from 'lucide-react';
 import type { TaskWithDetails } from '@shared/schema';
 
 interface TaskFormData {
@@ -17,6 +17,8 @@ interface TaskFormData {
   category: string;
   budget: string;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
   date: string;
   time: string;
 }
@@ -41,6 +43,8 @@ const PostTaskScreen = memo(function PostTaskScreen() {
     category: '',
     budget: '',
     location: '',
+    latitude: null,
+    longitude: null,
     date: '',
     time: '',
   });
@@ -48,6 +52,8 @@ const PostTaskScreen = memo(function PostTaskScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [locationError, setLocationError] = useState<string>('');
 
   useEffect(() => {
     if (existingTask && isEditMode) {
@@ -57,19 +63,80 @@ const PostTaskScreen = memo(function PostTaskScreen() {
         category: existingTask.category,
         budget: String(existingTask.budget),
         location: existingTask.location,
+        latitude: existingTask.latitude ? parseFloat(String(existingTask.latitude)) : null,
+        longitude: existingTask.longitude ? parseFloat(String(existingTask.longitude)) : null,
         date: existingTask.date,
         time: existingTask.time,
       });
+      if (existingTask.location) {
+        setLocationStatus('success');
+      }
     }
   }, [existingTask, isEditMode]);
+
+  const getCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser');
+      setLocationStatus('error');
+      return;
+    }
+
+    setLocationStatus('loading');
+    setLocationError('');
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const locationString = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+        setFormData(prev => ({
+          ...prev,
+          location: locationString,
+          latitude,
+          longitude,
+        }));
+        setLocationStatus('success');
+        if (errors.location) {
+          setErrors(prev => ({ ...prev, location: '' }));
+        }
+      },
+      (error) => {
+        let errorMessage = 'Unable to get your location';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location permission denied. Please enable it in your browser settings.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information is unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out.';
+            break;
+        }
+        setLocationError(errorMessage);
+        setLocationStatus('error');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
+  }, [errors.location]);
 
   const createTaskMutation = useMutation({
     mutationFn: async (data: TaskFormData) => {
       const endpoint = isEditMode ? `/api/tasks/${taskId}` : '/api/tasks';
       const method = isEditMode ? 'PATCH' : 'POST';
       return apiRequest(method, endpoint, {
-        ...data,
+        title: data.title,
+        description: data.description,
+        category: data.category,
         budget: parseFloat(data.budget),
+        location: data.location,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        date: data.date,
+        time: data.time,
       });
     },
     onSuccess: () => {
@@ -281,13 +348,56 @@ const PostTaskScreen = memo(function PostTaskScreen() {
                     error={errors.budget}
                     placeholder="0"
                   />
-                  <FloatingInput
-                    label="Location"
-                    value={formData.location}
-                    onChange={(e) => updateField('location', e.target.value)}
-                    error={errors.location}
-                    placeholder="Enter address or area"
-                  />
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    onClick={getCurrentLocation}
+                    disabled={locationStatus === 'loading'}
+                    className={cn(
+                      "w-full h-16 px-5 rounded-2xl glass text-left transition-all flex items-center gap-4",
+                      locationStatus === 'success' && "ring-2 ring-green-500/30",
+                      errors.location && "ring-2 ring-destructive/50"
+                    )}
+                    data-testid="button-get-location"
+                  >
+                    <div className={cn(
+                      "w-11 h-11 rounded-xl flex items-center justify-center transition-colors",
+                      locationStatus === 'success' ? "bg-green-500/15" : "bg-primary/15"
+                    )}>
+                      {locationStatus === 'loading' ? (
+                        <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                      ) : locationStatus === 'success' ? (
+                        <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      ) : (
+                        <MapPin className="w-5 h-5 text-primary" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] font-bold text-primary uppercase tracking-widest block">Location</span>
+                      <span className={cn(
+                        "font-medium block truncate",
+                        locationStatus === 'success' ? "text-foreground" : "text-muted-foreground"
+                      )}>
+                        {locationStatus === 'loading' 
+                          ? 'Getting location...' 
+                          : locationStatus === 'success' 
+                            ? formData.location 
+                            : 'Tap to use current location'}
+                      </span>
+                    </div>
+                  </motion.button>
+                  <AnimatePresence>
+                    {(errors.location || locationError) && (
+                      <motion.p 
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        className="text-destructive text-sm font-bold flex items-center gap-1.5"
+                      >
+                        <AlertCircle className="w-4 h-4" />
+                        {locationError || errors.location}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
                   <div className="grid grid-cols-2 gap-4">
                     <motion.button
                       whileTap={{ scale: 0.98 }}
