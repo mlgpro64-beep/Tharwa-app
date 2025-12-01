@@ -345,12 +345,7 @@ router.delete("/api/tasks/:id/save", async (req, res) => {
 router.get("/api/conversations", async (req, res) => {
   try {
     if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
-    
-    const userTasks = await storage.getTasks({ clientId: req.userId });
-    const taskerTasks = await storage.getTasks({ });
-    
-    const conversations = [];
-    res.json(conversations);
+    res.json([]); // Placeholder for conversations list
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

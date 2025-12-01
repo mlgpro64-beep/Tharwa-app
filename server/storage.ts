@@ -44,12 +44,12 @@ export interface IStorage {
   // Notifications
   getNotification(id: string): Promise<Notification | undefined>;
   getNotificationsForUser(userId: string): Promise<Notification[]>;
-  createNotification(data: InsertNotificationSchema): Promise<Notification>;
+  createNotification(data: InsertNotification): Promise<Notification>;
   markNotificationAsRead(id: string): Promise<Notification>;
   
   // Saved Tasks
   getSavedTasksForUser(userId: string): Promise<SavedTask[]>;
-  saveTas(userId: string, taskId: string): Promise<SavedTask>;
+  saveTask(userId: string, taskId: string): Promise<SavedTask>;
   unsaveTask(userId: string, taskId: string): Promise<void>;
 }
 
