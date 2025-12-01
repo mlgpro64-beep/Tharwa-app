@@ -4,6 +4,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import { WebSocketServer } from "ws";
 
 const app = express();
 const httpServer = createServer(app);
@@ -71,6 +72,48 @@ app.use((req, res, next) => {
   });
 
   next();
+});
+
+// WebSocket setup for real-time chat
+const wss = new WebSocketServer({ server: httpServer });
+const connections = new Map<string, Set<any>>();
+
+wss.on("connection", (ws, req) => {
+  const url = new URL(req.url || "", "http://localhost");
+  const taskId = url.searchParams.get("taskId");
+  
+  if (!taskId) {
+    ws.close();
+    return;
+  }
+  
+  if (!connections.has(taskId)) {
+    connections.set(taskId, new Set());
+  }
+  connections.get(taskId)!.add(ws);
+  
+  ws.on("message", (data) => {
+    try {
+      const message = JSON.parse(data.toString());
+      const taskConnections = connections.get(taskId);
+      if (taskConnections) {
+        taskConnections.forEach((client) => {
+          if (client.readyState === 1) { // OPEN
+            client.send(JSON.stringify({ type: "message", data: message }));
+          }
+        });
+      }
+    } catch (error) {
+      console.error("WebSocket message error:", error);
+    }
+  });
+  
+  ws.on("close", () => {
+    const taskConnections = connections.get(taskId);
+    if (taskConnections) {
+      taskConnections.delete(ws);
+    }
+  });
 });
 
 (async () => {

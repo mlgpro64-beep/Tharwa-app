@@ -11,8 +11,10 @@ import type { MessageWithUsers, TaskWithDetails, User } from '@shared/schema';
 export default function ChatScreen() {
   const { taskId } = useParams<{ taskId: string }>();
   const [message, setMessage] = useState('');
+  const [displayMessages, setDisplayMessages] = useState<MessageWithUsers[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   const { data: currentUser } = useQuery<User>({
     queryKey: ['/api/users/me'],
@@ -27,13 +29,58 @@ export default function ChatScreen() {
     refetchInterval: 3000,
   });
 
+  // Initialize WebSocket connection
+  useEffect(() => {
+    if (!taskId) return;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}?taskId=${taskId}`;
+    
+    try {
+      wsRef.current = new WebSocket(wsUrl);
+      
+      wsRef.current.onmessage = (event) => {
+        try {
+          const { type, data } = JSON.parse(event.data);
+          if (type === 'message') {
+            setDisplayMessages(prev => [...prev, data]);
+          }
+        } catch (error) {
+          console.error('Failed to parse WebSocket message', error);
+        }
+      };
+    } catch (error) {
+      console.error('WebSocket connection failed, falling back to polling', error);
+    }
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [taskId]);
+
+  // Update display messages from API
+  useEffect(() => {
+    if (messages) {
+      setDisplayMessages(messages);
+    }
+  }, [messages]);
+
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
-      return apiRequest('POST', `/api/tasks/${taskId}/messages`, { content });
+      const response = await apiRequest('POST', `/api/tasks/${taskId}/messages`, { content });
+      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (newMessage) => {
+      setDisplayMessages(prev => [...prev, newMessage]);
       queryClient.invalidateQueries({ queryKey: ['/api/tasks', taskId, 'messages'] });
       setMessage('');
+      
+      // Send via WebSocket if connected
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'message', data: newMessage }));
+      }
     },
   });
 
@@ -90,7 +137,7 @@ export default function ChatScreen() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-        {isLoading ? (
+        {isLoading && displayMessages.length === 0 ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className={cn("flex gap-3", i % 2 === 0 && "justify-end")}>
@@ -99,8 +146,8 @@ export default function ChatScreen() {
               </div>
             ))}
           </div>
-        ) : messages && messages.length > 0 ? (
-          messages.map((msg) => {
+        ) : displayMessages.length > 0 ? (
+          displayMessages.map((msg) => {
             const isOwn = msg.senderId === currentUser?.id;
             return (
               <div key={msg.id} className={cn("flex gap-3", isOwn && "justify-end")}>
