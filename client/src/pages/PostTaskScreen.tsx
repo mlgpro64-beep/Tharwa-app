@@ -74,6 +74,44 @@ const PostTaskScreen = memo(function PostTaskScreen() {
     }
   }, [existingTask, isEditMode]);
 
+  const reverseGeocode = useCallback(async (latitude: number, longitude: number): Promise<string> => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=16&addressdetails=1`,
+        {
+          headers: {
+            'Accept-Language': 'en',
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Geocoding failed');
+      }
+      
+      const data = await response.json();
+      const address = data.address;
+      
+      const neighborhood = address.neighbourhood || address.suburb || address.district || address.quarter || '';
+      const city = address.city || address.town || address.municipality || address.county || '';
+      
+      if (neighborhood && city) {
+        return `${neighborhood}, ${city}`;
+      } else if (city) {
+        return city;
+      } else if (neighborhood) {
+        return neighborhood;
+      } else if (address.state) {
+        return address.state;
+      }
+      
+      return data.display_name?.split(',').slice(0, 2).join(',').trim() || 'Unknown location';
+    } catch (error) {
+      console.error('Reverse geocoding error:', error);
+      return 'Location found';
+    }
+  }, []);
+
   const getCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setLocationError('Geolocation is not supported by your browser');
@@ -85,12 +123,14 @@ const PostTaskScreen = memo(function PostTaskScreen() {
     setLocationError('');
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const { latitude, longitude } = position.coords;
-        const locationString = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+        
+        const locationName = await reverseGeocode(latitude, longitude);
+        
         setFormData(prev => ({
           ...prev,
-          location: locationString,
+          location: locationName,
           latitude,
           longitude,
         }));
@@ -121,7 +161,7 @@ const PostTaskScreen = memo(function PostTaskScreen() {
         maximumAge: 60000,
       }
     );
-  }, [errors.location]);
+  }, [errors.location, reverseGeocode]);
 
   const createTaskMutation = useMutation({
     mutationFn: async (data: TaskFormData) => {
