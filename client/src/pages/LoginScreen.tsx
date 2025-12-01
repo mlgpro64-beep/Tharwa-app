@@ -1,25 +1,33 @@
-import { useState } from 'react';
+import { useState, memo, useCallback } from 'react';
 import { Link, useLocation } from 'wouter';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/context/AppContext';
-import { Screen } from '@/components/layout/Screen';
-import { FloatingInput } from '@/components/FloatingInput';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { ArrowLeft, LogIn, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-export default function LoginScreen() {
+interface FormData {
+  username: string;
+  password: string;
+}
+
+const LoginScreen = memo(function LoginScreen() {
   const [, setLocation] = useLocation();
   const { setUser, switchRole } = useApp();
   const { toast } = useToast();
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     username: '',
     password: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const loginMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
+    mutationFn: async (data: FormData) => {
       const response = await apiRequest('POST', '/api/auth/login', data);
       return response.json();
     },
@@ -35,100 +43,195 @@ export default function LoginScreen() {
     },
   });
 
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     const newErrors: Record<string, string> = {};
-    
     if (!formData.username.trim()) newErrors.username = 'Username is required';
     if (!formData.password.trim()) newErrors.password = 'Password is required';
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [formData]);
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     if (validateForm()) {
       loginMutation.mutate(formData);
     }
-  };
+  }, [validateForm, loginMutation, formData]);
 
-  const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = useCallback((field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [field]: e.target.value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
-  };
+  }, [errors]);
+
+  const handleBack = useCallback(() => {
+    setLocation('/');
+  }, [setLocation]);
 
   return (
-    <Screen className="px-6">
-      <div className="flex items-center justify-between py-4">
-        <button 
-          onClick={() => setLocation('/')}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 transition-colors active:scale-90"
-          data-testid="button-back"
-        >
-          <span className="material-symbols-outlined">arrow_back</span>
-        </button>
-        <div className="w-10"></div>
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-primary/5 pt-safe">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.4 }}
+          className="absolute top-40 -right-32 w-80 h-80 bg-primary/15 rounded-full blur-3xl"
+        />
       </div>
 
-      <div className="flex-1 flex flex-col py-8">
-        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-8 mx-auto">
-          <span className="material-symbols-outlined text-4xl text-primary">login</span>
-        </div>
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center px-6 py-4"
+      >
+        <motion.button 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleBack}
+          className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
+          data-testid="button-back"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </motion.button>
+      </motion.div>
 
-        <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2 text-center">
-          Welcome back
-        </h1>
-        <p className="text-muted-foreground mb-8 text-center">
-          Sign in to continue
-        </p>
+      <div className="flex-1 flex flex-col px-6 py-8 relative z-10">
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 200, damping: 20 }}
+          className="w-20 h-20 rounded-[1.5rem] gradient-primary flex items-center justify-center mb-8 mx-auto shadow-xl shadow-primary/25"
+        >
+          <LogIn className="w-10 h-10 text-white" />
+        </motion.div>
 
-        <div className="space-y-4 flex-1">
-          <FloatingInput
-            label="Username"
-            value={formData.username}
-            onChange={handleChange('username')}
-            error={errors.username}
-            autoComplete="username"
-          />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="text-center mb-10"
+        >
+          <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">
+            Welcome back
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Sign in to continue
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-5 flex-1"
+        >
+          <div className="relative">
+            <motion.input
+              type="text"
+              value={formData.username}
+              onChange={handleChange('username')}
+              onFocus={() => setFocusedField('username')}
+              onBlur={() => setFocusedField(null)}
+              placeholder="Username"
+              autoComplete="username"
+              className={cn(
+                "w-full h-16 px-5 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-200",
+                errors.username && "border-destructive",
+                focusedField === 'username' && "ring-2 ring-primary/30"
+              )}
+              data-testid="input-username"
+            />
+            <AnimatePresence>
+              {errors.username && (
+                <motion.p
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  className="mt-2 text-xs text-destructive font-medium"
+                >
+                  {errors.username}
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
           
-          <FloatingInput
-            label="Password"
-            type="password"
-            value={formData.password}
-            onChange={handleChange('password')}
-            error={errors.password}
-            autoComplete="current-password"
-          />
+          <div className="relative">
+            <motion.input
+              type={showPassword ? 'text' : 'password'}
+              value={formData.password}
+              onChange={handleChange('password')}
+              onFocus={() => setFocusedField('password')}
+              onBlur={() => setFocusedField(null)}
+              placeholder="Password"
+              autoComplete="current-password"
+              className={cn(
+                "w-full h-16 px-5 pr-14 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-200",
+                errors.password && "border-destructive",
+                focusedField === 'password' && "ring-2 ring-primary/30"
+              )}
+              data-testid="input-password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+            <AnimatePresence>
+              {errors.password && (
+                <motion.p
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  className="mt-2 text-xs text-destructive font-medium"
+                >
+                  {errors.password}
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
 
           <div className="text-right">
-            <button className="text-sm text-primary font-bold">
+            <button className="text-sm text-primary font-semibold hover:underline">
               Forgot password?
             </button>
           </div>
-        </div>
+        </motion.div>
 
-        <button
-          onClick={handleSubmit}
-          disabled={loginMutation.isPending}
-          className="w-full h-14 bg-primary text-primary-foreground rounded-2xl font-bold text-lg shadow-lg shadow-primary/25 hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none mt-6"
-          data-testid="button-sign-in"
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-6 pb-safe"
         >
-          {loginMutation.isPending ? (
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
-              Signing in...
-            </div>
-          ) : (
-            'Sign In'
-          )}
-        </button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleSubmit}
+            disabled={loginMutation.isPending}
+            className="w-full h-14 gradient-primary text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/25 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+            data-testid="button-sign-in"
+          >
+            {loginMutation.isPending ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              'Sign In'
+            )}
+          </motion.button>
 
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          Don't have an account?{' '}
-          <Link href="/role" className="text-primary font-bold">Create one</Link>
-        </p>
+          <p className="text-center text-muted-foreground mt-6">
+            Don't have an account?{' '}
+            <Link href="/role" className="text-primary font-bold hover:underline">
+              Create one
+            </Link>
+          </p>
+        </motion.div>
       </div>
-    </Screen>
+    </div>
   );
-}
+});
+
+export default LoginScreen;

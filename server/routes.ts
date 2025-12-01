@@ -123,6 +123,37 @@ router.get("/api/tasks", async (req, res) => {
   }
 });
 
+router.get("/api/tasks/my", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const userTasks = await storage.getTasks({ clientId: req.userId });
+    res.json(userTasks);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get("/api/tasks/available", async (req, res) => {
+  try {
+    const tasks = await storage.getTasks({ status: "open" });
+    res.json(tasks);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get("/api/tasks/saved", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const savedTasks = await storage.getSavedTasksForUser(req.userId);
+    res.json(savedTasks);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.get("/api/tasks/:id", async (req, res) => {
   try {
     const task = await storage.getTask(req.params.id);
@@ -155,26 +186,6 @@ router.patch("/api/tasks/:id", async (req, res) => {
     
     const updated = await storage.updateTask(req.params.id, req.body);
     res.json(updated);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.get("/api/tasks/my", async (req, res) => {
-  try {
-    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
-    
-    const userTasks = await storage.getTasks({ clientId: req.userId });
-    res.json(userTasks);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.get("/api/tasks/available", async (req, res) => {
-  try {
-    const tasks = await storage.getTasks({ status: "open" });
-    res.json(tasks);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -307,18 +318,7 @@ router.post("/api/notifications/read-all", async (req, res) => {
   }
 });
 
-// Saved tasks routes
-router.get("/api/tasks/saved", async (req, res) => {
-  try {
-    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
-    
-    const savedTasks = await storage.getSavedTasksForUser(req.userId);
-    res.json(savedTasks);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
+// Save/unsave task routes
 router.post("/api/tasks/:id/save", async (req, res) => {
   try {
     if (!req.userId) return res.status(401).json({ error: "Not authenticated" });

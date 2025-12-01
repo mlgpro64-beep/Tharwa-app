@@ -1,13 +1,16 @@
-import { Link } from 'wouter';
+import { memo, useMemo } from 'react';
+import { Link, useLocation } from 'wouter';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/context/AppContext';
-import { Screen } from '@/components/layout/Screen';
 import { TaskCard } from '@/components/TaskCard';
 import { CountUp } from '@/components/CountUp';
 import { useQuery } from '@tanstack/react-query';
-import { Skeleton } from '@/components/ui/skeleton';
+import { TaskCardSkeleton, EmptyState } from '@/components/ui/animated';
+import { Bell, Settings, Wallet, Plus, ArrowRight, TrendingUp, CheckCircle, Search } from 'lucide-react';
 import type { TaskWithDetails, User } from '@shared/schema';
 
-export default function HomeScreen() {
+const HomeScreen = memo(function HomeScreen() {
+  const [, setLocation] = useLocation();
   const { userRole, user } = useApp();
 
   const { data: currentUser } = useQuery<User>({
@@ -25,13 +28,34 @@ export default function HomeScreen() {
   });
 
   const displayUser = currentUser || user;
-  const balance = displayUser?.balance ? parseFloat(String(displayUser.balance)) : 0;
-  const recentTasks = tasks?.slice(0, 3) || [];
+  const balance = useMemo(() => 
+    displayUser?.balance ? parseFloat(String(displayUser.balance)) : 0,
+    [displayUser?.balance]
+  );
+  const recentTasks = useMemo(() => tasks?.slice(0, 3) || [], [tasks]);
 
   return (
-    <Screen className="px-0">
-      <div className="px-6 py-4">
-        <div className="flex items-center justify-between mb-6">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 pt-safe pb-24">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.4 }}
+          className="absolute -top-20 -right-20 w-64 h-64 bg-primary/15 rounded-full blur-3xl"
+        />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.2 }}
+          transition={{ delay: 0.2 }}
+          className="absolute top-40 -left-20 w-48 h-48 bg-accent/20 rounded-full blur-3xl"
+        />
+      </div>
+
+      <div className="relative z-10 px-6 py-6">
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between mb-8"
+        >
           <div>
             <p className="text-sm text-muted-foreground font-medium">
               {userRole === 'tasker' ? 'Welcome back' : 'Hello'}
@@ -41,143 +65,170 @@ export default function HomeScreen() {
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/notifications">
-              <button 
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-card border border-border hover:bg-muted transition-colors active:scale-90"
-                data-testid="button-notifications"
-              >
-                <span className="material-symbols-outlined">notifications</span>
-              </button>
-            </Link>
-            <Link href="/settings">
-              <button 
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-card border border-border hover:bg-muted transition-colors active:scale-90"
-                data-testid="button-settings"
-              >
-                <span className="material-symbols-outlined">settings</span>
-              </button>
-            </Link>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setLocation('/notifications')}
+              className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
+              data-testid="button-notifications"
+            >
+              <Bell className="w-5 h-5" />
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setLocation('/settings')}
+              className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
+              data-testid="button-settings"
+            >
+              <Settings className="w-5 h-5" />
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
 
-        <Link href="/wallet">
-          <div 
-            className="bg-gradient-to-br from-primary to-primary/80 p-6 rounded-3xl text-primary-foreground mb-6 shadow-lg shadow-primary/25 active:scale-[0.99] transition-all cursor-pointer"
-            data-testid="card-wallet-balance"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-sm opacity-80 font-medium">Available Balance</p>
-                <p className="text-3xl font-extrabold">
-                  $<CountUp end={balance} decimals={2} />
-                </p>
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Link href="/wallet">
+            <motion.div 
+              whileTap={{ scale: 0.98 }}
+              className="gradient-primary p-6 rounded-3xl text-white mb-6 shadow-2xl shadow-primary/30 cursor-pointer relative overflow-hidden"
+              data-testid="card-wallet-balance"
+            >
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+              
+              <div className="flex items-center justify-between mb-6 relative">
+                <div>
+                  <p className="text-sm opacity-80 font-medium mb-1">Available Balance</p>
+                  <p className="text-4xl font-extrabold tracking-tight">
+                    $<CountUp end={balance} decimals={2} />
+                  </p>
+                </div>
+                <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                  <Wallet className="w-8 h-8" />
+                </div>
               </div>
-              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
-                <span className="material-symbols-outlined text-2xl">account_balance_wallet</span>
+              
+              <div className="flex items-center gap-2 text-sm opacity-90 font-medium relative">
+                <span>Tap to manage wallet</span>
+                <ArrowRight className="w-4 h-4" />
               </div>
-            </div>
-            <div className="flex items-center gap-2 text-sm opacity-80">
-              <span className="material-symbols-outlined text-sm">arrow_forward</span>
-              Tap to manage wallet
-            </div>
-          </div>
-        </Link>
+            </motion.div>
+          </Link>
+        </motion.div>
 
         {userRole === 'tasker' && (
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-card p-4 rounded-2xl border border-border">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-success/10 rounded-xl flex items-center justify-center">
-                  <span className="material-symbols-outlined text-success">payments</span>
-                </div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="grid grid-cols-2 gap-4 mb-8"
+          >
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              className="glass-premium rounded-3xl p-5"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-success/15 flex items-center justify-center mb-4">
+                <TrendingUp className="w-6 h-6 text-success" />
               </div>
-              <p className="text-2xl font-extrabold text-foreground">
+              <p className="text-3xl font-extrabold text-foreground mb-1">
                 $<CountUp end={stats?.earnings || 0} decimals={0} />
               </p>
-              <p className="text-xs text-muted-foreground font-medium">Total Earnings</p>
-            </div>
-            <div className="bg-card p-4 rounded-2xl border border-border">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <span className="material-symbols-outlined text-primary">task_alt</span>
-                </div>
+              <p className="text-sm text-muted-foreground font-medium">Total Earnings</p>
+            </motion.div>
+            
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              className="glass-premium rounded-3xl p-5"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center mb-4">
+                <CheckCircle className="w-6 h-6 text-primary" />
               </div>
-              <p className="text-2xl font-extrabold text-foreground">
+              <p className="text-3xl font-extrabold text-foreground mb-1">
                 <CountUp end={stats?.jobsDone || 0} decimals={0} />
               </p>
-              <p className="text-xs text-muted-foreground font-medium">Jobs Completed</p>
-            </div>
-          </div>
+              <p className="text-sm text-muted-foreground font-medium">Jobs Completed</p>
+            </motion.div>
+          </motion.div>
         )}
 
         {userRole === 'client' && (
-          <Link href="/post-task/1">
-            <button 
-              className="w-full h-14 bg-card border-2 border-dashed border-primary/30 text-primary rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-primary/5 active:scale-[0.98] transition-all mb-6"
-              data-testid="button-post-task"
-            >
-              <span className="material-symbols-outlined">add</span>
-              Post a New Task
-            </button>
-          </Link>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Link href="/post-task/1">
+              <motion.button 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full h-16 glass-premium rounded-3xl font-bold flex items-center justify-center gap-3 mb-8 gradient-border text-primary"
+                data-testid="button-post-task"
+              >
+                <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
+                  <Plus className="w-5 h-5 text-white" />
+                </div>
+                <span>Post a New Task</span>
+              </motion.button>
+            </Link>
+          </motion.div>
         )}
-      </div>
 
-      <div className="px-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-foreground">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="flex items-center justify-between mb-6"
+        >
+          <h2 className="text-xl font-bold text-foreground">
             {userRole === 'tasker' ? 'Available Tasks' : 'Your Tasks'}
           </h2>
           <Link 
             href={userRole === 'tasker' ? '/tasks-feed' : '/my-tasks'}
-            className="text-sm text-primary font-bold"
+            className="text-sm text-primary font-bold flex items-center gap-1 hover:gap-2 transition-all"
           >
             See all
+            <ArrowRight className="w-4 h-4" />
           </Link>
-        </div>
+        </motion.div>
 
-        <div className="space-y-4 pb-4">
-          {tasksLoading ? (
-            <>
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-card p-6 rounded-3xl border border-border">
-                  <Skeleton className="h-4 w-20 mb-2" />
-                  <Skeleton className="h-6 w-3/4 mb-4" />
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-2/3 mb-4" />
-                  <div className="flex items-center justify-between pt-4 border-t border-border">
-                    <div className="flex gap-3">
-                      <Skeleton className="h-8 w-20 rounded-xl" />
-                      <Skeleton className="h-8 w-20 rounded-xl" />
-                    </div>
-                    <Skeleton className="h-8 w-16 rounded-lg" />
-                  </div>
-                </div>
-              ))}
-            </>
-          ) : recentTasks.length > 0 ? (
-            recentTasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
-            ))
-          ) : (
-            <div className="bg-card p-8 rounded-3xl border border-border text-center">
-              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="material-symbols-outlined text-3xl text-muted-foreground">
-                  {userRole === 'tasker' ? 'search' : 'add_task'}
-                </span>
-              </div>
-              <h3 className="font-bold text-foreground mb-2">
-                {userRole === 'tasker' ? 'No tasks available' : 'No tasks yet'}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {userRole === 'tasker' 
+        <div className="space-y-4">
+          <AnimatePresence mode="wait">
+            {tasksLoading ? (
+              <TaskCardSkeleton count={3} />
+            ) : recentTasks.length > 0 ? (
+              recentTasks.map((task, index) => (
+                <TaskCard key={task.id} task={task} index={index} />
+              ))
+            ) : (
+              <EmptyState
+                icon={userRole === 'tasker' ? <Search className="w-8 h-8" /> : <Plus className="w-8 h-8" />}
+                title={userRole === 'tasker' ? 'No tasks available' : 'No tasks yet'}
+                description={userRole === 'tasker' 
                   ? 'Check back later for new opportunities' 
                   : 'Post your first task to get started'}
-              </p>
-            </div>
-          )}
+                action={
+                  userRole === 'client' && (
+                    <Link href="/post-task/1">
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="gradient-primary text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-primary/25"
+                      >
+                        Post a Task
+                      </motion.button>
+                    </Link>
+                  )
+                }
+              />
+            )}
+          </AnimatePresence>
         </div>
       </div>
-    </Screen>
+    </div>
   );
-}
+});
+
+export default HomeScreen;

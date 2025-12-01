@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link } from 'wouter';
-import { Screen } from '@/components/layout/Screen';
+import { useEffect, useRef, useState, memo, useCallback } from 'react';
+import { Link, useLocation } from 'wouter';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
-import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { LoadingSpinner } from '@/components/ui/animated';
+import { ArrowLeft, Search, List, MapPin, Clock, X, DollarSign } from 'lucide-react';
 import type { TaskWithDetails } from '@shared/schema';
 
 declare global {
@@ -12,12 +13,13 @@ declare global {
   }
 }
 
-export default function MapScreen() {
+const MapScreen = memo(function MapScreen() {
+  const [, setLocation] = useLocation();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const [selectedTask, setSelectedTask] = useState<TaskWithDetails | null>(null);
 
-  const { data: tasks, isLoading } = useQuery<TaskWithDetails[]>({
+  const { data: tasks, isLoading, error } = useQuery<TaskWithDetails[]>({
     queryKey: ['/api/tasks/available'],
   });
 
@@ -58,7 +60,7 @@ export default function MapScreen() {
       }
     });
 
-    tasks.forEach((task, index) => {
+    tasks.forEach((task) => {
       const lat = task.latitude ? parseFloat(String(task.latitude)) : 40.7128 + (Math.random() - 0.5) * 0.05;
       const lng = task.longitude ? parseFloat(String(task.longitude)) : -74.0060 + (Math.random() - 0.5) * 0.05;
       
@@ -78,7 +80,7 @@ export default function MapScreen() {
     });
   }, [tasks]);
 
-  const formatCurrency = (amount: number | string) => {
+  const formatCurrency = useCallback((amount: number | string) => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -86,91 +88,129 @@ export default function MapScreen() {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(num);
-  };
+  }, []);
 
   return (
-    <Screen className="px-0 relative" safeAreaBottom={false} noPadding>
-      <div className="absolute top-0 left-0 right-0 z-20 p-4 flex items-center gap-4">
-        <button 
+    <div className="min-h-screen relative bg-background">
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="absolute top-0 left-0 right-0 z-20 p-4 pt-safe flex items-center gap-4"
+      >
+        <motion.button 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => window.history.back()}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-card/90 backdrop-blur-xl border border-border shadow-lg hover:bg-card transition-colors active:scale-90"
+          className="w-11 h-11 flex items-center justify-center rounded-2xl glass shadow-lg"
           data-testid="button-back"
         >
-          <span className="material-symbols-outlined">arrow_back</span>
-        </button>
+          <ArrowLeft className="w-5 h-5" />
+        </motion.button>
+        
         <div className="flex-1">
           <div className="relative">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">search</span>
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <input
               type="search"
               placeholder="Search location..."
-              className="w-full h-10 pl-12 pr-4 rounded-full bg-card/90 backdrop-blur-xl border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-lg"
+              className="w-full h-11 pl-12 pr-4 rounded-2xl glass text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-lg"
               data-testid="input-search-location"
             />
           </div>
         </div>
+        
         <Link href="/tasks-feed">
-          <button 
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-card/90 backdrop-blur-xl border border-border shadow-lg hover:bg-card transition-colors active:scale-90"
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="w-11 h-11 flex items-center justify-center rounded-2xl glass shadow-lg"
             data-testid="button-list-view"
           >
-            <span className="material-symbols-outlined">list</span>
-          </button>
+            <List className="w-5 h-5" />
+          </motion.button>
         </Link>
-      </div>
+      </motion.div>
 
-      {isLoading ? (
-        <div className="h-screen flex items-center justify-center bg-muted">
+      {isLoading || error ? (
+        <div className="h-screen flex items-center justify-center bg-gradient-to-b from-background to-primary/5">
           <div className="text-center">
-            <div className="w-12 h-12 border-4 border-muted border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-muted-foreground font-medium">Loading map...</p>
+            {isLoading ? (
+              <>
+                <LoadingSpinner size="lg" className="mx-auto mb-4" />
+                <p className="text-muted-foreground font-medium">Loading map...</p>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 rounded-3xl gradient-primary flex items-center justify-center mb-4 mx-auto shadow-lg">
+                  <MapPin className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="font-bold text-foreground mb-2">Map unavailable</h3>
+                <p className="text-muted-foreground text-sm">Please try again later</p>
+              </>
+            )}
           </div>
         </div>
       ) : (
         <div ref={mapRef} className="h-screen w-full" />
       )}
 
-      {selectedTask && (
-        <div className="absolute bottom-0 left-0 right-0 z-20 p-4 pb-safe animate-slide-up">
-          <Link href={`/task/${selectedTask.id}`}>
-            <div 
-              className="bg-card/95 backdrop-blur-xl p-4 rounded-2xl border border-border shadow-xl active:scale-[0.99] transition-all cursor-pointer"
-              data-testid={`task-preview-${selectedTask.id}`}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                    {selectedTask.category}
-                  </span>
-                  <h3 className="text-lg font-bold text-foreground">{selectedTask.title}</h3>
-                </div>
-                <button 
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedTask(null); }}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 transition-colors"
-                >
-                  <span className="material-symbols-outlined text-sm">close</span>
-                </button>
-              </div>
-              <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{selectedTask.description}</p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 text-xs font-bold text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm text-primary">location_on</span>
-                    {selectedTask.distance || selectedTask.location}
+      <AnimatePresence>
+        {selectedTask && (
+          <motion.div 
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="absolute bottom-0 left-0 right-0 z-20 p-4 pb-safe"
+          >
+            <Link href={`/task/${selectedTask.id}`}>
+              <motion.div 
+                whileTap={{ scale: 0.98 }}
+                className="glass-premium p-5 rounded-3xl shadow-2xl cursor-pointer"
+                data-testid={`task-preview-${selectedTask.id}`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
+                      {selectedTask.category}
+                    </span>
+                    <h3 className="text-lg font-bold text-foreground">{selectedTask.title}</h3>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm text-primary">schedule</span>
-                    {selectedTask.time}
+                  <motion.button 
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedTask(null); }}
+                    className="w-8 h-8 flex items-center justify-center rounded-full glass-button"
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                </div>
+                <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{selectedTask.description}</p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-primary" />
+                      {selectedTask.distance || selectedTask.location}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-primary" />
+                      {selectedTask.time}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 bg-primary/15 px-3 py-1.5 rounded-xl">
+                    <DollarSign className="w-4 h-4 text-primary" />
+                    <span className="font-extrabold text-lg text-primary">
+                      {formatCurrency(selectedTask.budget).replace('$', '')}
+                    </span>
                   </div>
                 </div>
-                <span className="font-extrabold text-lg text-primary">
-                  {formatCurrency(selectedTask.budget)}
-                </span>
-              </div>
-            </div>
-          </Link>
-        </div>
-      )}
-    </Screen>
+              </motion.div>
+            </Link>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
-}
+});
+
+export default MapScreen;
