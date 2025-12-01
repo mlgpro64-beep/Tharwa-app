@@ -1,10 +1,18 @@
 import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Sparkles } from 'lucide-react';
 
 const WelcomeScreen = memo(function WelcomeScreen() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
+
+  const tags = [
+    { key: 'welcome.trusted' },
+    { key: 'welcome.secure' },
+    { key: 'welcome.local' }
+  ];
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background via-background to-primary/5 pt-safe">
@@ -13,13 +21,13 @@ const WelcomeScreen = memo(function WelcomeScreen() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.5 }}
           transition={{ duration: 1.5 }}
-          className="absolute top-20 -right-20 w-64 h-64 bg-primary/20 rounded-full blur-3xl"
+          className="absolute top-20 -right-20 w-64 h-64 bg-primary/20 rounded-full blur-3xl rtl:-left-20 rtl:right-auto"
         />
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.3 }}
           transition={{ duration: 1.5, delay: 0.3 }}
-          className="absolute bottom-40 -left-20 w-64 h-64 bg-accent/20 rounded-full blur-3xl"
+          className="absolute bottom-40 -left-20 w-64 h-64 bg-accent/20 rounded-full blur-3xl rtl:-right-20 rtl:left-auto"
         />
       </div>
 
@@ -59,10 +67,10 @@ const WelcomeScreen = memo(function WelcomeScreen() {
           className="text-center max-w-sm"
         >
           <h1 className="text-5xl font-extrabold tracking-tight mb-4 gradient-text">
-            TaskField
+            {t('welcome.title')}
           </h1>
           <p className="text-xl text-muted-foreground leading-relaxed">
-            Your community marketplace for everyday tasks
+            {t('welcome.subtitle')}
           </p>
         </motion.div>
 
@@ -72,16 +80,16 @@ const WelcomeScreen = memo(function WelcomeScreen() {
           transition={{ delay: 0.5, duration: 0.5 }}
           className="flex flex-wrap justify-center gap-3 mt-8"
         >
-          {['Trusted', 'Secure', 'Local'].map((tag, i) => (
+          {tags.map((tag, i) => (
             <motion.div
-              key={tag}
+              key={tag.key}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.6 + i * 0.1 }}
               className="px-4 py-2 rounded-full glass text-sm font-medium text-foreground/80 flex items-center gap-2"
             >
               <Sparkles className="w-3.5 h-3.5 text-primary" />
-              {tag}
+              {t(tag.key)}
             </motion.div>
           ))}
         </motion.div>
@@ -100,10 +108,11 @@ const WelcomeScreen = memo(function WelcomeScreen() {
           className="w-full h-14 gradient-primary text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/25 transition-all flex items-center justify-center gap-2"
           data-testid="button-get-started"
         >
-          Get Started
+          {t('auth.getStarted')}
           <motion.span
             animate={{ x: [0, 4, 0] }}
             transition={{ duration: 1.5, repeat: Infinity }}
+            className="rtl:rotate-180"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -118,14 +127,11 @@ const WelcomeScreen = memo(function WelcomeScreen() {
           className="w-full h-14 glass rounded-2xl font-bold text-lg text-foreground transition-all"
           data-testid="button-login"
         >
-          I already have an account
+          {t('auth.alreadyHaveAccount')}
         </motion.button>
 
         <p className="text-xs text-muted-foreground text-center pt-4 leading-relaxed">
-          By continuing, you agree to our{' '}
-          <button className="text-primary font-semibold">Terms of Service</button>
-          {' '}and{' '}
-          <button className="text-primary font-semibold">Privacy Policy</button>
+          {t('settings.terms')} {t('common.and')} {t('settings.privacy_policy')}
         </p>
       </motion.div>
     </div>

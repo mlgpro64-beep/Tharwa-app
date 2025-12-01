@@ -1,6 +1,7 @@
 import { useState, memo, useCallback } from 'react';
 import { Link, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '@/context/AppContext';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -17,6 +18,7 @@ const LoginScreen = memo(function LoginScreen() {
   const [, setLocation] = useLocation();
   const { setUser, switchRole } = useApp();
   const { toast } = useToast();
+  const { t } = useTranslation();
   
   const [formData, setFormData] = useState<FormData>({
     username: '',
@@ -35,21 +37,21 @@ const LoginScreen = memo(function LoginScreen() {
       setUser(data.user);
       switchRole(data.user.role);
       localStorage.setItem('userId', data.user.id);
-      toast({ title: 'Welcome back!', description: `Signed in as ${data.user.name}` });
+      toast({ title: t('auth.login'), description: data.user.name });
       setLocation('/home');
     },
     onError: (error: Error) => {
-      toast({ title: 'Login failed', description: error.message, variant: 'destructive' });
+      toast({ title: t('errors.somethingWentWrong'), description: error.message, variant: 'destructive' });
     },
   });
 
   const validateForm = useCallback(() => {
     const newErrors: Record<string, string> = {};
-    if (!formData.username.trim()) newErrors.username = 'Username is required';
-    if (!formData.password.trim()) newErrors.password = 'Password is required';
+    if (!formData.username.trim()) newErrors.username = t('errors.required');
+    if (!formData.password.trim()) newErrors.password = t('errors.required');
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [formData]);
+  }, [formData, t]);
 
   const handleSubmit = useCallback(() => {
     if (validateForm()) {
@@ -74,7 +76,7 @@ const LoginScreen = memo(function LoginScreen() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.4 }}
-          className="absolute top-40 -right-32 w-80 h-80 bg-primary/15 rounded-full blur-3xl"
+          className="absolute top-40 -right-32 w-80 h-80 bg-primary/15 rounded-full blur-3xl rtl:-left-32 rtl:right-auto"
         />
       </div>
 
@@ -90,7 +92,7 @@ const LoginScreen = memo(function LoginScreen() {
           className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
           data-testid="button-back"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
         </motion.button>
       </motion.div>
 
@@ -111,10 +113,10 @@ const LoginScreen = memo(function LoginScreen() {
           className="text-center mb-10"
         >
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">
-            Welcome back
+            {t('auth.login')}
           </h1>
           <p className="text-muted-foreground text-lg">
-            Sign in to continue
+            {t('auth.haveAccount')}
           </p>
         </motion.div>
 
@@ -131,7 +133,7 @@ const LoginScreen = memo(function LoginScreen() {
               onChange={handleChange('username')}
               onFocus={() => setFocusedField('username')}
               onBlur={() => setFocusedField(null)}
-              placeholder="Username"
+              placeholder={t('auth.username')}
               autoComplete="username"
               className={cn(
                 "w-full h-16 px-5 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-200",
@@ -161,10 +163,10 @@ const LoginScreen = memo(function LoginScreen() {
               onChange={handleChange('password')}
               onFocus={() => setFocusedField('password')}
               onBlur={() => setFocusedField(null)}
-              placeholder="Password"
+              placeholder={t('auth.password')}
               autoComplete="current-password"
               className={cn(
-                "w-full h-16 px-5 pr-14 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-200",
+                "w-full h-16 px-5 pe-14 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-200",
                 errors.password && "border-destructive",
                 focusedField === 'password' && "ring-2 ring-primary/30"
               )}
@@ -173,7 +175,7 @@ const LoginScreen = memo(function LoginScreen() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground transition-colors"
+              className="absolute left-4 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground transition-colors rtl:right-4 rtl:left-auto"
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
@@ -191,9 +193,9 @@ const LoginScreen = memo(function LoginScreen() {
             </AnimatePresence>
           </div>
 
-          <div className="text-right">
+          <div className="text-start">
             <button className="text-sm text-primary font-semibold hover:underline">
-              Forgot password?
+              {t('auth.forgotPassword')}
             </button>
           </div>
         </motion.div>
@@ -215,17 +217,17 @@ const LoginScreen = memo(function LoginScreen() {
             {loginMutation.isPending ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Signing in...
+                {t('common.loading')}
               </>
             ) : (
-              'Sign In'
+              t('auth.login')
             )}
           </motion.button>
 
           <p className="text-center text-muted-foreground mt-6">
-            Don't have an account?{' '}
+            {t('auth.noAccount')}{' '}
             <Link href="/role" className="text-primary font-bold hover:underline">
-              Create one
+              {t('auth.register')}
             </Link>
           </p>
         </motion.div>

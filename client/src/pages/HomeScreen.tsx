@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/context/AppContext';
+import { useTranslation } from 'react-i18next';
 import { TaskCard } from '@/components/TaskCard';
 import { CountUp } from '@/components/CountUp';
 import { useQuery } from '@tanstack/react-query';
@@ -36,6 +37,7 @@ const itemVariants = {
 const HomeScreen = memo(function HomeScreen() {
   const [, setLocation] = useLocation();
   const { userRole, user } = useApp();
+  const { t } = useTranslation();
 
   const { data: currentUser } = useQuery<User>({
     queryKey: ['/api/users/me'],
@@ -60,10 +62,10 @@ const HomeScreen = memo(function HomeScreen() {
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  }, []);
+    if (hour < 12) return t('home.greeting.morning');
+    if (hour < 17) return t('home.greeting.afternoon');
+    return t('home.greeting.evening');
+  }, [t]);
 
   return (
     <div className="min-h-screen gradient-mesh pt-safe pb-32">
@@ -72,19 +74,19 @@ const HomeScreen = memo(function HomeScreen() {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 0.5, scale: 1 }}
           transition={{ duration: 1, ease: "easeOut" }}
-          className="absolute -top-32 -right-32 w-80 h-80 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-3xl"
+          className="absolute -top-32 -right-32 w-80 h-80 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-3xl rtl:-left-32 rtl:right-auto"
         />
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 0.35, scale: 1 }}
           transition={{ duration: 1.2, delay: 0.2, ease: "easeOut" }}
-          className="absolute top-60 -left-24 w-56 h-56 bg-gradient-to-tr from-accent/25 to-accent/5 rounded-full blur-3xl"
+          className="absolute top-60 -left-24 w-56 h-56 bg-gradient-to-tr from-accent/25 to-accent/5 rounded-full blur-3xl rtl:-right-24 rtl:left-auto"
         />
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.2 }}
           transition={{ duration: 1.5, delay: 0.4 }}
-          className="absolute bottom-40 right-10 w-40 h-40 bg-gradient-to-tl from-primary/15 to-transparent rounded-full blur-2xl"
+          className="absolute bottom-40 right-10 w-40 h-40 bg-gradient-to-tl from-primary/15 to-transparent rounded-full blur-2xl rtl:left-10 rtl:right-auto"
         />
       </div>
 
@@ -112,7 +114,7 @@ const HomeScreen = memo(function HomeScreen() {
               transition={{ delay: 0.1 }}
               className="text-2xl font-extrabold text-foreground tracking-tight"
             >
-              {displayUser?.name || 'Guest'}
+              {displayUser?.name || t('common.guest')}
             </motion.h1>
           </div>
           <div className="flex items-center gap-2.5">
@@ -148,8 +150,8 @@ const HomeScreen = memo(function HomeScreen() {
               <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-dark to-primary/90" />
               
               <div className="absolute inset-0 opacity-30">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl" />
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/20 rounded-full translate-y-1/2 -translate-x-1/4 blur-2xl" />
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl rtl:left-0 rtl:right-auto rtl:-translate-x-1/4" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/20 rounded-full translate-y-1/2 -translate-x-1/4 blur-2xl rtl:right-0 rtl:left-auto rtl:translate-x-1/4" />
               </div>
               
               <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxIiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz48L2c+PC9zdmc+')] opacity-60" />
@@ -157,7 +159,7 @@ const HomeScreen = memo(function HomeScreen() {
               <div className="relative p-6">
                 <div className="flex items-start justify-between mb-5">
                   <div>
-                    <p className="text-sm text-white/70 font-medium mb-1.5">Available Balance</p>
+                    <p className="text-sm text-white/70 font-medium mb-1.5">{t('home.availableBalance')}</p>
                     <p className="text-[40px] font-extrabold text-white tracking-tight leading-none">
                       $<CountUp end={balance} decimals={2} />
                     </p>
@@ -171,10 +173,11 @@ const HomeScreen = memo(function HomeScreen() {
                 </div>
                 
                 <div className="flex items-center gap-2 text-sm text-white/80 font-medium">
-                  <span>Tap to manage wallet</span>
+                  <span>{t('home.tapToManageWallet')}</span>
                   <motion.div
                     animate={{ x: [0, 4, 0] }}
                     transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                    className="rtl:rotate-180"
                   >
                     <ArrowRight className="w-4 h-4" />
                   </motion.div>
@@ -200,7 +203,7 @@ const HomeScreen = memo(function HomeScreen() {
               <p className="text-[28px] font-extrabold text-foreground mb-0.5 tracking-tight">
                 $<CountUp end={stats?.earnings || 0} decimals={0} />
               </p>
-              <p className="text-xs text-muted-foreground font-medium">Total Earnings</p>
+              <p className="text-xs text-muted-foreground font-medium">{t('home.totalEarnings')}</p>
             </motion.div>
             
             <motion.div 
@@ -214,7 +217,7 @@ const HomeScreen = memo(function HomeScreen() {
               <p className="text-[28px] font-extrabold text-foreground mb-0.5 tracking-tight">
                 <CountUp end={stats?.jobsDone || 0} decimals={0} />
               </p>
-              <p className="text-xs text-muted-foreground font-medium">Jobs Completed</p>
+              <p className="text-xs text-muted-foreground font-medium">{t('home.jobsCompleted')}</p>
             </motion.div>
           </motion.div>
         )}
@@ -239,8 +242,8 @@ const HomeScreen = memo(function HomeScreen() {
                   >
                     <Plus className="w-5 h-5 text-white" strokeWidth={2.5} />
                   </motion.div>
-                  <span className="text-base font-bold text-foreground">Post a New Task</span>
-                  <Sparkles className="w-4 h-4 text-primary ml-auto" />
+                  <span className="text-base font-bold text-foreground">{t('home.postNewTask')}</span>
+                  <Sparkles className="w-4 h-4 text-primary ms-auto" />
                 </div>
               </motion.button>
             </Link>
@@ -252,15 +255,15 @@ const HomeScreen = memo(function HomeScreen() {
           className="flex items-center justify-between mb-5"
         >
           <h2 className="text-lg font-bold text-foreground">
-            {userRole === 'tasker' ? 'Available Tasks' : 'Your Tasks'}
+            {userRole === 'tasker' ? t('home.availableTasks') : t('home.yourTasks')}
           </h2>
           <Link 
             href={userRole === 'tasker' ? '/tasks-feed' : '/my-tasks'}
             className="text-sm text-primary font-semibold flex items-center gap-1.5 hover:gap-2.5 transition-all duration-300"
             data-testid="link-see-all-tasks"
           >
-            See all
-            <ArrowRight className="w-4 h-4" />
+            {t('common.seeAll')}
+            <ArrowRight className="w-4 h-4 rtl:rotate-180" />
           </Link>
         </motion.div>
 
@@ -285,10 +288,10 @@ const HomeScreen = memo(function HomeScreen() {
               <motion.div variants={itemVariants}>
                 <EmptyState
                   icon={userRole === 'tasker' ? <Search className="w-8 h-8" /> : <Plus className="w-8 h-8" />}
-                  title={userRole === 'tasker' ? 'No tasks available' : 'No tasks yet'}
+                  title={userRole === 'tasker' ? t('home.noTasksAvailable') : t('home.noTasksYet')}
                   description={userRole === 'tasker' 
-                    ? 'Check back later for new opportunities' 
-                    : 'Post your first task to get started'}
+                    ? t('home.checkBackLater') 
+                    : t('home.postFirstTask')}
                   action={
                     userRole === 'client' && (
                       <Link href="/post-task/1">
@@ -298,7 +301,7 @@ const HomeScreen = memo(function HomeScreen() {
                           className="gradient-primary text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-primary/30 flex items-center gap-2"
                         >
                           <Plus className="w-4 h-4" />
-                          Post a Task
+                          {t('tasks.postTask')}
                         </motion.button>
                       </Link>
                     )

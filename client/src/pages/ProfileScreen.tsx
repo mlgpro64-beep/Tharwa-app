@@ -2,6 +2,7 @@ import { memo, useCallback, useMemo } from 'react';
 import { Link, useParams, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { useApp } from '@/context/AppContext';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/animated';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -33,6 +34,7 @@ const ProfileScreen = memo(function ProfileScreen() {
   const { userId } = useParams<{ userId?: string }>();
   const [, setLocation] = useLocation();
   const { user: currentUser, userRole } = useApp();
+  const { t } = useTranslation();
   
   const isOwnProfile = !userId;
   
@@ -48,21 +50,21 @@ const ProfileScreen = memo(function ProfileScreen() {
 
   const stats = useMemo(() => [
     { 
-      label: 'Rating', 
+      labelKey: 'profile.rating', 
       value: user?.rating ? parseFloat(String(user.rating)).toFixed(1) : '0.0',
       icon: Star,
       color: 'text-warning',
       bgColor: 'bg-gradient-to-br from-warning/20 to-warning/5'
     },
     { 
-      label: 'Completed', 
+      labelKey: 'profile.tasksCompleted', 
       value: user?.completedTasks || 0,
       icon: CheckCircle,
       color: 'text-success',
       bgColor: 'bg-gradient-to-br from-success/20 to-success/5'
     },
     { 
-      label: 'Member Since', 
+      labelKey: 'profile.memberSince', 
       value: user?.createdAt ? new Date(user.createdAt).getFullYear() : new Date().getFullYear(),
       icon: Calendar,
       color: 'text-primary',
@@ -71,9 +73,9 @@ const ProfileScreen = memo(function ProfileScreen() {
   ], [user]);
 
   const menuItems = useMemo(() => [
-    { icon: User, label: 'Edit Profile', path: '/profile/edit', testId: 'button-edit-profile-full' },
-    { icon: ListTodo, label: userRole === 'tasker' ? 'My Jobs' : 'My Tasks', path: '/my-tasks', testId: 'button-my-tasks' },
-    { icon: HelpCircle, label: 'Help Center', path: '/help', testId: 'button-help' },
+    { icon: User, labelKey: 'profile.editProfile', path: '/profile/edit', testId: 'button-edit-profile-full' },
+    { icon: ListTodo, labelKey: userRole === 'tasker' ? 'tasks.assignedTasks' : 'tasks.myTasks', path: '/my-tasks', testId: 'button-my-tasks' },
+    { icon: HelpCircle, labelKey: 'settings.help', path: '/help', testId: 'button-help' },
   ], [userRole]);
 
   if (isLoading) {
@@ -100,13 +102,13 @@ const ProfileScreen = memo(function ProfileScreen() {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 0.4, scale: 1 }}
           transition={{ duration: 1 }}
-          className="absolute top-20 -right-24 w-72 h-72 bg-gradient-to-br from-accent/25 to-accent/5 rounded-full blur-3xl"
+          className="absolute top-20 -right-24 w-72 h-72 bg-gradient-to-br from-accent/25 to-accent/5 rounded-full blur-3xl rtl:-left-24 rtl:right-auto"
         />
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.25 }}
           transition={{ delay: 0.3 }}
-          className="absolute bottom-60 -left-16 w-48 h-48 bg-gradient-to-tr from-primary/20 to-transparent rounded-full blur-3xl"
+          className="absolute bottom-60 -left-16 w-48 h-48 bg-gradient-to-tr from-primary/20 to-transparent rounded-full blur-3xl rtl:-right-16 rtl:left-auto"
         />
       </div>
 
@@ -128,12 +130,12 @@ const ProfileScreen = memo(function ProfileScreen() {
               className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
               data-testid="button-back"
             >
-              <ArrowLeft className="w-5 h-5 text-foreground/80" />
+              <ArrowLeft className="w-5 h-5 text-foreground/80 rtl:rotate-180" />
             </motion.button>
           ) : <div className="w-11" />}
           
           <h1 className="text-xl font-bold text-foreground">
-            {isOwnProfile ? 'Profile' : 'User Profile'}
+            {isOwnProfile ? t('profile.title') : t('profile.myProfile')}
           </h1>
           
           {isOwnProfile ? (
@@ -173,7 +175,7 @@ const ProfileScreen = memo(function ProfileScreen() {
                 <motion.button 
                   whileHover={{ scale: 1.1, rotate: 5 }}
                   whileTap={{ scale: 0.9 }}
-                  className="absolute -bottom-1 -right-1 w-10 h-10 gradient-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 border-2 border-white/50"
+                  className="absolute -bottom-1 -right-1 w-10 h-10 gradient-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 border-2 border-white/50 rtl:-left-1 rtl:right-auto"
                   data-testid="button-edit-profile"
                 >
                   <Edit3 className="w-4 h-4" />
@@ -182,7 +184,7 @@ const ProfileScreen = memo(function ProfileScreen() {
             )}
           </div>
           
-          <h2 className="text-2xl font-extrabold text-foreground mb-1 tracking-tight">{user?.name || 'Guest'}</h2>
+          <h2 className="text-2xl font-extrabold text-foreground mb-1 tracking-tight">{user?.name || t('common.guest')}</h2>
           <p className="text-muted-foreground text-sm mb-4">@{user?.username || 'guest'}</p>
           
           <motion.div
@@ -197,7 +199,7 @@ const ProfileScreen = memo(function ProfileScreen() {
             )}
           >
             <Shield className="w-3.5 h-3.5" />
-            {userRole === 'tasker' ? 'Tasker' : 'Client'}
+            {userRole === 'tasker' ? t('roles.tasker') : t('roles.client')}
           </motion.div>
         </motion.div>
 
@@ -209,7 +211,7 @@ const ProfileScreen = memo(function ProfileScreen() {
             const Icon = stat.icon;
             return (
               <motion.div
-                key={stat.label}
+                key={stat.labelKey}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25 + index * 0.05 }}
@@ -219,7 +221,7 @@ const ProfileScreen = memo(function ProfileScreen() {
                   <Icon className={cn("w-4 h-4", stat.color)} />
                 </div>
                 <p className="text-xl font-extrabold text-foreground">{stat.value}</p>
-                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mt-0.5">{stat.label}</p>
+                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mt-0.5">{t(stat.labelKey)}</p>
               </motion.div>
             );
           })}
@@ -230,7 +232,7 @@ const ProfileScreen = memo(function ProfileScreen() {
             variants={itemVariants}
             className="glass rounded-[20px] p-5 mb-4"
           >
-            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2.5">About</h3>
+            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2.5">{t('profile.about')}</h3>
             <p className="text-foreground leading-relaxed text-sm">{user.bio}</p>
           </motion.div>
         )}
@@ -245,7 +247,7 @@ const ProfileScreen = memo(function ProfileScreen() {
                 <MapPin className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Location</p>
+                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{t('tasks.location')}</p>
                 <p className="font-bold text-foreground">{user.location}</p>
               </div>
             </div>
@@ -257,7 +259,7 @@ const ProfileScreen = memo(function ProfileScreen() {
             variants={itemVariants}
             className="space-y-2.5"
           >
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1 mb-2">Quick Actions</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1 mb-2">{t('wallet.quickActions')}</p>
             {menuItems.map((item, index) => {
               const Icon = item.icon;
               return (
@@ -278,9 +280,9 @@ const ProfileScreen = memo(function ProfileScreen() {
                         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
                           <Icon className="w-4 h-4 text-primary" />
                         </div>
-                        <span className="text-foreground text-sm">{item.label}</span>
+                        <span className="text-foreground text-sm">{t(item.labelKey)}</span>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      <ChevronRight className="w-4 h-4 text-muted-foreground rtl:rotate-180" />
                     </motion.button>
                   </Link>
                 </motion.div>

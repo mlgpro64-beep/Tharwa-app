@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider, useApp } from "@/context/AppContext";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { AnimatePresence, motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 const WelcomeScreen = lazy(() => import("@/pages/WelcomeScreen"));
 const SelectRoleScreen = lazy(() => import("@/pages/SelectRoleScreen"));
@@ -29,6 +30,8 @@ const SavedTasksScreen = lazy(() => import("@/pages/SavedTasksScreen"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 const PageLoader = memo(function PageLoader() {
+  const { t } = useTranslation();
+  
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -48,7 +51,7 @@ const PageLoader = memo(function PageLoader() {
           transition={{ delay: 0.2 }}
           className="text-muted-foreground text-sm"
         >
-          Loading...
+          {t('common.loading')}
         </motion.p>
       </div>
     </motion.div>

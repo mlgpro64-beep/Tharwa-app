@@ -1,6 +1,7 @@
 import { useState, memo, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { TaskCard } from '@/components/TaskCard';
 import { useQuery } from '@tanstack/react-query';
 import { TaskCardSkeleton, EmptyState } from '@/components/ui/animated';
@@ -35,6 +36,7 @@ const itemVariants = {
 
 const TasksFeedScreen = memo(function TasksFeedScreen() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -69,13 +71,13 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 0.4, scale: 1 }}
           transition={{ duration: 1 }}
-          className="absolute top-32 -left-24 w-72 h-72 bg-gradient-to-br from-accent/25 to-accent/5 rounded-full blur-3xl"
+          className="absolute top-32 -left-24 w-72 h-72 bg-gradient-to-br from-accent/25 to-accent/5 rounded-full blur-3xl rtl:-right-24 rtl:left-auto"
         />
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.25 }}
           transition={{ duration: 1.2, delay: 0.3 }}
-          className="absolute bottom-60 -right-16 w-48 h-48 bg-gradient-to-tl from-primary/20 to-transparent rounded-full blur-3xl"
+          className="absolute bottom-60 -right-16 w-48 h-48 bg-gradient-to-tl from-primary/20 to-transparent rounded-full blur-3xl rtl:-left-16 rtl:right-auto"
         />
       </div>
 
@@ -90,9 +92,9 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
           className="flex items-center justify-between mb-6"
         >
           <div>
-            <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Browse Tasks</h1>
+            <h1 className="text-2xl font-extrabold text-foreground tracking-tight">{t('tasks.feed')}</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {taskCount} {taskCount === 1 ? 'task' : 'tasks'} available
+              {taskCount} {t('tasks.title').toLowerCase()}
             </p>
           </div>
           <motion.button
@@ -110,13 +112,13 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
           variants={itemVariants}
           className="relative mb-5"
         >
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground rtl:right-4 rtl:left-auto" />
           <input
             type="search"
-            placeholder="Search tasks..."
+            placeholder={`${t('common.search')}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-13 pl-12 pr-12 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all text-base"
+            className="w-full h-13 ps-12 pe-12 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all text-base"
             data-testid="input-search-tasks"
           />
           <AnimatePresence>
@@ -126,7 +128,7 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
                 onClick={handleClearSearch}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full bg-muted/80 hover:bg-muted transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full bg-muted/80 hover:bg-muted transition-colors rtl:left-4 rtl:right-auto"
               >
                 <X className="w-3.5 h-3.5 text-muted-foreground" />
               </motion.button>
@@ -140,7 +142,7 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
         >
           <div className="flex items-center gap-2 mb-3">
             <Filter className="w-4 h-4 text-muted-foreground" />
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Categories</span>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('tasks.category')}</span>
           </div>
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-5 px-5">
             <motion.button
@@ -154,7 +156,7 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
                   : "glass text-muted-foreground hover:text-foreground"
               )}
             >
-              All Tasks
+              {t('tasks.filters.allCategories')}
             </motion.button>
             {TASK_CATEGORIES.map((category) => (
               <motion.button
@@ -169,7 +171,7 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
                     : "glass text-muted-foreground hover:text-foreground"
                 )}
               >
-                {category}
+                {t(`tasks.categories.${category.toLowerCase()}`) || category}
               </motion.button>
             ))}
           </div>
@@ -210,10 +212,8 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
             >
               <EmptyState
                 icon={<SearchX className="w-8 h-8" />}
-                title="No tasks found"
-                description={searchQuery 
-                  ? 'Try adjusting your search terms' 
-                  : 'No tasks available in this category'}
+                title={t('tasks.empty.title')}
+                description={t('tasks.empty.description')}
                 action={
                   (searchQuery || selectedCategory) && (
                     <motion.button
@@ -226,7 +226,7 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
                       className="glass-premium text-foreground px-6 py-3 rounded-2xl font-bold flex items-center gap-2"
                     >
                       <X className="w-4 h-4" />
-                      Clear Filters
+                      {t('common.filter')}
                     </motion.button>
                   )
                 }

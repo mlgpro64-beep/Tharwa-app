@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { TransactionCard } from '@/components/TransactionCard';
 import { CountUp } from '@/components/CountUp';
 import { useQuery } from '@tanstack/react-query';
@@ -27,6 +28,7 @@ const itemVariants = {
 
 const WalletScreen = memo(function WalletScreen() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
   
   const { data: user } = useQuery<User>({
     queryKey: ['/api/users/me'],
@@ -48,13 +50,13 @@ const WalletScreen = memo(function WalletScreen() {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 0.5, scale: 1 }}
           transition={{ duration: 1 }}
-          className="absolute -top-24 -right-24 w-80 h-80 bg-gradient-to-br from-primary/25 to-primary/5 rounded-full blur-3xl"
+          className="absolute -top-24 -right-24 w-80 h-80 bg-gradient-to-br from-primary/25 to-primary/5 rounded-full blur-3xl rtl:-left-24 rtl:right-auto"
         />
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.25 }}
           transition={{ delay: 0.3 }}
-          className="absolute top-60 -left-20 w-48 h-48 bg-gradient-to-tr from-accent/25 to-transparent rounded-full blur-3xl"
+          className="absolute top-60 -left-20 w-48 h-48 bg-gradient-to-tr from-accent/25 to-transparent rounded-full blur-3xl rtl:-right-20 rtl:left-auto"
         />
       </div>
 
@@ -75,9 +77,9 @@ const WalletScreen = memo(function WalletScreen() {
             className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
             data-testid="button-back-wallet"
           >
-            <ArrowLeft className="w-5 h-5 text-foreground/80" />
+            <ArrowLeft className="w-5 h-5 text-foreground/80 rtl:rotate-180" />
           </motion.button>
-          <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Wallet</h1>
+          <h1 className="text-2xl font-extrabold text-foreground tracking-tight">{t('wallet.title')}</h1>
         </motion.div>
 
         <motion.div
@@ -87,8 +89,8 @@ const WalletScreen = memo(function WalletScreen() {
           <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-dark to-primary/90" />
           
           <div className="absolute inset-0 opacity-30">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/20 rounded-full translate-y-1/2 -translate-x-1/4 blur-2xl" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl rtl:left-0 rtl:right-auto rtl:-translate-x-1/4" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/20 rounded-full translate-y-1/2 -translate-x-1/4 blur-2xl rtl:right-0 rtl:left-auto rtl:translate-x-1/4" />
           </div>
           
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxIiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz48L2c+PC9zdmc+')] opacity-60" />
@@ -96,7 +98,7 @@ const WalletScreen = memo(function WalletScreen() {
           <div className="relative p-6">
             <div className="flex items-start justify-between mb-6">
               <div>
-                <p className="text-sm text-white/70 font-medium mb-1.5">Available Balance</p>
+                <p className="text-sm text-white/70 font-medium mb-1.5">{t('wallet.availableBalance')}</p>
                 <p className="text-[44px] font-extrabold text-white tracking-tight leading-none">
                   $<CountUp end={balance} decimals={2} />
                 </p>
@@ -118,7 +120,7 @@ const WalletScreen = memo(function WalletScreen() {
                   data-testid="button-add-funds"
                 >
                   <Plus className="w-4 h-4" />
-                  Add Funds
+                  {t('wallet.addFunds')}
                 </motion.button>
               </Link>
               <Link href="/wallet/withdraw">
@@ -129,7 +131,7 @@ const WalletScreen = memo(function WalletScreen() {
                   data-testid="button-withdraw"
                 >
                   <ArrowUpRight className="w-4 h-4" />
-                  Withdraw
+                  {t('wallet.withdrawFunds')}
                 </motion.button>
               </Link>
             </div>
@@ -141,14 +143,14 @@ const WalletScreen = memo(function WalletScreen() {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center mb-2.5">
               <TrendingUp className="w-4 h-4 text-success" />
             </div>
-            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">This Month</p>
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">{t('wallet.recentActivity')}</p>
             <p className="font-bold text-foreground">+$0.00</p>
           </div>
           <div className="glass rounded-[20px] p-4">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-2.5">
               <CreditCard className="w-4 h-4 text-primary" />
             </div>
-            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">Pending</p>
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">{t('tasks.statuses.inProgress')}</p>
             <p className="font-bold text-foreground">$0.00</p>
           </div>
         </motion.div>
@@ -157,7 +159,7 @@ const WalletScreen = memo(function WalletScreen() {
           variants={itemVariants}
           className="flex items-center justify-between mb-4"
         >
-          <h2 className="text-lg font-bold text-foreground">Recent Transactions</h2>
+          <h2 className="text-lg font-bold text-foreground">{t('wallet.transactionHistory')}</h2>
         </motion.div>
 
         <div className="space-y-2.5">
@@ -207,8 +209,8 @@ const WalletScreen = memo(function WalletScreen() {
               >
                 <EmptyState
                   icon={<Receipt className="w-8 h-8" />}
-                  title="No transactions yet"
-                  description="Your transaction history will appear here"
+                  title={t('wallet.noTransactions')}
+                  description={t('wallet.transactionHistory')}
                 />
               </motion.div>
             )}

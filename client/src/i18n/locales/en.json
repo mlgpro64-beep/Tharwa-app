@@ -21,7 +21,8 @@
     "or": "or",
     "and": "and",
     "seeAll": "See all",
-    "tapToManage": "Tap to manage"
+    "tapToManage": "Tap to manage",
+    "guest": "Guest"
   },
   "auth": {
     "login": "Login",

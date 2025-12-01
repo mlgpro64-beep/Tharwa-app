@@ -1,36 +1,37 @@
 import { useState, memo, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Users, Wrench, Check, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Users, Wrench, Check, ChevronRight, ChevronLeft } from 'lucide-react';
 
 type Role = 'client' | 'tasker';
 
 interface RoleOption {
   id: Role;
-  title: string;
-  subtitle: string;
+  titleKey: string;
+  subtitleKey: string;
   icon: typeof Users;
-  features: string[];
+  featuresKeys: string[];
   gradient: string;
 }
 
 const roles: RoleOption[] = [
   {
     id: 'client',
-    title: 'I need help',
-    subtitle: 'Post tasks and find local help',
+    titleKey: 'roles.client',
+    subtitleKey: 'roles.clientDesc',
     icon: Users,
-    features: ['Post tasks in minutes', 'Get competitive offers', 'Pay securely'],
+    featuresKeys: ['tasks.postTask', 'tasks.bids', 'wallet.deposit'],
     gradient: 'from-blue-500 to-cyan-500',
   },
   {
     id: 'tasker',
-    title: 'I want to help',
-    subtitle: 'Earn money completing tasks',
+    titleKey: 'roles.tasker',
+    subtitleKey: 'roles.taskerDesc',
     icon: Wrench,
-    features: ['Browse local tasks', 'Set your own rates', 'Get paid quickly'],
+    featuresKeys: ['tasks.feed', 'tasks.placeBid', 'wallet.withdraw'],
     gradient: 'from-purple-500 to-pink-500',
   },
 ];
@@ -38,11 +39,13 @@ const roles: RoleOption[] = [
 const RoleCard = memo(function RoleCard({ 
   role, 
   isSelected, 
-  onSelect 
+  onSelect,
+  t
 }: { 
   role: RoleOption; 
   isSelected: boolean; 
   onSelect: () => void;
+  t: (key: string) => string;
 }) {
   const Icon = role.icon;
   
@@ -52,7 +55,7 @@ const RoleCard = memo(function RoleCard({
       onClick={onSelect}
       whileTap={{ scale: 0.98 }}
       className={cn(
-        "w-full text-left p-6 rounded-3xl transition-all duration-300 relative overflow-hidden",
+        "w-full text-right p-6 rounded-3xl transition-all duration-300 relative overflow-hidden",
         isSelected
           ? "glass-premium shadow-xl"
           : "glass hover:shadow-lg"
@@ -85,8 +88,8 @@ const RoleCard = memo(function RoleCard({
         </motion.div>
         
         <div className="flex-1 min-w-0">
-          <h3 className="text-xl font-bold text-foreground mb-1">{role.title}</h3>
-          <p className="text-sm text-muted-foreground mb-4">{role.subtitle}</p>
+          <h3 className="text-xl font-bold text-foreground mb-1">{t(role.titleKey)}</h3>
+          <p className="text-sm text-muted-foreground mb-4">{t(role.subtitleKey)}</p>
           
           <AnimatePresence>
             {isSelected && (
@@ -96,9 +99,9 @@ const RoleCard = memo(function RoleCard({
                 exit={{ opacity: 0, height: 0 }}
                 className="space-y-2 overflow-hidden"
               >
-                {role.features.map((feature, idx) => (
+                {role.featuresKeys.map((featureKey, idx) => (
                   <motion.div 
-                    key={feature}
+                    key={featureKey}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.1 }}
@@ -107,7 +110,7 @@ const RoleCard = memo(function RoleCard({
                     <div className="w-5 h-5 rounded-full bg-success/20 flex items-center justify-center">
                       <Check className="w-3 h-3 text-success" />
                     </div>
-                    {feature}
+                    {t(featureKey)}
                   </motion.div>
                 ))}
               </motion.div>
@@ -145,6 +148,7 @@ const RoleCard = memo(function RoleCard({
 const SelectRoleScreen = memo(function SelectRoleScreen() {
   const [, setLocation] = useLocation();
   const { switchRole } = useApp();
+  const { t } = useTranslation();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
 
   const handleContinue = useCallback(() => {
@@ -172,7 +176,7 @@ const SelectRoleScreen = memo(function SelectRoleScreen() {
           className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
           data-testid="button-back"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
         </motion.button>
         
         <div className="flex gap-2">
@@ -200,10 +204,10 @@ const SelectRoleScreen = memo(function SelectRoleScreen() {
           transition={{ delay: 0.1 }}
         >
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">
-            How will you use <span className="gradient-text">TaskField</span>?
+            {t('roles.title')}
           </h1>
           <p className="text-muted-foreground text-lg">
-            You can always switch roles later
+            {t('common.next')}
           </p>
         </motion.div>
 
@@ -224,6 +228,7 @@ const SelectRoleScreen = memo(function SelectRoleScreen() {
                 role={role}
                 isSelected={selectedRole === role.id}
                 onSelect={() => setSelectedRole(role.id)}
+                t={t}
               />
             </motion.div>
           ))}
@@ -248,8 +253,8 @@ const SelectRoleScreen = memo(function SelectRoleScreen() {
             )}
             data-testid="button-continue"
           >
-            Continue
-            <ChevronRight className="w-5 h-5" />
+            {t('common.next')}
+            <ChevronLeft className="w-5 h-5 rtl:rotate-180" />
           </motion.button>
         </motion.div>
       </div>

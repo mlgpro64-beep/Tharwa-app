@@ -2,18 +2,20 @@ import { memo, useMemo, useCallback } from 'react';
 import { useLocation, Link } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/context/AppContext';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { LayoutDashboard, ListTodo, Wallet, User, Home, List } from 'lucide-react';
 
 interface NavItem {
   icon: typeof Home;
-  label: string;
+  labelKey: string;
   path: string;
 }
 
 export const BottomNav = memo(function BottomNav() {
   const [location] = useLocation();
   const { userRole } = useApp();
+  const { t } = useTranslation();
 
   const isActive = useCallback((path: string) => {
     if (path === '/home') return location === '/home' || location === '/';
@@ -23,16 +25,16 @@ export const BottomNav = memo(function BottomNav() {
   const navItems: NavItem[] = useMemo(() => 
     userRole === 'tasker' 
       ? [
-          { icon: LayoutDashboard, label: 'Dashboard', path: '/home' },
-          { icon: ListTodo, label: 'Tasks', path: '/tasks-feed' },
-          { icon: Wallet, label: 'Wallet', path: '/wallet' },
-          { icon: User, label: 'Profile', path: '/profile' },
+          { icon: LayoutDashboard, labelKey: 'nav.home', path: '/home' },
+          { icon: ListTodo, labelKey: 'nav.tasks', path: '/tasks-feed' },
+          { icon: Wallet, labelKey: 'wallet.title', path: '/wallet' },
+          { icon: User, labelKey: 'nav.profile', path: '/profile' },
         ]
       : [
-          { icon: Home, label: 'Home', path: '/home' },
-          { icon: List, label: 'My Tasks', path: '/my-tasks' },
-          { icon: Wallet, label: 'Wallet', path: '/wallet' },
-          { icon: User, label: 'Profile', path: '/profile' },
+          { icon: Home, labelKey: 'nav.home', path: '/home' },
+          { icon: List, labelKey: 'tasks.myTasks', path: '/my-tasks' },
+          { icon: Wallet, labelKey: 'wallet.title', path: '/wallet' },
+          { icon: User, labelKey: 'nav.profile', path: '/profile' },
         ],
     [userRole]
   );
@@ -73,12 +75,13 @@ export const BottomNav = memo(function BottomNav() {
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
+              const label = t(item.labelKey);
               
               return (
                 <Link
                   key={item.path}
                   href={item.path}
-                  data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                  data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
                   className="flex-1"
                 >
                   <motion.button
@@ -139,7 +142,7 @@ export const BottomNav = memo(function BottomNav() {
                         active ? "text-primary" : "text-muted-foreground"
                       )}
                     >
-                      {item.label}
+                      {label}
                     </motion.span>
                   </motion.button>
                 </Link>
