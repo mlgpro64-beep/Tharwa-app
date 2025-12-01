@@ -38,10 +38,12 @@
     "noAccount": "ليس لديك حساب؟",
     "haveAccount": "لديك حساب بالفعل؟",
     "getStarted": "ابدأ الآن",
-    "alreadyHaveAccount": "لدي حساب بالفعل"
+    "alreadyHaveAccount": "لدي حساب بالفعل",
+    "accountCreated": "تم إنشاء الحساب!",
+    "welcomeTo": "مرحباً بك في {{appName}}"
   },
   "welcome": {
-    "title": "تاسك فيلد",
+    "title": "ذروة",
     "subtitle": "سوقك المجتمعي للمهام اليومية",
     "tagline": "احصل على المساعدة أو اكسب المال من خلال إكمال المهام في منطقتك",
     "trusted": "موثوق",

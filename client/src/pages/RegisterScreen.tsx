@@ -1,6 +1,7 @@
 import { useState, memo, useCallback } from 'react';
 import { Link, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '@/context/AppContext';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -101,6 +102,7 @@ const InputField = memo(function InputField({
 
 const RegisterScreen = memo(function RegisterScreen() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
   const { userRole, setUser } = useApp();
   const { toast } = useToast();
   
@@ -125,7 +127,7 @@ const RegisterScreen = memo(function RegisterScreen() {
     onSuccess: (data) => {
       setUser(data.user);
       localStorage.setItem('userId', data.user.id);
-      toast({ title: 'Account created!', description: 'Welcome to TaskField' });
+      toast({ title: t('auth.accountCreated', 'Account created!'), description: t('auth.welcomeTo', { appName: t('welcome.title') }) });
       setLocation('/home');
     },
     onError: (error: Error) => {

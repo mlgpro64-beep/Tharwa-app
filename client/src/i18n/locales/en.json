@@ -38,10 +38,12 @@
     "noAccount": "Don't have an account?",
     "haveAccount": "Already have an account?",
     "getStarted": "Get Started",
-    "alreadyHaveAccount": "I already have an account"
+    "alreadyHaveAccount": "I already have an account",
+    "accountCreated": "Account created!",
+    "welcomeTo": "Welcome to {{appName}}"
   },
   "welcome": {
-    "title": "TaskField",
+    "title": "THARWA",
     "subtitle": "Your community marketplace for everyday tasks",
     "tagline": "Get help or earn money by completing tasks in your local area",
     "trusted": "Trusted",
