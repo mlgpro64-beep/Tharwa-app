@@ -89,11 +89,11 @@ const Logo = memo(function Logo({ className, size = 48 }: LogoProps) {
         fill="none"
       />
       
-      {/* Center checkmark - accent color (turquoise) */}
+      {/* Center checkmark - accent color (turquoise) - smaller size */}
       <path
-        d="M30 52 L44 66 L72 34"
+        d="M38 52 L46 60 L62 42"
         stroke="#2ED1C4"
-        strokeWidth="9"
+        strokeWidth="7"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
