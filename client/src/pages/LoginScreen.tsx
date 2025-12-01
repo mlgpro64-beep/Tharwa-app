@@ -61,14 +61,13 @@ export default function LoginScreen() {
   return (
     <Screen className="px-6">
       <div className="flex items-center justify-between py-4">
-        <Link href="/">
-          <button 
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 transition-colors active:scale-90"
-            data-testid="button-back"
-          >
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
-        </Link>
+        <button 
+          onClick={() => setLocation('/')}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 transition-colors active:scale-90"
+          data-testid="button-back"
+        >
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
         <div className="w-10"></div>
       </div>
 

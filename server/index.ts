@@ -118,10 +118,8 @@ httpServer.on("upgrade", (req, socket, head) => {
         }
       });
     });
-  } else {
-    // Let Vite handle other upgrade requests
-    socket.destroy();
   }
+  // Other upgrade requests are handled by Vite automatically
 });
 
 (async () => {

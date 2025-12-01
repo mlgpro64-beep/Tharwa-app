@@ -1,7 +1,9 @@
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { Screen } from '@/components/layout/Screen';
 
 export default function WelcomeScreen() {
+  const [, setLocation] = useLocation();
+
   return (
     <Screen safeAreaBottom={false} className="justify-center items-center px-8">
       <div className="flex flex-col items-center text-center max-w-sm">
@@ -18,23 +20,21 @@ export default function WelcomeScreen() {
         </p>
 
         <div className="w-full space-y-4">
-          <Link href="/role">
-            <button 
-              className="w-full h-14 bg-primary text-primary-foreground rounded-2xl font-bold text-lg shadow-lg shadow-primary/25 hover:bg-primary/90 active:scale-[0.98] transition-all"
-              data-testid="button-get-started"
-            >
-              Get Started
-            </button>
-          </Link>
+          <button 
+            onClick={() => setLocation('/role')}
+            className="w-full h-14 bg-primary text-primary-foreground rounded-2xl font-bold text-lg shadow-lg shadow-primary/25 hover:bg-primary/90 active:scale-[0.98] transition-all"
+            data-testid="button-get-started"
+          >
+            Get Started
+          </button>
           
-          <Link href="/login">
-            <button 
-              className="w-full h-14 bg-muted text-foreground rounded-2xl font-bold text-lg hover:bg-muted/80 active:scale-[0.98] transition-all"
-              data-testid="button-login"
-            >
-              I already have an account
-            </button>
-          </Link>
+          <button 
+            onClick={() => setLocation('/login')}
+            className="w-full h-14 bg-muted text-foreground rounded-2xl font-bold text-lg hover:bg-muted/80 active:scale-[0.98] transition-all"
+            data-testid="button-login"
+          >
+            I already have an account
+          </button>
         </div>
 
         <p className="text-xs text-muted-foreground mt-8 leading-relaxed">

@@ -71,14 +71,13 @@ export default function RegisterScreen() {
   return (
     <Screen className="px-6">
       <div className="flex items-center justify-between py-4">
-        <Link href="/role">
-          <button 
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 transition-colors active:scale-90"
-            data-testid="button-back"
-          >
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
-        </Link>
+        <button 
+          onClick={() => setLocation('/role')}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 transition-colors active:scale-90"
+          data-testid="button-back"
+        >
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
         <div className="flex gap-1.5">
           <div className="w-8 h-1.5 rounded-full bg-primary"></div>
           <div className="w-8 h-1.5 rounded-full bg-primary"></div>
