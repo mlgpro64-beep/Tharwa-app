@@ -32,11 +32,12 @@ Preferred communication style: Simple, everyday language.
 - LocalStorage for persistence of user preferences, saved tasks, and authentication state
 
 **Design Philosophy**
-- iOS-native feel with specific typography (Plus Jakarta Sans), rounded corners (2rem standard), and elevation patterns
-- Touch-optimized interactions with active states (scale transforms)
-- Bottom sheet modals for mobile
-- Floating label inputs with smooth transitions
-- Material Symbols icons for consistent iconography
+- Premium glassmorphism aesthetic with backdrop blur and subtle gradients
+- iOS-native feel with Plus Jakarta Sans typography and 24px rounded corners
+- Touch-optimized interactions with Framer Motion scale transforms and micro-interactions
+- Bottom sheet modals for mobile actions
+- Floating label glass inputs with smooth transitions
+- Lucide React icons for consistent iconography
 
 ### Backend Architecture
 
@@ -95,6 +96,7 @@ Preferred communication style: Simple, everyday language.
 - Username/password authentication with bcrypt hashing
 - Session-based auth stored in memory (development) or connect-pg-simple (production-ready)
 - HTTP-only cookies for session token storage
+- Session restoration on page load via /api/users/me endpoint check
 
 **Authorization Model**
 - Role-based access control (RBAC) with 'client' and 'tasker' roles
