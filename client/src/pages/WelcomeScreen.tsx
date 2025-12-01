@@ -2,7 +2,8 @@ import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+import Logo from '@/components/Logo';
 
 const WelcomeScreen = memo(function WelcomeScreen() {
   const [, setLocation] = useLocation();
@@ -43,8 +44,8 @@ const WelcomeScreen = memo(function WelcomeScreen() {
           }}
           className="relative mb-10"
         >
-          <div className="w-32 h-32 rounded-[2rem] gradient-primary flex items-center justify-center shadow-2xl shadow-primary/30">
-            <CheckCircle2 className="w-16 h-16 text-white" strokeWidth={2} />
+          <div className="w-32 h-32 rounded-[2rem] glass flex items-center justify-center shadow-2xl shadow-primary/30 border border-white/20">
+            <Logo size={80} />
           </div>
           <motion.div
             animate={{ 
