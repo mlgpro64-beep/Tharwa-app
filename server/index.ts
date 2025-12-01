@@ -75,45 +75,53 @@ app.use((req, res, next) => {
 });
 
 // WebSocket setup for real-time chat
-const wss = new WebSocketServer({ server: httpServer });
+const wss = new WebSocketServer({ noServer: true });
 const connections = new Map<string, Set<any>>();
 
-wss.on("connection", (ws, req) => {
-  const url = new URL(req.url || "", "http://localhost");
-  const taskId = url.searchParams.get("taskId");
-  
-  if (!taskId) {
-    ws.close();
-    return;
-  }
-  
-  if (!connections.has(taskId)) {
-    connections.set(taskId, new Set());
-  }
-  connections.get(taskId)!.add(ws);
-  
-  ws.on("message", (data) => {
-    try {
-      const message = JSON.parse(data.toString());
-      const taskConnections = connections.get(taskId);
-      if (taskConnections) {
-        taskConnections.forEach((client) => {
-          if (client.readyState === 1) { // OPEN
-            client.send(JSON.stringify({ type: "message", data: message }));
-          }
-        });
+httpServer.on("upgrade", (req, socket, head) => {
+  // Only handle /ws routes for our chat WebSocket
+  if (req.url?.startsWith("/ws")) {
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      const url = new URL(req.url || "", "http://localhost");
+      const taskId = url.searchParams.get("taskId");
+      
+      if (!taskId) {
+        ws.close();
+        return;
       }
-    } catch (error) {
-      console.error("WebSocket message error:", error);
-    }
-  });
-  
-  ws.on("close", () => {
-    const taskConnections = connections.get(taskId);
-    if (taskConnections) {
-      taskConnections.delete(ws);
-    }
-  });
+      
+      if (!connections.has(taskId)) {
+        connections.set(taskId, new Set());
+      }
+      connections.get(taskId)!.add(ws);
+      
+      ws.on("message", (data) => {
+        try {
+          const message = JSON.parse(data.toString());
+          const taskConnections = connections.get(taskId);
+          if (taskConnections) {
+            taskConnections.forEach((client) => {
+              if (client.readyState === 1) { // OPEN
+                client.send(JSON.stringify({ type: "message", data: message }));
+              }
+            });
+          }
+        } catch (error) {
+          console.error("WebSocket message error:", error);
+        }
+      });
+      
+      ws.on("close", () => {
+        const taskConnections = connections.get(taskId);
+        if (taskConnections) {
+          taskConnections.delete(ws);
+        }
+      });
+    });
+  } else {
+    // Let Vite handle other upgrade requests
+    socket.destroy();
+  }
 });
 
 (async () => {
