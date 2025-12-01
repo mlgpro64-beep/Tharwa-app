@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#F8F9FA" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#101f22" media="(prefers-color-scheme: dark)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>TaskField</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+      rel="stylesheet"
+    />
+    <!-- Leaflet Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#007AFF", // iOS Blue
+              "primary-dark": "#0056b3",
+              "background-light": "#F2F2F7", // iOS System Grouped Background
+              "background-dark": "#000000",
+              surface: "#ffffff",
+              "surface-dark": "#1C1C1E", // iOS System Gray 6
+              "text-primary": "#000000",
+              "text-primary-dark": "#ffffff",
+              "text-secondary": "#3C3C4399", // iOS Label Color (Secondary)
+              "text-secondary-dark": "#EBEBF599",
+              success: "#34C759",
+              warning: "#FF9500",
+              danger: "#FF3B30",
+              separator: "#3C3C435C", // iOS Separator
+              "separator-dark": "#545458A6",
+            },
+            fontFamily: {
+              display: ["Plus Jakarta Sans", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+            },
+            borderRadius: {
+              DEFAULT: "10px", 
+              lg: "12px",
+              xl: "16px",
+              "2xl": "20px",
+              "3xl": "28px",
+            },
+            boxShadow: {
+              sm: '0 1px 2px rgba(0,0,0,0.05)',
+              DEFAULT: '0 2px 8px rgba(0,0,0,0.04)',
+              lg: '0 8px 24px rgba(0,0,0,0.08)', 
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      /* iOS Native Feel Overrides */
+      :root {
+        --sat: env(safe-area-inset-top);
+        --sab: env(safe-area-inset-bottom);
+        --sal: env(safe-area-inset-left);
+        --sar: env(safe-area-inset-right);
+      }
+
+      body {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        
+        /* Disable Web Gestures */
+        overscroll-behavior-y: none; /* Prevent browser bounce */
+        touch-action: manipulation; /* Improve touch response */
+        
+        /* Disable Selection */
+        -webkit-user-select: none;
+        user-select: none;
+        
+        /* Remove Tap Highlight */
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+      }
+
+      /* Allow selection in inputs */
+      input, textarea {
+        -webkit-user-select: text;
+        user-select: text;
+      }
+
+      /* Hide Scrollbars */
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+      /* Leaflet Customization */
+      .leaflet-container {
+        background: transparent !important;
+        font-family: inherit !important;
+      }
+      .custom-marker-pin {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background: #007AFF;
+        border: 3px solid white;
+        border-radius: 50%;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      }
+      .dark .custom-marker-pin { border-color: #1C1C1E; }
+      
+      /* Smooth Marker Transitions */
+      .leaflet-marker-icon, .leaflet-zoom-animated {
+        transition: transform 0.2s linear;
+      }
+    </style>
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "react-router-dom": "https://esm.sh/react-router-dom@6.22.3?external=react,react-dom",
+    "framer-motion": "https://esm.sh/framer-motion@10.16.4?external=react,react-dom",
+    "clsx": "https://esm.sh/clsx@2.1.0",
+    "tailwind-merge": "https://esm.sh/tailwind-merge@2.2.2",
+    "zustand": "https://esm.sh/zustand@4.5.2?external=react",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.0"
+  }
+}
+</script>
+  <link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-background-light dark:bg-background-dark text-text-primary dark:text-text-primary-dark h-full w-full overflow-hidden fixed">
+    <div id="root" class="h-full w-full overflow-y-auto overflow-x-hidden no-scrollbar"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
