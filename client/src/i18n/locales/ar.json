@@ -51,11 +51,22 @@
     "local": "محلي"
   },
   "roles": {
-    "title": "كيف تريد استخدام تاسك فيلد؟",
-    "client": "عميل",
-    "clientDesc": "انشر مهام واحصل على مساعدة",
-    "tasker": "منفذ مهام",
-    "taskerDesc": "أكمل المهام واكسب المال"
+    "title": "كيف تريد استخدام ذروة؟",
+    "subtitle": "اختر الطريقة التي تناسبك",
+    "client": "العميل",
+    "clientDesc": "انشر طلبك واحصل على مساعدة",
+    "tasker": "المنفذ",
+    "taskerDesc": "أكمل المهام واكسب المال",
+    "taskerFeatures": {
+      "access": "وصول مباشر للعملاء يومياً",
+      "browse": "تصفح المهام واختار المهمة المناسبة لك",
+      "earn": "انجز المهمة وارباحك على حسابك مباشرتاً"
+    },
+    "clientFeatures": {
+      "post": "انشر طلبك في ثواني",
+      "compare": "قارن بين العروض",
+      "choose": "اختر المنفذ وسوف يتم انجاز طلبك"
+    }
   },
   "home": {
     "greeting": {
@@ -159,7 +170,10 @@
     "quickActions": "إجراءات سريعة",
     "addFunds": "إضافة رصيد",
     "withdrawFunds": "سحب رصيد",
-    "recentActivity": "النشاط الأخير"
+    "recentActivity": "النشاط الأخير",
+    "platformFee": "رسوم المنصة (5%)",
+    "taskerPayout": "صافي أرباحك (95%)",
+    "feeExplanation": "تحتفظ ذروة بـ 5% كرسوم خدمة"
   },
   "profile": {
     "title": "الملف الشخصي",
@@ -231,6 +245,17 @@
     "yourLocation": "موقعك",
     "searchArea": "البحث في هذه المنطقة",
     "noTasksNearby": "لا توجد مهام قريبة"
+  },
+  "location": {
+    "comingSoon": "قريباً في منطقتك",
+    "comingSoonDesc": "نحن متواجدون حالياً في الرياض فقط. سنصل لمنطقتك قريباً!",
+    "riyadhOnly": "متوفر في الرياض",
+    "notifyMe": "أبلغني عند الإطلاق",
+    "currentlyAvailable": "متوفر حالياً في:",
+    "riyadh": "الرياض",
+    "expandingSoon": "سنتوسع قريباً لمدن أخرى",
+    "locationRequired": "نحتاج موقعك لنعرض لك المهام القريبة",
+    "enableLocation": "تفعيل الموقع"
   },
   "nav": {
     "home": "الرئيسية",

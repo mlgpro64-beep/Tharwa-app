@@ -251,6 +251,114 @@ router.post("/api/bids/:id/accept", async (req, res) => {
   }
 });
 
+// Platform fee configuration: 5% for platform, 95% for tasker
+// The platform fee is retained as the difference between client payment and tasker payout
+// Client pays: totalAmount (100%)
+// Tasker receives: taskerPayout (95%)
+// Platform retains: platformFee (5%) - tracked in transactions for audit purposes
+const PLATFORM_FEE_PERCENTAGE = 0.05;
+const PLATFORM_ACCOUNT_ID = "platform"; // Virtual account for fee tracking
+
+router.post("/api/tasks/:id/complete", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const task = await storage.getTask(req.params.id);
+    if (!task) return res.status(404).json({ error: "Task not found" });
+    
+    if (task.clientId !== req.userId && task.taskerId !== req.userId) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+    
+    if (task.status !== "assigned" && task.status !== "in_progress") {
+      return res.status(400).json({ error: "Task cannot be completed in current status" });
+    }
+    
+    if (!task.taskerId) {
+      return res.status(400).json({ error: "Task has no assigned tasker" });
+    }
+    
+    const acceptedBid = await storage.getAcceptedBidForTask(task.id);
+    if (!acceptedBid) {
+      return res.status(400).json({ error: "No accepted bid found for task" });
+    }
+    
+    const totalAmount = parseFloat(acceptedBid.amount);
+    const platformFee = totalAmount * PLATFORM_FEE_PERCENTAGE;
+    const taskerPayout = totalAmount - platformFee;
+    
+    const updatedTask = await storage.updateTask(task.id, { status: "completed" });
+    
+    const client = await storage.getUser(task.clientId);
+    if (!client) {
+      return res.status(400).json({ error: "Client not found" });
+    }
+    
+    const clientBalance = parseFloat(client.balance || "0");
+    if (clientBalance < totalAmount) {
+      return res.status(400).json({ error: "Insufficient client balance" });
+    }
+    
+    await storage.createTransaction({
+      userId: task.taskerId,
+      taskId: task.id,
+      title: `أرباح: ${task.title}`,
+      amount: taskerPayout.toFixed(2),
+      type: "credit",
+      status: "completed",
+      icon: "account_balance_wallet",
+    });
+    
+    await storage.createTransaction({
+      userId: task.clientId,
+      taskId: task.id,
+      title: `دفع: ${task.title}`,
+      amount: totalAmount.toFixed(2),
+      type: "debit",
+      status: "completed",
+      icon: "payment",
+    });
+    
+    try {
+      await storage.createTransaction({
+        userId: PLATFORM_ACCOUNT_ID,
+        taskId: task.id,
+        title: `رسوم المنصة: ${task.title}`,
+        amount: platformFee.toFixed(2),
+        type: "credit",
+        status: "completed",
+        icon: "percent",
+      });
+    } catch {
+    }
+    
+    await storage.updateUser(task.clientId, {
+      balance: (clientBalance - totalAmount).toFixed(2)
+    });
+    
+    const tasker = await storage.getUser(task.taskerId);
+    if (tasker) {
+      const newBalance = parseFloat(tasker.balance || "0") + taskerPayout;
+      await storage.updateUser(task.taskerId, { 
+        balance: newBalance.toFixed(2),
+        completedTasks: (tasker.completedTasks || 0) + 1
+      });
+    }
+    
+    res.json({ 
+      task: updatedTask, 
+      payment: {
+        total: totalAmount,
+        platformFee,
+        taskerPayout,
+        feePercentage: PLATFORM_FEE_PERCENTAGE * 100
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Messages routes
 router.get("/api/tasks/:id/messages", async (req, res) => {
   try {

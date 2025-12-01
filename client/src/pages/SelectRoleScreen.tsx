@@ -19,20 +19,20 @@ interface RoleOption {
 
 const roles: RoleOption[] = [
   {
-    id: 'client',
-    titleKey: 'roles.client',
-    subtitleKey: 'roles.clientDesc',
-    icon: Users,
-    featuresKeys: ['tasks.postTask', 'tasks.bids', 'wallet.deposit'],
-    gradient: 'from-blue-500 to-cyan-500',
-  },
-  {
     id: 'tasker',
     titleKey: 'roles.tasker',
     subtitleKey: 'roles.taskerDesc',
     icon: Wrench,
-    featuresKeys: ['tasks.feed', 'tasks.placeBid', 'wallet.withdraw'],
+    featuresKeys: ['roles.taskerFeatures.access', 'roles.taskerFeatures.browse', 'roles.taskerFeatures.earn'],
     gradient: 'from-purple-500 to-pink-500',
+  },
+  {
+    id: 'client',
+    titleKey: 'roles.client',
+    subtitleKey: 'roles.clientDesc',
+    icon: Users,
+    featuresKeys: ['roles.clientFeatures.post', 'roles.clientFeatures.compare', 'roles.clientFeatures.choose'],
+    gradient: 'from-blue-500 to-cyan-500',
   },
 ];
 
@@ -105,12 +105,12 @@ const RoleCard = memo(function RoleCard({
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.1 }}
-                    className="flex items-center gap-2 text-sm text-foreground/80"
+                    className="flex items-center gap-3 text-sm text-foreground/80 rtl:flex-row-reverse rtl:text-right"
                   >
-                    <div className="w-5 h-5 rounded-full bg-success/20 flex items-center justify-center">
+                    <div className="w-5 h-5 rounded-full bg-success/20 flex items-center justify-center shrink-0">
                       <Check className="w-3 h-3 text-success" />
                     </div>
-                    {t(featureKey)}
+                    <span className="flex-1">{t(featureKey)}</span>
                   </motion.div>
                 ))}
               </motion.div>
@@ -207,7 +207,7 @@ const SelectRoleScreen = memo(function SelectRoleScreen() {
             {t('roles.title')}
           </h1>
           <p className="text-muted-foreground text-lg">
-            {t('common.next')}
+            {t('roles.subtitle')}
           </p>
         </motion.div>
 

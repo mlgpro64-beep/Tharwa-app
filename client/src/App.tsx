@@ -1,4 +1,4 @@
-import { Suspense, lazy, memo } from "react";
+import { Suspense, lazy, memo, useState, useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -8,6 +8,8 @@ import { AppProvider, useApp } from "@/context/AppContext";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { useLocation as useLocationHook } from "@/hooks/useLocation";
+import ComingSoon from "@/components/ComingSoon";
 
 const WelcomeScreen = lazy(() => import("@/pages/WelcomeScreen"));
 const SelectRoleScreen = lazy(() => import("@/pages/SelectRoleScreen"));
@@ -97,9 +99,29 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes() {
 
 const AppContent = memo(function AppContent() {
   const { isAuthenticated, isLoading } = useApp();
+  const { isInRiyadh, isLoading: locationLoading, checkLocation } = useLocationHook();
+  const [hasCheckedLocation, setHasCheckedLocation] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('isInRiyadh') !== null;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (!hasCheckedLocation && isAuthenticated && !locationLoading) {
+      checkLocation();
+      setHasCheckedLocation(true);
+    }
+  }, [hasCheckedLocation, isAuthenticated, locationLoading, checkLocation]);
 
   if (isLoading) {
     return <PageLoader />;
+  }
+
+  if (isAuthenticated && hasCheckedLocation && isInRiyadh === false) {
+    return <ComingSoon onNotifyMe={() => {
+      localStorage.setItem('notifyWhenAvailable', 'true');
+    }} />;
   }
 
   return (

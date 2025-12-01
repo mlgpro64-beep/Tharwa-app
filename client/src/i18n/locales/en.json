@@ -51,11 +51,22 @@
     "local": "Local"
   },
   "roles": {
-    "title": "How would you like to use TaskField?",
+    "title": "How would you like to use THARWA?",
+    "subtitle": "Choose what suits you",
     "client": "Client",
-    "clientDesc": "Post tasks and get help",
+    "clientDesc": "Post your request and get help",
     "tasker": "Tasker",
-    "taskerDesc": "Complete tasks and earn money"
+    "taskerDesc": "Complete tasks and earn money",
+    "taskerFeatures": {
+      "access": "Direct access to clients daily",
+      "browse": "Browse tasks and choose what suits you",
+      "earn": "Complete tasks and get paid directly"
+    },
+    "clientFeatures": {
+      "post": "Post your request in seconds",
+      "compare": "Compare offers",
+      "choose": "Choose your tasker and get it done"
+    }
   },
   "home": {
     "greeting": {
@@ -159,7 +170,10 @@
     "quickActions": "Quick Actions",
     "addFunds": "Add Funds",
     "withdrawFunds": "Withdraw Funds",
-    "recentActivity": "Recent Activity"
+    "recentActivity": "Recent Activity",
+    "platformFee": "Platform fee (5%)",
+    "taskerPayout": "Your earnings (95%)",
+    "feeExplanation": "THARWA keeps 5% as a service fee"
   },
   "profile": {
     "title": "Profile",
@@ -231,6 +245,17 @@
     "yourLocation": "Your Location",
     "searchArea": "Search this area",
     "noTasksNearby": "No tasks nearby"
+  },
+  "location": {
+    "comingSoon": "Coming Soon to Your Area",
+    "comingSoonDesc": "We're currently available in Riyadh only. We'll be in your area soon!",
+    "riyadhOnly": "Available in Riyadh",
+    "notifyMe": "Notify me when we launch",
+    "currentlyAvailable": "Currently available in:",
+    "riyadh": "Riyadh",
+    "expandingSoon": "Expanding to more cities soon",
+    "locationRequired": "We need your location to show nearby tasks",
+    "enableLocation": "Enable Location"
   },
   "nav": {
     "home": "Home",

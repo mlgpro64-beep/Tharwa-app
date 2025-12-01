@@ -2,7 +2,21 @@
 
 ## Overview
 
-TaskField is a mobile-first community marketplace application for everyday tasks. It connects clients who need help with local taskers who can complete tasks. The platform features a dual-role system where users can either post tasks (as clients) or complete tasks for payment (as taskers). Built with a modern full-stack architecture, it emphasizes an iOS-inspired native mobile experience with smooth animations, haptic feedback, and intuitive touch gestures.
+THARWA (ذروة) is a mobile-first community marketplace application for everyday tasks. It connects clients who need help with local taskers who can complete tasks. The platform features a dual-role system where users can either post tasks (as clients) or complete tasks for payment (as taskers). Built with a modern full-stack architecture, it emphasizes an iOS-inspired native mobile experience with smooth animations, haptic feedback, and intuitive touch gestures.
+
+## Business Model
+
+**Platform Fee Structure**
+- 5% platform fee on all completed tasks
+- 95% of task payment goes to the tasker
+- Client pays the full bid amount
+- Platform fee is tracked in transactions for audit purposes
+
+**Geographic Availability**
+- Currently available only in Riyadh, Saudi Arabia
+- Users outside Riyadh see "Coming Soon" message
+- Location checked via browser geolocation API
+- Riyadh bounds: Lat 24.4-25.1, Lon 46.3-47.1
 
 ## User Preferences
 

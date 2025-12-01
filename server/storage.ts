@@ -16,7 +16,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(data: InsertUser): Promise<User>;
-  updateUser(id: string, data: Partial<InsertUser>): Promise<User>;
+  updateUser(id: string, data: Partial<InsertUser> & { balance?: string; completedTasks?: number; rating?: string }): Promise<User>;
   
   // Tasks
   getTask(id: string): Promise<Task | undefined>;
@@ -27,6 +27,7 @@ export interface IStorage {
   // Bids
   getBid(id: string): Promise<Bid | undefined>;
   getBidsForTask(taskId: string): Promise<Bid[]>;
+  getAcceptedBidForTask(taskId: string): Promise<Bid | undefined>;
   createBid(data: InsertBid): Promise<Bid>;
   updateBid(id: string, data: Partial<Bid>): Promise<Bid>;
   
@@ -75,7 +76,7 @@ export const storage: IStorage = {
     return result[0];
   },
   
-  async updateUser(id: string, data: Partial<InsertUser>) {
+  async updateUser(id: string, data: Partial<InsertUser> & { balance?: string; completedTasks?: number; rating?: string }) {
     const result = await db.update(users).set(data).where(eq(users.id, id)).returning();
     return result[0];
   },
@@ -123,6 +124,13 @@ export const storage: IStorage = {
   async getBidsForTask(taskId: string) {
     const result = await db.select().from(bids).where(eq(bids.taskId, taskId)).orderBy(desc(bids.createdAt));
     return result;
+  },
+  
+  async getAcceptedBidForTask(taskId: string) {
+    const result = await db.select().from(bids).where(
+      and(eq(bids.taskId, taskId), eq(bids.status, "accepted"))
+    ).limit(1);
+    return result[0];
   },
   
   async createBid(data: InsertBid) {
