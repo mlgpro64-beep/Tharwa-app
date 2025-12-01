@@ -37,7 +37,7 @@ function AppContent() {
         {!isAuthenticated ? (
           <>
             <Route path="/" component={WelcomeScreen} />
-            <Route path="/select-role" component={SelectRoleScreen} />
+            <Route path="/role" component={SelectRoleScreen} />
             <Route path="/register" component={RegisterScreen} />
             <Route path="/login" component={LoginScreen} />
             <Route component={WelcomeScreen} />
