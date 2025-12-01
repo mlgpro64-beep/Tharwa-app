@@ -237,7 +237,14 @@
     "preferences": "التفضيلات",
     "changePassword": "تغيير كلمة المرور",
     "switchToTasker": "التبديل لوضع المنفذ",
-    "switchToClient": "التبديل لوضع العميل"
+    "switchToClient": "التبديل لوضع العميل",
+    "actions": "إجراءات",
+    "verifyIdentity": "توثيق الهوية",
+    "arabic": "العربية",
+    "english": "English",
+    "switchModeDesc": "تغيير طريقة استخدام التطبيق",
+    "deleteAccountConfirm": "هل أنت متأكد أنك تريد حذف حسابك؟",
+    "deleteAccountWarning": "سيتم حذف جميع بياناتك نهائياً ولا يمكن التراجع عن هذا الإجراء."
   },
   "map": {
     "title": "الخريطة",

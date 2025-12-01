@@ -237,7 +237,14 @@
     "preferences": "Preferences",
     "changePassword": "Change Password",
     "switchToTasker": "Switch to Tasker Mode",
-    "switchToClient": "Switch to Client Mode"
+    "switchToClient": "Switch to Client Mode",
+    "actions": "Actions",
+    "verifyIdentity": "Verify Identity",
+    "arabic": "العربية",
+    "english": "English",
+    "switchModeDesc": "Change how you use the app",
+    "deleteAccountConfirm": "Are you sure you want to delete your account?",
+    "deleteAccountWarning": "All your data will be permanently deleted and this action cannot be undone."
   },
   "map": {
     "title": "Map",
