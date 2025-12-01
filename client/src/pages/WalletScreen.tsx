@@ -5,8 +5,25 @@ import { TransactionCard } from '@/components/TransactionCard';
 import { CountUp } from '@/components/CountUp';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton, EmptyState } from '@/components/ui/animated';
-import { Wallet, Plus, ArrowUpRight, Receipt, ArrowLeft } from 'lucide-react';
+import { Wallet, Plus, ArrowUpRight, Receipt, ArrowLeft, CreditCard, TrendingUp } from 'lucide-react';
 import type { Transaction, User } from '@shared/schema';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06, delayChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { type: "spring", stiffness: 300, damping: 24 }
+  }
+};
 
 const WalletScreen = memo(function WalletScreen() {
   const [, setLocation] = useLocation();
@@ -25,94 +42,125 @@ const WalletScreen = memo(function WalletScreen() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 pt-safe pb-24">
+    <div className="min-h-screen gradient-mesh pt-safe pb-32">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.4 }}
-          className="absolute -top-20 -right-20 w-80 h-80 bg-primary/20 rounded-full blur-3xl"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.5, scale: 1 }}
+          transition={{ duration: 1 }}
+          className="absolute -top-24 -right-24 w-80 h-80 bg-gradient-to-br from-primary/25 to-primary/5 rounded-full blur-3xl"
         />
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.2 }}
-          transition={{ delay: 0.2 }}
-          className="absolute top-60 -left-20 w-48 h-48 bg-accent/20 rounded-full blur-3xl"
+          animate={{ opacity: 0.25 }}
+          transition={{ delay: 0.3 }}
+          className="absolute top-60 -left-20 w-48 h-48 bg-gradient-to-tr from-accent/25 to-transparent rounded-full blur-3xl"
         />
       </div>
 
-      <div className="relative z-10 px-6 py-6">
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="relative z-10 px-5 py-5"
+      >
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-4 mb-8"
+          variants={itemVariants}
+          className="flex items-center gap-4 mb-6"
         >
           <motion.button
             whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileTap={{ scale: 0.92 }}
             onClick={() => setLocation('/home')}
             className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
+            data-testid="button-back-wallet"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 text-foreground/80" />
           </motion.button>
-          <h1 className="text-2xl font-extrabold text-foreground">Wallet</h1>
+          <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Wallet</h1>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ delay: 0.1 }}
-          className="gradient-hero p-8 rounded-[2rem] text-white mb-8 shadow-2xl shadow-primary/30 relative overflow-hidden"
+          variants={itemVariants}
+          className="relative overflow-hidden rounded-[28px] mb-6"
         >
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-dark to-primary/90" />
           
-          <div className="flex items-center justify-between mb-8 relative">
-            <div>
-              <p className="text-sm opacity-80 font-medium mb-2">Available Balance</p>
-              <p className="text-5xl font-extrabold tracking-tight">
-                $<CountUp end={balance} decimals={2} />
-              </p>
-            </div>
-            <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center backdrop-blur-sm">
-              <Wallet className="w-10 h-10" />
-            </div>
+          <div className="absolute inset-0 opacity-30">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/20 rounded-full translate-y-1/2 -translate-x-1/4 blur-2xl" />
           </div>
           
-          <div className="grid grid-cols-2 gap-4 relative">
-            <Link href="/wallet/add-card">
-              <motion.button 
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full h-14 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all border border-white/20"
-                data-testid="button-add-funds"
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxIiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz48L2c+PC9zdmc+')] opacity-60" />
+          
+          <div className="relative p-6">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <p className="text-sm text-white/70 font-medium mb-1.5">Available Balance</p>
+                <p className="text-[44px] font-extrabold text-white tracking-tight leading-none">
+                  $<CountUp end={balance} decimals={2} />
+                </p>
+              </div>
+              <motion.div 
+                whileHover={{ rotate: 10, scale: 1.05 }}
+                className="w-16 h-16 bg-white/15 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-white/20"
               >
-                <Plus className="w-5 h-5" />
-                Add Funds
-              </motion.button>
-            </Link>
-            <Link href="/wallet/withdraw">
-              <motion.button 
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full h-14 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all border border-white/20"
-                data-testid="button-withdraw"
-              >
-                <ArrowUpRight className="w-5 h-5" />
-                Withdraw
-              </motion.button>
-            </Link>
+                <Wallet className="w-8 h-8 text-white" />
+              </motion.div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <Link href="/wallet/add-card">
+                <motion.button 
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full h-12 bg-white/20 backdrop-blur-sm hover:bg-white/25 rounded-xl font-bold flex items-center justify-center gap-2 transition-all border border-white/20 text-white text-sm"
+                  data-testid="button-add-funds"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Funds
+                </motion.button>
+              </Link>
+              <Link href="/wallet/withdraw">
+                <motion.button 
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full h-12 bg-white/20 backdrop-blur-sm hover:bg-white/25 rounded-xl font-bold flex items-center justify-center gap-2 transition-all border border-white/20 text-white text-sm"
+                  data-testid="button-withdraw"
+                >
+                  <ArrowUpRight className="w-4 h-4" />
+                  Withdraw
+                </motion.button>
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3 mb-6">
+          <div className="glass rounded-[20px] p-4">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center mb-2.5">
+              <TrendingUp className="w-4 h-4 text-success" />
+            </div>
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">This Month</p>
+            <p className="font-bold text-foreground">+$0.00</p>
+          </div>
+          <div className="glass rounded-[20px] p-4">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-2.5">
+              <CreditCard className="w-4 h-4 text-primary" />
+            </div>
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">Pending</p>
+            <p className="font-bold text-foreground">$0.00</p>
           </div>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="flex items-center justify-between mb-6"
+          variants={itemVariants}
+          className="flex items-center justify-between mb-4"
         >
-          <h2 className="text-xl font-bold text-foreground">Recent Transactions</h2>
+          <h2 className="text-lg font-bold text-foreground">Recent Transactions</h2>
         </motion.div>
 
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           <AnimatePresence mode="wait">
             {isLoading ? (
               <motion.div
@@ -120,33 +168,31 @@ const WalletScreen = memo(function WalletScreen() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="space-y-3"
+                className="space-y-2.5"
               >
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="glass rounded-2xl p-4 flex items-center gap-4">
-                    <Skeleton className="w-12 h-12 rounded-2xl" />
+                  <div key={i} className="glass rounded-[18px] p-4 flex items-center gap-3">
+                    <Skeleton className="w-10 h-10 rounded-xl" />
                     <div className="flex-1">
-                      <Skeleton className="h-4 w-32 mb-2" />
-                      <Skeleton className="h-3 w-20" />
+                      <Skeleton className="h-4 w-32 mb-1.5 rounded" />
+                      <Skeleton className="h-3 w-20 rounded" />
                     </div>
-                    <Skeleton className="h-6 w-16" />
+                    <Skeleton className="h-5 w-14 rounded" />
                   </div>
                 ))}
               </motion.div>
             ) : transactions && transactions.length > 0 ? (
               <motion.div
                 key="transactions"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="space-y-3"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="space-y-2.5"
               >
                 {transactions.map((transaction, index) => (
                   <motion.div
                     key={transaction.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
+                    variants={itemVariants}
                   >
                     <TransactionCard transaction={transaction} />
                   </motion.div>
@@ -155,8 +201,8 @@ const WalletScreen = memo(function WalletScreen() {
             ) : (
               <motion.div
                 key="empty"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
               >
                 <EmptyState
@@ -168,7 +214,7 @@ const WalletScreen = memo(function WalletScreen() {
             )}
           </AnimatePresence>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 });
