@@ -55,7 +55,7 @@ const RoleCard = memo(function RoleCard({
       onClick={onSelect}
       whileTap={{ scale: 0.98 }}
       className={cn(
-        "w-full text-right p-6 rounded-3xl transition-all duration-300 relative overflow-hidden",
+        "w-full text-start p-6 rounded-3xl transition-all duration-300 relative overflow-hidden",
         isSelected
           ? "glass-premium shadow-xl"
           : "glass hover:shadow-lg"

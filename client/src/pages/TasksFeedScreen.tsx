@@ -94,7 +94,7 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
           <div>
             <h1 className="text-2xl font-extrabold text-foreground tracking-tight">{t('tasks.feed')}</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {taskCount} {t('tasks.title').toLowerCase()}
+              {taskCount} {t('tasks.available')}
             </p>
           </div>
           <motion.button

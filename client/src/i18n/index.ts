@@ -41,7 +41,15 @@ export const changeLanguage = (lng: string) => {
   document.documentElement.dir = isRTL() ? 'rtl' : 'ltr';
 };
 
-document.documentElement.lang = i18n.language;
-document.documentElement.dir = 'rtl';
+const updateDirection = () => {
+  document.documentElement.lang = i18n.language;
+  document.documentElement.dir = isRTL() ? 'rtl' : 'ltr';
+};
+
+i18n.on('languageChanged', () => {
+  updateDirection();
+});
+
+updateDirection();
 
 export default i18n;

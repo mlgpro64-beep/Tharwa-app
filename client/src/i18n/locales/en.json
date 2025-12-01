@@ -132,7 +132,8 @@
     "empty": {
       "title": "No tasks",
       "description": "No tasks match your criteria"
-    }
+    },
+    "available": "tasks available"
   },
   "wallet": {
     "title": "Wallet",
