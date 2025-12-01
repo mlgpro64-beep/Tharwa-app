@@ -14,6 +14,7 @@ import {
   ArrowLeft, Heart, Edit3, MapPin, Clock, DollarSign, 
   MessageCircle, Star, AlertCircle, Loader2, Send
 } from 'lucide-react';
+import TaskLocationMap from '@/components/TaskLocationMap';
 import type { TaskWithDetails, BidWithTasker } from '@shared/schema';
 
 const TaskDetailsScreen = memo(function TaskDetailsScreen() {
@@ -229,7 +230,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="grid grid-cols-2 gap-4 mb-6"
+          className="grid grid-cols-2 gap-4 mb-4"
         >
           <div className="glass rounded-3xl p-5">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
@@ -245,6 +246,19 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
             <p className="text-xs text-muted-foreground font-medium mb-1">When</p>
             <p className="font-bold text-foreground">{task.date} at {task.time}</p>
           </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.22 }}
+          className="mb-6"
+        >
+          <TaskLocationMap 
+            latitude={task.latitude}
+            longitude={task.longitude}
+            location={task.location}
+          />
         </motion.div>
 
         <motion.div
