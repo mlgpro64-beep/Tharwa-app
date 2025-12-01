@@ -7,7 +7,10 @@ interface LocationState {
   isLoading: boolean;
   error: string | null;
   checkLocation: () => void;
+  isTestMode: boolean;
 }
+
+const TESTING_KEY = 'tharwa_dev_mode';
 
 const RIYADH_BOUNDS = {
   minLat: 24.4,
@@ -25,10 +28,25 @@ const isWithinRiyadh = (lat: number, lon: number): boolean => {
   );
 };
 
+const checkTestMode = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('dev') === 'true') {
+    localStorage.setItem(TESTING_KEY, 'true');
+    return true;
+  }
+  
+  return localStorage.getItem(TESTING_KEY) === 'true';
+};
+
 export function useLocation(): LocationState {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+  const [isTestMode] = useState<boolean>(() => checkTestMode());
   const [isInRiyadh, setIsInRiyadh] = useState<boolean | null>(() => {
+    if (checkTestMode()) return true;
+    
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('isInRiyadh');
       if (saved !== null) return saved === 'true';
@@ -89,9 +107,10 @@ export function useLocation(): LocationState {
   return {
     latitude,
     longitude,
-    isInRiyadh,
+    isInRiyadh: isTestMode ? true : isInRiyadh,
     isLoading,
     error,
     checkLocation,
+    isTestMode,
   };
 }
