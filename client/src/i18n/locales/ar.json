@@ -32,7 +32,8 @@
     "password": "كلمة المرور",
     "confirmPassword": "تأكيد كلمة المرور",
     "email": "البريد الإلكتروني",
-    "phone": "رقم الهاتف",
+    "phone": "رقم الجوال",
+    "phoneOrEmail": "رقم الجوال أو البريد الإلكتروني",
     "fullName": "الاسم الكامل",
     "forgotPassword": "نسيت كلمة المرور؟",
     "noAccount": "ليس لديك حساب؟",
@@ -40,7 +41,13 @@
     "getStarted": "ابدأ الآن",
     "alreadyHaveAccount": "لدي حساب بالفعل",
     "accountCreated": "تم إنشاء الحساب!",
-    "welcomeTo": "مرحباً بك في {{appName}}"
+    "welcomeTo": "مرحباً بك في {{appName}}",
+    "createAccount": "إنشاء حساب جديد",
+    "createAccountDesc": "أنشئ حسابك للبدء",
+    "taskerRegisterDesc": "ابدأ بكسب المال من خلال مساعدة الآخرين",
+    "clientRegisterDesc": "أنجز مهامك بمساعدة محلية",
+    "creatingAccount": "جاري إنشاء الحساب...",
+    "signIn": "تسجيل الدخول"
   },
   "welcome": {
     "title": "ذروة",
@@ -244,7 +251,9 @@
     "english": "English",
     "switchModeDesc": "تغيير طريقة استخدام التطبيق",
     "deleteAccountConfirm": "هل أنت متأكد أنك تريد حذف حسابك؟",
-    "deleteAccountWarning": "سيتم حذف جميع بياناتك نهائياً ولا يمكن التراجع عن هذا الإجراء."
+    "deleteAccountWarning": "سيتم حذف جميع بياناتك نهائياً ولا يمكن التراجع عن هذا الإجراء.",
+    "dangerZone": "منطقة الخطر",
+    "deleteAccountPermanently": "حذف الحساب نهائياً"
   },
   "map": {
     "title": "الخريطة",
@@ -274,7 +283,7 @@
   "errors": {
     "required": "هذا الحقل مطلوب",
     "invalidEmail": "البريد الإلكتروني غير صالح",
-    "invalidPhone": "رقم الهاتف غير صالح",
+    "invalidPhone": "يجب أن يبدأ رقم الجوال بـ 05 ويتكون من 10 أرقام",
     "passwordMismatch": "كلمات المرور غير متطابقة",
     "passwordTooShort": "كلمة المرور قصيرة جداً",
     "networkError": "خطأ في الاتصال",

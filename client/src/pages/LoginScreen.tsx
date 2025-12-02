@@ -133,8 +133,9 @@ const LoginScreen = memo(function LoginScreen() {
               onChange={handleChange('username')}
               onFocus={() => setFocusedField('username')}
               onBlur={() => setFocusedField(null)}
-              placeholder={t('auth.username')}
+              placeholder={t('auth.phoneOrEmail')}
               autoComplete="username"
+              dir="ltr"
               className={cn(
                 "w-full h-16 px-5 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-200",
                 errors.username && "border-destructive",

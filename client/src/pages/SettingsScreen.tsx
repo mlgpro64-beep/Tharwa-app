@@ -270,39 +270,36 @@ const SettingsScreen = memo(function SettingsScreen() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35 }}
           >
-            <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 px-1">
-              {t('settings.actions')}
+            <motion.button 
+              onClick={handleLogout}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full p-4 glass rounded-2xl flex items-center justify-center gap-3 transition-all hover:bg-white/5"
+              data-testid="button-logout"
+            >
+              <LogOut className="w-5 h-5 text-foreground" />
+              <span className="font-bold text-foreground">{t('auth.logout')}</span>
+            </motion.button>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <h2 className="text-xs font-bold text-destructive uppercase tracking-widest mb-3 px-1">
+              {t('settings.dangerZone')}
             </h2>
-            <div className="glass rounded-3xl overflow-hidden">
-              <motion.button 
-                onClick={handleLogout}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center justify-between p-4 transition-all hover:bg-white/5 w-full border-b border-white/10"
-                data-testid="button-logout"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 bg-primary/15 rounded-2xl flex items-center justify-center">
-                    <LogOut className="w-5 h-5 text-primary" />
-                  </div>
-                  <span className="font-medium text-foreground text-start">{t('settings.logout')}</span>
-                </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground rtl:rotate-180" />
-              </motion.button>
-              <motion.button 
-                onClick={() => setShowDeleteDialog(true)}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center justify-between p-4 transition-all hover:bg-destructive/10 w-full"
-                data-testid="button-delete-account"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 bg-destructive/15 rounded-2xl flex items-center justify-center">
-                    <Trash2 className="w-5 h-5 text-destructive" />
-                  </div>
-                  <span className="font-medium text-destructive text-start">{t('settings.deleteAccount')}</span>
-                </div>
-                <ChevronRight className="w-5 h-5 text-destructive/70 rtl:rotate-180" />
-              </motion.button>
-            </div>
+            <motion.button 
+              onClick={() => setShowDeleteDialog(true)}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full p-4 bg-destructive text-white rounded-2xl flex items-center justify-center gap-3 font-bold shadow-lg shadow-destructive/25 transition-all hover:bg-destructive/90"
+              data-testid="button-delete-account"
+            >
+              <Trash2 className="w-5 h-5" />
+              <span>{t('settings.deleteAccountPermanently')}</span>
+            </motion.button>
           </motion.div>
 
           <motion.p 

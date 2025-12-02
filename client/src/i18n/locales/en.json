@@ -33,6 +33,7 @@
     "confirmPassword": "Confirm Password",
     "email": "Email",
     "phone": "Phone Number",
+    "phoneOrEmail": "Mobile Number or Email",
     "fullName": "Full Name",
     "forgotPassword": "Forgot Password?",
     "noAccount": "Don't have an account?",
@@ -40,7 +41,13 @@
     "getStarted": "Get Started",
     "alreadyHaveAccount": "I already have an account",
     "accountCreated": "Account created!",
-    "welcomeTo": "Welcome to {{appName}}"
+    "welcomeTo": "Welcome to {{appName}}",
+    "createAccount": "Create your account",
+    "createAccountDesc": "Create your account to get started",
+    "taskerRegisterDesc": "Start earning by helping others",
+    "clientRegisterDesc": "Get things done with local help",
+    "creatingAccount": "Creating account...",
+    "signIn": "Sign in"
   },
   "welcome": {
     "title": "THARWA",
@@ -244,7 +251,9 @@
     "english": "English",
     "switchModeDesc": "Change how you use the app",
     "deleteAccountConfirm": "Are you sure you want to delete your account?",
-    "deleteAccountWarning": "All your data will be permanently deleted and this action cannot be undone."
+    "deleteAccountWarning": "All your data will be permanently deleted and this action cannot be undone.",
+    "dangerZone": "Danger Zone",
+    "deleteAccountPermanently": "Delete Account Permanently"
   },
   "map": {
     "title": "Map",
@@ -274,7 +283,7 @@
   "errors": {
     "required": "This field is required",
     "invalidEmail": "Invalid email address",
-    "invalidPhone": "Invalid phone number",
+    "invalidPhone": "Phone must start with 05 and be 10 digits",
     "passwordMismatch": "Passwords do not match",
     "passwordTooShort": "Password is too short",
     "networkError": "Network error",

@@ -6,14 +6,13 @@ import { useApp } from '@/context/AppContext';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Eye, EyeOff, Loader2, User, Mail, Phone, AtSign, Lock } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Loader2, User, Mail, Phone, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FormData {
   name: string;
   email: string;
   phone: string;
-  username: string;
   password: string;
 }
 
@@ -25,11 +24,11 @@ interface InputFieldProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   error?: string;
   autoComplete?: string;
-  optional?: boolean;
   showPasswordToggle?: boolean;
   showPassword?: boolean;
   onTogglePassword?: () => void;
   testId: string;
+  dir?: string;
 }
 
 const InputField = memo(function InputField({
@@ -40,13 +39,15 @@ const InputField = memo(function InputField({
   onChange,
   error,
   autoComplete,
-  optional,
   showPasswordToggle,
   showPassword,
   onTogglePassword,
   testId,
+  dir,
 }: InputFieldProps) {
   const [isFocused, setIsFocused] = useState(false);
+  const { i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
   
   return (
     <motion.div
@@ -55,7 +56,10 @@ const InputField = memo(function InputField({
       className="relative"
     >
       <div className="relative">
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+        <div className={cn(
+          "absolute top-1/2 -translate-y-1/2 text-muted-foreground",
+          isRTL ? "right-4" : "left-4"
+        )}>
           <Icon className="w-5 h-5" />
         </div>
         <input
@@ -64,13 +68,16 @@ const InputField = memo(function InputField({
           onChange={onChange}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          placeholder={`${label}${optional ? ' (Optional)' : ''}`}
+          placeholder={label}
           autoComplete={autoComplete}
+          dir={dir || (isRTL ? 'rtl' : 'ltr')}
           className={cn(
-            "w-full h-14 pl-12 pr-5 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-200",
+            "w-full h-14 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-200",
+            isRTL ? "pr-12 pl-5" : "pl-12 pr-5",
             error && "border-destructive",
             isFocused && "ring-2 ring-primary/30",
-            showPasswordToggle && "pr-14"
+            showPasswordToggle && (isRTL ? "pl-14" : "pr-14"),
+            isRTL && "text-right"
           )}
           data-testid={testId}
         />
@@ -78,7 +85,10 @@ const InputField = memo(function InputField({
           <button
             type="button"
             onClick={onTogglePassword}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground transition-colors"
+            className={cn(
+              "absolute top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground transition-colors",
+              isRTL ? "left-4" : "right-4"
+            )}
           >
             {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
           </button>
@@ -90,7 +100,10 @@ const InputField = memo(function InputField({
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
-            className="mt-2 text-xs text-destructive font-medium pl-1"
+            className={cn(
+              "mt-2 text-xs text-destructive font-medium",
+              isRTL ? "pr-1 text-right" : "pl-1"
+            )}
           >
             {error}
           </motion.p>
@@ -102,15 +115,15 @@ const InputField = memo(function InputField({
 
 const RegisterScreen = memo(function RegisterScreen() {
   const [, setLocation] = useLocation();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { userRole, setUser } = useApp();
   const { toast } = useToast();
+  const isRTL = i18n.language === 'ar';
   
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
     phone: '',
-    username: '',
     password: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -120,6 +133,7 @@ const RegisterScreen = memo(function RegisterScreen() {
     mutationFn: async (data: FormData) => {
       const response = await apiRequest('POST', '/api/auth/register', {
         ...data,
+        username: data.phone,
         role: userRole,
       });
       return response.json();
@@ -127,37 +141,37 @@ const RegisterScreen = memo(function RegisterScreen() {
     onSuccess: (data) => {
       setUser(data.user);
       localStorage.setItem('userId', data.user.id);
-      toast({ title: t('auth.accountCreated', 'Account created!'), description: t('auth.welcomeTo', { appName: t('welcome.title') }) });
+      toast({ title: t('auth.accountCreated'), description: t('auth.welcomeTo', { appName: t('welcome.title') }) });
       setLocation('/home');
     },
     onError: (error: Error) => {
-      toast({ title: 'Registration failed', description: error.message, variant: 'destructive' });
+      toast({ title: t('errors.somethingWentWrong'), description: error.message, variant: 'destructive' });
     },
   });
 
   const validateForm = useCallback(() => {
     const newErrors: Record<string, string> = {};
     
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.name.trim()) newErrors.name = t('errors.required');
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = t('errors.required');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = t('errors.invalidEmail');
     }
-    if (!formData.username.trim()) {
-      newErrors.username = 'Username is required';
-    } else if (formData.username.length < 3) {
-      newErrors.username = 'Username must be at least 3 characters';
+    if (!formData.phone.trim()) {
+      newErrors.phone = t('errors.required');
+    } else if (!/^05\d{8}$/.test(formData.phone.replace(/\s/g, ''))) {
+      newErrors.phone = t('errors.invalidPhone');
     }
     if (!formData.password.trim()) {
-      newErrors.password = 'Password is required';
+      newErrors.password = t('errors.required');
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = t('errors.passwordTooShort');
     }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [formData]);
+  }, [formData, t]);
 
   const handleSubmit = useCallback(() => {
     if (validateForm()) {
@@ -182,13 +196,19 @@ const RegisterScreen = memo(function RegisterScreen() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.3 }}
-          className="absolute -top-20 -left-20 w-80 h-80 bg-accent/20 rounded-full blur-3xl"
+          className={cn(
+            "absolute -top-20 w-80 h-80 bg-accent/20 rounded-full blur-3xl",
+            isRTL ? "-right-20" : "-left-20"
+          )}
         />
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.2 }}
           transition={{ delay: 0.2 }}
-          className="absolute bottom-40 -right-20 w-64 h-64 bg-primary/15 rounded-full blur-3xl"
+          className={cn(
+            "absolute bottom-40 w-64 h-64 bg-primary/15 rounded-full blur-3xl",
+            isRTL ? "-left-20" : "-right-20"
+          )}
         />
       </div>
 
@@ -204,7 +224,7 @@ const RegisterScreen = memo(function RegisterScreen() {
           className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
           data-testid="button-back"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className={cn("w-5 h-5", isRTL && "rotate-180")} />
         </motion.button>
         
         <div className="flex gap-2">
@@ -230,15 +250,15 @@ const RegisterScreen = memo(function RegisterScreen() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-8"
+          className={cn("mb-8", isRTL && "text-right")}
         >
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">
-            Create your account
+            {t('auth.createAccount')}
           </h1>
           <p className="text-muted-foreground text-lg">
             {userRole === 'tasker' 
-              ? "Start earning by helping others" 
-              : "Get things done with local help"}
+              ? t('auth.taskerRegisterDesc')
+              : t('auth.clientRegisterDesc')}
           </p>
         </motion.div>
 
@@ -250,7 +270,7 @@ const RegisterScreen = memo(function RegisterScreen() {
         >
           <InputField
             icon={User}
-            label="Full Name"
+            label={t('auth.fullName')}
             value={formData.name}
             onChange={handleChange('name')}
             error={errors.name}
@@ -259,40 +279,32 @@ const RegisterScreen = memo(function RegisterScreen() {
           />
           
           <InputField
+            icon={Phone}
+            label={t('auth.phone')}
+            type="tel"
+            value={formData.phone}
+            onChange={handleChange('phone')}
+            error={errors.phone}
+            autoComplete="tel"
+            testId="input-phone"
+            dir="ltr"
+          />
+          
+          <InputField
             icon={Mail}
-            label="Email Address"
+            label={t('auth.email')}
             type="email"
             value={formData.email}
             onChange={handleChange('email')}
             error={errors.email}
             autoComplete="email"
             testId="input-email"
-          />
-          
-          <InputField
-            icon={Phone}
-            label="Phone Number"
-            type="tel"
-            value={formData.phone}
-            onChange={handleChange('phone')}
-            autoComplete="tel"
-            optional
-            testId="input-phone"
-          />
-          
-          <InputField
-            icon={AtSign}
-            label="Username"
-            value={formData.username}
-            onChange={handleChange('username')}
-            error={errors.username}
-            autoComplete="username"
-            testId="input-username"
+            dir="ltr"
           />
           
           <InputField
             icon={Lock}
-            label="Password"
+            label={t('auth.password')}
             value={formData.password}
             onChange={handleChange('password')}
             error={errors.password}
@@ -321,17 +333,17 @@ const RegisterScreen = memo(function RegisterScreen() {
             {registerMutation.isPending ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Creating account...
+                {t('auth.creatingAccount')}
               </>
             ) : (
-              'Create Account'
+              t('auth.register')
             )}
           </motion.button>
 
-          <p className="text-center text-muted-foreground mt-6">
-            Already have an account?{' '}
+          <p className={cn("text-center text-muted-foreground mt-6", isRTL && "text-center")}>
+            {t('auth.haveAccount')}{' '}
             <Link href="/login" className="text-primary font-bold hover:underline">
-              Sign in
+              {t('auth.signIn')}
             </Link>
           </p>
         </motion.div>
