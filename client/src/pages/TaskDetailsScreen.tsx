@@ -43,6 +43,18 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
   const [showBidModal, setShowBidModal] = useState(false);
   const [bidAmount, setBidAmount] = useState('');
   const [bidMessage, setBidMessage] = useState('');
+  
+  const handleBidAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setBidAmount(e.target.value);
+  }, []);
+  
+  const handleBidMessageChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setBidMessage(e.target.value);
+  }, []);
+  
+  const handleCloseBidModal = useCallback(() => {
+    setShowBidModal(false);
+  }, []);
 
   const { data: task, isLoading } = useQuery<TaskWithDetails>({
     queryKey: ['/api/tasks', id],
@@ -408,7 +420,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
 
       <Modal
         isOpen={showBidModal}
-        onClose={() => setShowBidModal(false)}
+        onClose={handleCloseBidModal}
         title="Make an Offer"
         action={
           <motion.button
@@ -440,18 +452,23 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
             </div>
             <input
               type="number"
+              inputMode="decimal"
               value={bidAmount}
-              onChange={(e) => setBidAmount(e.target.value)}
+              onChange={handleBidAmountChange}
               placeholder="Your offer amount"
+              autoComplete="off"
+              autoCorrect="off"
               className="w-full h-13 pl-12 pr-5 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none text-base"
               data-testid="input-bid-amount"
             />
           </div>
           <textarea
             value={bidMessage}
-            onChange={(e) => setBidMessage(e.target.value)}
+            onChange={handleBidMessageChange}
             placeholder="Tell them why you're a great fit... (optional)"
             rows={3}
+            autoComplete="off"
+            autoCorrect="off"
             className="w-full p-4 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none resize-none text-base"
             data-testid="input-bid-message"
           />

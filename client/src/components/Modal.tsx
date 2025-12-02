@@ -100,14 +100,9 @@ export const Modal = memo(function Modal({
               </motion.button>
             </div>
 
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="space-y-6"
-            >
+            <div className="space-y-6">
               {children}
-            </motion.div>
+            </div>
 
             {action && (
               <motion.div 
