@@ -400,24 +400,97 @@ export type ConversationPreview = {
   unreadCount: number;
 };
 
-// Task categories
+// Task categories with subcategories for task posting
+export const TASK_CATEGORIES_WITH_SUBS = {
+  beauty_fashion: {
+    id: "beauty_fashion",
+    nameEn: "Beauty & Fashion",
+    nameAr: "الجمال والموضة",
+    colorHex: "#EC4899",
+    icon: "sparkles",
+    subcategories: [
+      { id: "model", nameEn: "Model", nameAr: "مودل" },
+      { id: "makeup_artist", nameEn: "Makeup Artist", nameAr: "ميكب ارتست" },
+      { id: "hair_stylist", nameEn: "Hair Stylist", nameAr: "مصففة الشعر" },
+      { id: "clothing_designer", nameEn: "Clothing Designer", nameAr: "تصميم الملابس" },
+    ],
+  },
+  teaching_education: {
+    id: "teaching_education",
+    nameEn: "Teaching & Education",
+    nameAr: "التدريس والتعليم",
+    colorHex: "#22C55E",
+    icon: "graduation-cap",
+    subcategories: [
+      { id: "private_tutor", nameEn: "Private Tutor", nameAr: "مدرس خصوصي" },
+      { id: "translator", nameEn: "Language Translator", nameAr: "ترجمة لغات" },
+      { id: "sign_language", nameEn: "Sign Language", nameAr: "لغة الإشارة" },
+    ],
+  },
+  art: {
+    id: "art",
+    nameEn: "Art",
+    nameAr: "الفن",
+    colorHex: "#3B82F6",
+    icon: "palette",
+    subcategories: [
+      { id: "drawing", nameEn: "Drawing", nameAr: "الرسم" },
+      { id: "painting", nameEn: "Painting", nameAr: "الطلاء" },
+      { id: "photography", nameEn: "Photography", nameAr: "التصوير" },
+      { id: "digital_art", nameEn: "Digital Art", nameAr: "الفن الرقمي" },
+    ],
+  },
+  construction: {
+    id: "construction",
+    nameEn: "Construction",
+    nameAr: "عمال المقاولات",
+    colorHex: "#EF4444",
+    icon: "hard-hat",
+    subcategories: [
+      { id: "carpenter", nameEn: "Carpenter", nameAr: "النجار" },
+      { id: "blacksmith", nameEn: "Blacksmith", nameAr: "الحداد" },
+      { id: "electrician", nameEn: "Electrician", nameAr: "الكهربائي" },
+      { id: "plumber", nameEn: "Plumber", nameAr: "السباك" },
+    ],
+  },
+  special: {
+    id: "special",
+    nameEn: "Special Services",
+    nameAr: "فئة خاصة",
+    colorHex: "#EAB308",
+    icon: "star",
+    subcategories: [
+      { id: "package_delivery", nameEn: "Package Delivery", nameAr: "توصيل الطرود واستلامها" },
+      { id: "furniture_moving", nameEn: "Furniture Moving", nameAr: "نقل العفش" },
+      { id: "car_washing", nameEn: "Car Washing", nameAr: "غسيل السيارات" },
+      { id: "home_barber", nameEn: "Home Barber", nameAr: "حلاق منزلي" },
+    ],
+  },
+  other: {
+    id: "other",
+    nameEn: "Other",
+    nameAr: "أخرى",
+    colorHex: "#6B7280",
+    icon: "more-horizontal",
+    subcategories: [],
+  },
+} as const;
+
+export type TaskCategoryId = keyof typeof TASK_CATEGORIES_WITH_SUBS;
+
+// Legacy task categories for backwards compatibility
 export const TASK_CATEGORIES = [
-  "Cleaning",
-  "Moving",
-  "Delivery",
-  "Handyman",
-  "Assembly",
-  "Gardening",
-  "Painting",
-  "Errands",
-  "Pet Care",
-  "Tech Help",
-  "Other",
+  "beauty_fashion",
+  "teaching_education",
+  "art",
+  "construction",
+  "special",
+  "other",
 ] as const;
 
 export type TaskCategory = typeof TASK_CATEGORIES[number];
 
-// Professional categories with colors
+// Professional categories with colors (for professional badges)
 export const PROFESSIONAL_CATEGORIES = {
   beauty_fashion: {
     id: "beauty_fashion",
@@ -456,7 +529,7 @@ export const PROFESSIONAL_CATEGORIES = {
   },
   construction: {
     id: "construction",
-    nameEn: "Construction Workers",
+    nameEn: "Construction",
     nameAr: "عمال المقاولات",
     colorHex: "#EF4444",
     roles: [
@@ -468,7 +541,7 @@ export const PROFESSIONAL_CATEGORIES = {
   },
   special: {
     id: "special",
-    nameEn: "Special Category",
+    nameEn: "Special Services",
     nameAr: "فئة خاصة",
     colorHex: "#EAB308",
     roles: [
