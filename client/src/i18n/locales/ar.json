@@ -42,6 +42,8 @@
     "alreadyHaveAccount": "لدي حساب بالفعل",
     "accountCreated": "تم إنشاء الحساب!",
     "welcomeTo": "مرحباً بك في {{appName}}",
+    "welcomeBack": "أهلاً بعودتك!",
+    "welcomeBackName": "مرحباً {{name}}",
     "createAccount": "إنشاء حساب جديد",
     "createAccountDesc": "أنشئ حسابك للبدء",
     "taskerRegisterDesc": "ابدأ بكسب المال من خلال مساعدة الآخرين",

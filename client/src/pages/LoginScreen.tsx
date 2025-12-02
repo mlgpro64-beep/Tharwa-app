@@ -37,7 +37,10 @@ const LoginScreen = memo(function LoginScreen() {
       setUser(data.user);
       switchRole(data.user.role);
       localStorage.setItem('userId', data.user.id);
-      toast({ title: t('auth.login'), description: data.user.name });
+      toast({ 
+        title: t('auth.welcomeBack'), 
+        description: t('auth.welcomeBackName', { name: data.user.name })
+      });
       setLocation('/home');
     },
     onError: (error: Error) => {

@@ -42,6 +42,8 @@
     "alreadyHaveAccount": "I already have an account",
     "accountCreated": "Account created!",
     "welcomeTo": "Welcome to {{appName}}",
+    "welcomeBack": "Welcome back!",
+    "welcomeBackName": "Hello {{name}}",
     "createAccount": "Create your account",
     "createAccountDesc": "Create your account to get started",
     "taskerRegisterDesc": "Start earning by helping others",
