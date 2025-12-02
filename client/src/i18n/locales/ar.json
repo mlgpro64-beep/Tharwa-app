@@ -200,7 +200,8 @@
     "skills": "المهارات",
     "portfolio": "معرض الأعمال",
     "statistics": "الإحصائيات",
-    "achievements": "الإنجازات"
+    "achievements": "الإنجازات",
+    "manageAvailability": "إدارة التوفر"
   },
   "chat": {
     "title": "المحادثات",
@@ -453,5 +454,52 @@
     "dailyLimitReached": "لقد وصلت للحد الأقصى",
     "dailyLimitDesc": "يمكنك نشر {{max}} مهام فقط يومياً. حاول مرة أخرى غداً.",
     "tasksPostedToday": "المهام المنشورة اليوم: {{count}}/{{max}}"
+  },
+  "portfolio": {
+    "title": "معرض الأعمال",
+    "addPhoto": "إضافة صورة",
+    "photoAdded": "تمت إضافة الصورة",
+    "photoAddedDesc": "تمت إضافة صورتك إلى معرض أعمالك",
+    "photoDeleted": "تم حذف الصورة",
+    "fileTooLarge": "حجم الملف يجب أن يكون أقل من 5 ميجابايت",
+    "uploadError": "فشل رفع الصورة",
+    "noPhotos": "لا توجد صور في معرض الأعمال بعد"
+  },
+  "availability": {
+    "title": "التوفر",
+    "available": "متاح",
+    "busy": "مشغول",
+    "manageAvailability": "إدارة التوفر"
+  },
+  "professionalRoles": {
+    "title": "التخصصات المهنية",
+    "categories": {
+      "beauty_fashion": "الجمال والموضة",
+      "teaching_education": "التدريس والتعليم",
+      "art": "الفن",
+      "construction": "عمال المقاولات",
+      "special": "فئة خاصة"
+    },
+    "roles": {
+      "model": "مودل",
+      "makeup_artist": "ميكب ارتست",
+      "hair_stylist": "مصففة الشعر",
+      "clothing_designer": "تصميم الملابس",
+      "private_tutor": "مدرس خصوصي",
+      "translator": "ترجمة لغات",
+      "sign_language": "لغة الإشارة",
+      "drawing": "الرسم",
+      "painting": "الطلاء",
+      "photography": "التصوير",
+      "digital_art": "الفن الرقمي",
+      "carpenter": "النجار",
+      "blacksmith": "الحداد",
+      "electrician": "الكهربائي",
+      "plumber": "السباك",
+      "package_delivery": "توصيل الطرود واستلامها",
+      "furniture_moving": "نقل العفش",
+      "car_washing": "غسيل السيارات",
+      "home_barber": "حلاق منزلي"
+    }
   }
 }

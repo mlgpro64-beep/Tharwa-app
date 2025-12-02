@@ -497,3 +497,245 @@ router.get("/api/conversations", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Professional Roles routes
+router.get("/api/professional-roles", async (req, res) => {
+  try {
+    const roles = await storage.getProfessionalRoles();
+    res.json(roles);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get("/api/professional-roles/:slug", async (req, res) => {
+  try {
+    const role = await storage.getProfessionalRoleBySlug(req.params.slug);
+    if (!role) return res.status(404).json({ error: "Role not found" });
+    res.json(role);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// User Professional Roles routes
+router.get("/api/users/:userId/professional-roles", async (req, res) => {
+  try {
+    const roles = await storage.getUserProfessionalRoles(req.params.userId);
+    res.json(roles);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post("/api/users/:userId/professional-roles", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    // Only admins can assign professional roles (admin-verified badges)
+    if (!req.user?.isAdmin) {
+      return res.status(403).json({ error: "Only administrators can assign professional roles" });
+    }
+    
+    const assigned = await storage.assignProfessionalRole({
+      userId: req.params.userId,
+      roleId: req.body.roleId,
+      verifiedBy: req.userId,
+    });
+    res.json(assigned);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.delete("/api/users/:userId/professional-roles/:roleId", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    // Only admins can remove professional roles
+    if (!req.user?.isAdmin) {
+      return res.status(403).json({ error: "Only administrators can remove professional roles" });
+    }
+    
+    await storage.removeProfessionalRole(req.params.userId, req.params.roleId);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Tasker Availability routes
+router.get("/api/users/:userId/availability", async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const availability = await storage.getTaskerAvailability(
+      req.params.userId,
+      startDate as string | undefined,
+      endDate as string | undefined
+    );
+    res.json(availability);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post("/api/availability", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const availability = await storage.setTaskerAvailability({
+      userId: req.userId,
+      date: req.body.date,
+      status: req.body.status,
+      note: req.body.note,
+    });
+    res.json(availability);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.patch("/api/availability/:id", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    // Verify ownership
+    const availability = await storage.getTaskerAvailabilityById(req.params.id);
+    if (!availability) return res.status(404).json({ error: "Availability not found" });
+    if (availability.userId !== req.userId) {
+      return res.status(403).json({ error: "Not authorized to modify this availability" });
+    }
+    
+    const updated = await storage.updateTaskerAvailability(req.params.id, req.body);
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.delete("/api/availability/:id", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    // Verify ownership
+    const availability = await storage.getTaskerAvailabilityById(req.params.id);
+    if (!availability) return res.status(404).json({ error: "Availability not found" });
+    if (availability.userId !== req.userId) {
+      return res.status(403).json({ error: "Not authorized to delete this availability" });
+    }
+    
+    await storage.deleteTaskerAvailability(req.params.id);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// User Photos (Portfolio) routes
+router.get("/api/users/:userId/photos", async (req, res) => {
+  try {
+    const photos = await storage.getUserPhotos(req.params.userId);
+    res.json(photos);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post("/api/photos", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const photo = await storage.addUserPhoto({
+      userId: req.userId,
+      url: req.body.url,
+      caption: req.body.caption,
+    });
+    res.json(photo);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.patch("/api/photos/:id", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    // Verify ownership
+    const photo = await storage.getUserPhotoById(req.params.id);
+    if (!photo) return res.status(404).json({ error: "Photo not found" });
+    if (photo.userId !== req.userId) {
+      return res.status(403).json({ error: "Not authorized to modify this photo" });
+    }
+    
+    const updated = await storage.updateUserPhoto(req.params.id, req.body);
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.delete("/api/photos/:id", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    // Verify ownership
+    const photo = await storage.getUserPhotoById(req.params.id);
+    if (!photo) return res.status(404).json({ error: "Photo not found" });
+    if (photo.userId !== req.userId) {
+      return res.status(403).json({ error: "Not authorized to delete this photo" });
+    }
+    
+    await storage.deleteUserPhoto(req.params.id);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post("/api/photos/reorder", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    // Verify ownership of all photos being reordered
+    const { photoIds } = req.body;
+    if (!Array.isArray(photoIds) || photoIds.length === 0) {
+      return res.status(400).json({ error: "photoIds array required" });
+    }
+    
+    for (const photoId of photoIds) {
+      const photo = await storage.getUserPhotoById(photoId);
+      if (!photo) return res.status(404).json({ error: `Photo ${photoId} not found` });
+      if (photo.userId !== req.userId) {
+        return res.status(403).json({ error: "Not authorized to reorder these photos" });
+      }
+    }
+    
+    await storage.reorderUserPhotos(req.userId, photoIds);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get user with extended details (roles, availability, photos)
+router.get("/api/users/:userId", async (req, res) => {
+  try {
+    const user = await storage.getUser(req.params.userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    
+    const [professionalRoles, availability, photos] = await Promise.all([
+      storage.getUserProfessionalRoles(req.params.userId),
+      storage.getTaskerAvailability(req.params.userId),
+      storage.getUserPhotos(req.params.userId),
+    ]);
+    
+    res.json({
+      ...sanitizeUser(user),
+      professionalRoles,
+      availability,
+      photos,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});

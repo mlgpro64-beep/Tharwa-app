@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { Link, useParams, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { useApp } from '@/context/AppContext';
@@ -9,9 +9,19 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { 
   ArrowLeft, Settings, Star, CheckCircle, Calendar, 
-  MapPin, ChevronRight, User, ListTodo, HelpCircle, Edit3, Shield
+  MapPin, ChevronRight, User, ListTodo, HelpCircle, Edit3, Shield,
+  Image as ImageIcon, CalendarDays
 } from 'lucide-react';
-import type { User as UserType } from '@shared/schema';
+import { ProfessionalBadgeList } from '@/components/ProfessionalBadge';
+import { AvailabilityCalendar } from '@/components/AvailabilityCalendar';
+import { PortfolioGallery } from '@/components/PortfolioGallery';
+import type { User as UserType, ProfessionalRole, UserProfessionalRole, TaskerAvailability, UserPhoto } from '@shared/schema';
+
+type UserWithExtended = UserType & {
+  professionalRoles?: (UserProfessionalRole & { role: ProfessionalRole })[];
+  availability?: TaskerAvailability[];
+  photos?: UserPhoto[];
+};
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -35,14 +45,21 @@ const ProfileScreen = memo(function ProfileScreen() {
   const [, setLocation] = useLocation();
   const { user: currentUser, userRole } = useApp();
   const { t } = useTranslation();
+  const [showCalendar, setShowCalendar] = useState(false);
   
   const isOwnProfile = !userId;
+  const targetUserId = userId || currentUser?.id;
   
-  const { data: profileUser, isLoading } = useQuery<UserType>({
-    queryKey: ['/api/users', userId || 'me'],
+  const { data: profileUser, isLoading } = useQuery<UserWithExtended>({
+    queryKey: ['/api/users', targetUserId],
+    queryFn: () => targetUserId 
+      ? fetch(`/api/users/${targetUserId}`).then(res => res.json())
+      : Promise.resolve(currentUser),
+    enabled: !!targetUserId,
   });
 
   const user = profileUser || currentUser;
+  const isTasker = user?.role === 'tasker';
 
   const getInitials = useCallback((name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -72,11 +89,19 @@ const ProfileScreen = memo(function ProfileScreen() {
     },
   ], [user]);
 
-  const menuItems = useMemo(() => [
-    { icon: User, labelKey: 'profile.editProfile', path: '/profile/edit', testId: 'button-edit-profile-full' },
-    { icon: ListTodo, labelKey: userRole === 'tasker' ? 'tasks.assignedTasks' : 'tasks.myTasks', path: '/my-tasks', testId: 'button-my-tasks' },
-    { icon: HelpCircle, labelKey: 'settings.help', path: '/help', testId: 'button-help' },
-  ], [userRole]);
+  const menuItems = useMemo(() => {
+    const items = [
+      { icon: User, labelKey: 'profile.editProfile', path: '/profile/edit', testId: 'button-edit-profile-full' },
+      { icon: ListTodo, labelKey: userRole === 'tasker' ? 'tasks.assignedTasks' : 'tasks.myTasks', path: '/my-tasks', testId: 'button-my-tasks' },
+    ];
+    if (userRole === 'tasker') {
+      items.push(
+        { icon: CalendarDays, labelKey: 'profile.manageAvailability', path: '', testId: 'button-manage-availability', action: () => setShowCalendar(!showCalendar) },
+      );
+    }
+    items.push({ icon: HelpCircle, labelKey: 'settings.help', path: '/help', testId: 'button-help' });
+    return items;
+  }, [userRole, showCalendar]);
 
   if (isLoading) {
     return (
@@ -192,7 +217,7 @@ const ProfileScreen = memo(function ProfileScreen() {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2 }}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider",
+              "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider mb-3",
               userRole === 'tasker' 
                 ? "bg-success/15 text-success" 
                 : "bg-primary/15 text-primary"
@@ -201,6 +226,16 @@ const ProfileScreen = memo(function ProfileScreen() {
             <Shield className="w-3.5 h-3.5" />
             {userRole === 'tasker' ? t('roles.tasker') : t('roles.client')}
           </motion.div>
+          
+          {profileUser?.professionalRoles && profileUser.professionalRoles.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+            >
+              <ProfessionalBadgeList roles={profileUser.professionalRoles} size="md" maxDisplay={4} />
+            </motion.div>
+          )}
         </motion.div>
 
         <motion.div 
@@ -254,6 +289,30 @@ const ProfileScreen = memo(function ProfileScreen() {
           </motion.div>
         )}
 
+        {isTasker && targetUserId && (
+          <motion.div
+            variants={itemVariants}
+            className="mb-5"
+          >
+            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1 mb-3">
+              {t('portfolio.title', 'Portfolio')}
+            </h3>
+            <PortfolioGallery userId={targetUserId} isEditable={isOwnProfile} />
+          </motion.div>
+        )}
+
+        {isTasker && targetUserId && (showCalendar || !isOwnProfile) && (
+          <motion.div
+            variants={itemVariants}
+            className="mb-5"
+          >
+            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1 mb-3">
+              {t('availability.title', 'Availability')}
+            </h3>
+            <AvailabilityCalendar userId={targetUserId} isEditable={isOwnProfile} />
+          </motion.div>
+        )}
+
         {isOwnProfile && (
           <motion.div
             variants={itemVariants}
@@ -262,29 +321,35 @@ const ProfileScreen = memo(function ProfileScreen() {
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1 mb-2">{t('wallet.quickActions')}</p>
             {menuItems.map((item, index) => {
               const Icon = item.icon;
+              const itemAction = 'action' in item ? (item as any).action : undefined;
+              const ButtonContent = (
+                <motion.button 
+                  whileHover={{ x: 4 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={itemAction}
+                  className="w-full glass rounded-[18px] font-semibold flex items-center justify-between p-4"
+                  data-testid={item.testId}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
+                      <Icon className="w-4 h-4 text-primary" />
+                    </div>
+                    <span className="text-foreground text-sm">{t(item.labelKey)}</span>
+                  </div>
+                  <ChevronRight className={cn(
+                    "w-4 h-4 text-muted-foreground rtl:rotate-180 transition-transform",
+                    itemAction && showCalendar && item.testId === 'button-manage-availability' && "rotate-90"
+                  )} />
+                </motion.button>
+              );
               return (
                 <motion.div
-                  key={item.path}
+                  key={item.testId}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.45 + index * 0.05 }}
                 >
-                  <Link href={item.path}>
-                    <motion.button 
-                      whileHover={{ x: 4 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full glass rounded-[18px] font-semibold flex items-center justify-between p-4"
-                      data-testid={item.testId}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
-                          <Icon className="w-4 h-4 text-primary" />
-                        </div>
-                        <span className="text-foreground text-sm">{t(item.labelKey)}</span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground rtl:rotate-180" />
-                    </motion.button>
-                  </Link>
+                  {item.path ? <Link href={item.path}>{ButtonContent}</Link> : ButtonContent}
                 </motion.div>
               );
             })}

@@ -200,7 +200,8 @@
     "skills": "Skills",
     "portfolio": "Portfolio",
     "statistics": "Statistics",
-    "achievements": "Achievements"
+    "achievements": "Achievements",
+    "manageAvailability": "Manage Availability"
   },
   "chat": {
     "title": "Conversations",
@@ -453,5 +454,52 @@
     "dailyLimitReached": "You've reached the limit",
     "dailyLimitDesc": "You can only post {{max}} tasks per day. Try again tomorrow.",
     "tasksPostedToday": "Tasks posted today: {{count}}/{{max}}"
+  },
+  "portfolio": {
+    "title": "Portfolio",
+    "addPhoto": "Add Photo",
+    "photoAdded": "Photo added",
+    "photoAddedDesc": "Your photo has been added to your portfolio",
+    "photoDeleted": "Photo deleted",
+    "fileTooLarge": "File size must be less than 5MB",
+    "uploadError": "Failed to upload photo",
+    "noPhotos": "No portfolio photos yet"
+  },
+  "availability": {
+    "title": "Availability",
+    "available": "Available",
+    "busy": "Busy",
+    "manageAvailability": "Manage Availability"
+  },
+  "professionalRoles": {
+    "title": "Professional Roles",
+    "categories": {
+      "beauty_fashion": "Beauty & Fashion",
+      "teaching_education": "Teaching & Education",
+      "art": "Art",
+      "construction": "Construction Workers",
+      "special": "Special Category"
+    },
+    "roles": {
+      "model": "Model",
+      "makeup_artist": "Makeup Artist",
+      "hair_stylist": "Hair Stylist",
+      "clothing_designer": "Clothing Designer",
+      "private_tutor": "Private Tutor",
+      "translator": "Language Translator",
+      "sign_language": "Sign Language",
+      "drawing": "Drawing",
+      "painting": "Painting",
+      "photography": "Photography",
+      "digital_art": "Digital Art",
+      "carpenter": "Carpenter",
+      "blacksmith": "Blacksmith",
+      "electrician": "Electrician",
+      "plumber": "Plumber",
+      "package_delivery": "Package Delivery",
+      "furniture_moving": "Furniture Moving",
+      "car_washing": "Car Washing",
+      "home_barber": "Home Barber"
+    }
   }
 }

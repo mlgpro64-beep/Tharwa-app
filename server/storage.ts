@@ -1,13 +1,16 @@
 import { db } from "./db";
 import { 
   users, tasks, bids, transactions, messages, notifications, savedTasks,
+  professionalRoles, userProfessionalRoles, taskerAvailability, userPhotos,
   insertUserSchema, insertTaskSchema, insertBidSchema, insertTransactionSchema,
   insertMessageSchema, insertNotificationSchema
 } from "@shared/schema";
-import { eq, and, or, desc, like, sql } from "drizzle-orm";
+import { eq, and, or, desc, like, sql, asc } from "drizzle-orm";
 import type { 
   User, Task, Bid, Transaction, Message, Notification, SavedTask,
-  InsertUser, InsertTask, InsertBid, InsertTransaction, InsertMessage, InsertNotification
+  ProfessionalRole, UserProfessionalRole, TaskerAvailability, UserPhoto,
+  InsertUser, InsertTask, InsertBid, InsertTransaction, InsertMessage, InsertNotification,
+  InsertProfessionalRole, InsertUserProfessionalRole, InsertTaskerAvailability, InsertUserPhoto
 } from "@shared/schema";
 
 export interface IStorage {
@@ -53,6 +56,31 @@ export interface IStorage {
   getSavedTasksForUser(userId: string): Promise<SavedTask[]>;
   saveTask(userId: string, taskId: string): Promise<SavedTask>;
   unsaveTask(userId: string, taskId: string): Promise<void>;
+  
+  // Professional Roles
+  getProfessionalRoles(): Promise<ProfessionalRole[]>;
+  getProfessionalRole(id: string): Promise<ProfessionalRole | undefined>;
+  getProfessionalRoleBySlug(slug: string): Promise<ProfessionalRole | undefined>;
+  
+  // User Professional Roles
+  getUserProfessionalRoles(userId: string): Promise<(UserProfessionalRole & { role: ProfessionalRole })[]>;
+  assignProfessionalRole(data: InsertUserProfessionalRole): Promise<UserProfessionalRole>;
+  removeProfessionalRole(userId: string, roleId: string): Promise<void>;
+  
+  // Tasker Availability
+  getTaskerAvailability(userId: string, startDate?: string, endDate?: string): Promise<TaskerAvailability[]>;
+  getTaskerAvailabilityById(id: string): Promise<TaskerAvailability | undefined>;
+  setTaskerAvailability(data: InsertTaskerAvailability): Promise<TaskerAvailability>;
+  updateTaskerAvailability(id: string, data: Partial<InsertTaskerAvailability>): Promise<TaskerAvailability>;
+  deleteTaskerAvailability(id: string): Promise<void>;
+  
+  // User Photos (Portfolio)
+  getUserPhotos(userId: string): Promise<UserPhoto[]>;
+  getUserPhotoById(id: string): Promise<UserPhoto | undefined>;
+  addUserPhoto(data: InsertUserPhoto): Promise<UserPhoto>;
+  updateUserPhoto(id: string, data: Partial<InsertUserPhoto>): Promise<UserPhoto>;
+  deleteUserPhoto(id: string): Promise<void>;
+  reorderUserPhotos(userId: string, photoIds: string[]): Promise<void>;
 }
 
 export const storage: IStorage = {
@@ -230,5 +258,134 @@ export const storage: IStorage = {
   
   async unsaveTask(userId: string, taskId: string) {
     await db.delete(savedTasks).where(and(eq(savedTasks.userId, userId), eq(savedTasks.taskId, taskId)));
+  },
+  
+  // Professional Roles
+  async getProfessionalRoles() {
+    return db.select().from(professionalRoles).orderBy(professionalRoles.category, professionalRoles.nameEn);
+  },
+  
+  async getProfessionalRole(id: string) {
+    const result = await db.select().from(professionalRoles).where(eq(professionalRoles.id, id)).limit(1);
+    return result[0];
+  },
+  
+  async getProfessionalRoleBySlug(slug: string) {
+    const result = await db.select().from(professionalRoles).where(eq(professionalRoles.slug, slug)).limit(1);
+    return result[0];
+  },
+  
+  // User Professional Roles
+  async getUserProfessionalRoles(userId: string) {
+    const result = await db
+      .select()
+      .from(userProfessionalRoles)
+      .innerJoin(professionalRoles, eq(userProfessionalRoles.roleId, professionalRoles.id))
+      .where(eq(userProfessionalRoles.userId, userId))
+      .orderBy(professionalRoles.category);
+    
+    return result.map(r => ({
+      ...r.user_professional_roles,
+      role: r.professional_roles,
+    }));
+  },
+  
+  async assignProfessionalRole(data: InsertUserProfessionalRole) {
+    const result = await db.insert(userProfessionalRoles).values(data).returning();
+    return result[0];
+  },
+  
+  async removeProfessionalRole(userId: string, roleId: string) {
+    await db.delete(userProfessionalRoles).where(
+      and(eq(userProfessionalRoles.userId, userId), eq(userProfessionalRoles.roleId, roleId))
+    );
+  },
+  
+  // Tasker Availability
+  async getTaskerAvailability(userId: string, startDate?: string, endDate?: string) {
+    const conditions = [eq(taskerAvailability.userId, userId)];
+    
+    if (startDate) {
+      conditions.push(sql`${taskerAvailability.date} >= ${startDate}`);
+    }
+    if (endDate) {
+      conditions.push(sql`${taskerAvailability.date} <= ${endDate}`);
+    }
+    
+    return db.select().from(taskerAvailability).where(and(...conditions)).orderBy(taskerAvailability.date);
+  },
+  
+  async getTaskerAvailabilityById(id: string) {
+    const result = await db.select().from(taskerAvailability).where(eq(taskerAvailability.id, id)).limit(1);
+    return result[0];
+  },
+  
+  async setTaskerAvailability(data: InsertTaskerAvailability) {
+    const existing = await db
+      .select()
+      .from(taskerAvailability)
+      .where(and(eq(taskerAvailability.userId, data.userId), eq(taskerAvailability.date, data.date)))
+      .limit(1);
+    
+    if (existing[0]) {
+      const result = await db
+        .update(taskerAvailability)
+        .set({ status: data.status, note: data.note })
+        .where(eq(taskerAvailability.id, existing[0].id))
+        .returning();
+      return result[0];
+    }
+    
+    const result = await db.insert(taskerAvailability).values(data).returning();
+    return result[0];
+  },
+  
+  async updateTaskerAvailability(id: string, data: Partial<InsertTaskerAvailability>) {
+    const result = await db.update(taskerAvailability).set(data).where(eq(taskerAvailability.id, id)).returning();
+    return result[0];
+  },
+  
+  async deleteTaskerAvailability(id: string) {
+    await db.delete(taskerAvailability).where(eq(taskerAvailability.id, id));
+  },
+  
+  // User Photos (Portfolio)
+  async getUserPhotos(userId: string) {
+    return db.select().from(userPhotos).where(eq(userPhotos.userId, userId)).orderBy(asc(userPhotos.displayOrder));
+  },
+  
+  async getUserPhotoById(id: string) {
+    const result = await db.select().from(userPhotos).where(eq(userPhotos.id, id)).limit(1);
+    return result[0];
+  },
+  
+  async addUserPhoto(data: InsertUserPhoto) {
+    const existingPhotos = await db
+      .select({ maxOrder: sql<number>`COALESCE(MAX(${userPhotos.displayOrder}), -1)` })
+      .from(userPhotos)
+      .where(eq(userPhotos.userId, data.userId));
+    
+    const nextOrder = (existingPhotos[0]?.maxOrder ?? -1) + 1;
+    
+    const result = await db.insert(userPhotos).values({ ...data, displayOrder: nextOrder }).returning();
+    return result[0];
+  },
+  
+  async updateUserPhoto(id: string, data: Partial<InsertUserPhoto>) {
+    const result = await db.update(userPhotos).set(data).where(eq(userPhotos.id, id)).returning();
+    return result[0];
+  },
+  
+  async deleteUserPhoto(id: string) {
+    await db.delete(userPhotos).where(eq(userPhotos.id, id));
+  },
+  
+  async reorderUserPhotos(userId: string, photoIds: string[]) {
+    for (let i = 0; i < photoIds.length; i++) {
+      await db
+        .update(userPhotos)
+        .set({ displayOrder: i })
+        .where(and(eq(userPhotos.id, photoIds[i]), eq(userPhotos.userId, userId)));
+    }
   },
 };
