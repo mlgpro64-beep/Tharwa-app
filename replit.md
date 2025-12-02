@@ -194,6 +194,48 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Features (December 2024)
 
+**Professional Roles & Badges System**
+- 19 predefined professional roles across 5 categories
+- Category-specific badge colors:
+  - Beauty & Fashion (pink): Model, Makeup Artist, Hair Stylist, Clothing Designer
+  - Teaching & Education (green): Private Tutor, Language Translator, Sign Language
+  - Art (blue): Drawing, Painting, Photography, Digital Art
+  - Construction (red): Carpenter, Blacksmith, Electrician, Plumber
+  - Special (yellow): Package Delivery, Furniture Moving, Car Washing, Home Barber
+- Admin-only role assignment (verified professional badges)
+- ProfessionalBadge component with icons and category colors
+- Database tables: professional_roles, user_professional_roles
+
+**Tasker Availability Calendar**
+- Airbnb-style calendar for managing availability
+- Days can be marked as "available" (green) or "busy" (red)
+- Read-only mode for clients viewing tasker calendars
+- Editable mode for taskers managing their own schedule
+- Month navigation with Arabic/English support
+- AvailabilityCalendar component with glassmorphism design
+- Database table: tasker_availability
+
+**Portfolio Gallery System**
+- Photo upload with base64 encoding
+- Drag-to-reorder functionality
+- Lightbox viewer with navigation
+- Maximum 5MB per photo
+- Caption support for each photo
+- PortfolioGallery component with glassmorphism cards
+- Database table: user_photos
+
+**Enhanced Profile Screen**
+- Integrated professional badges display
+- Portfolio gallery section for taskers
+- Availability calendar toggle in Quick Actions
+- Improved layout with premium glassmorphism design
+
+**API Authorization Improvements**
+- Admin-only endpoints for professional role assignment
+- Ownership verification for availability mutations
+- Ownership verification for photo mutations and reordering
+- Secure API endpoints with proper 403 responses
+
 **Help & Support System**
 - /help route with comprehensive FAQ sections
 - Contact options (WhatsApp, email, phone)
