@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { Link, useParams, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { useApp } from '@/context/AppContext';
@@ -9,8 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { 
   ArrowLeft, Settings, Star, CheckCircle, Calendar, 
-  MapPin, ChevronRight, User, ListTodo, HelpCircle, Edit3, Shield,
-  Image as ImageIcon, CalendarDays
+  MapPin, ChevronRight, User, ListTodo, HelpCircle, Edit3, Shield
 } from 'lucide-react';
 import { ProfessionalBadgeList } from '@/components/ProfessionalBadge';
 import { AvailabilityCalendar } from '@/components/AvailabilityCalendar';
@@ -45,7 +44,6 @@ const ProfileScreen = memo(function ProfileScreen() {
   const [, setLocation] = useLocation();
   const { user: currentUser, userRole } = useApp();
   const { t } = useTranslation();
-  const [showCalendar, setShowCalendar] = useState(false);
   
   const isOwnProfile = !userId;
   const targetUserId = userId || currentUser?.id;
@@ -93,15 +91,10 @@ const ProfileScreen = memo(function ProfileScreen() {
     const items = [
       { icon: User, labelKey: 'profile.editProfile', path: '/profile/edit', testId: 'button-edit-profile-full' },
       { icon: ListTodo, labelKey: userRole === 'tasker' ? 'tasks.assignedTasks' : 'tasks.myTasks', path: '/my-tasks', testId: 'button-my-tasks' },
+      { icon: HelpCircle, labelKey: 'settings.help', path: '/help', testId: 'button-help' },
     ];
-    if (userRole === 'tasker') {
-      items.push(
-        { icon: CalendarDays, labelKey: 'profile.manageAvailability', path: '', testId: 'button-manage-availability', action: () => setShowCalendar(!showCalendar) },
-      );
-    }
-    items.push({ icon: HelpCircle, labelKey: 'settings.help', path: '/help', testId: 'button-help' });
     return items;
-  }, [userRole, showCalendar]);
+  }, [userRole]);
 
   if (isLoading) {
     return (
@@ -301,7 +294,7 @@ const ProfileScreen = memo(function ProfileScreen() {
           </motion.div>
         )}
 
-        {isTasker && targetUserId && (showCalendar || !isOwnProfile) && (
+        {isTasker && targetUserId && (
           <motion.div
             variants={itemVariants}
             className="mb-5"
@@ -321,27 +314,6 @@ const ProfileScreen = memo(function ProfileScreen() {
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1 mb-2">{t('wallet.quickActions')}</p>
             {menuItems.map((item, index) => {
               const Icon = item.icon;
-              const itemAction = 'action' in item ? (item as any).action : undefined;
-              const ButtonContent = (
-                <motion.button 
-                  whileHover={{ x: 4 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={itemAction}
-                  className="w-full glass rounded-[18px] font-semibold flex items-center justify-between p-4"
-                  data-testid={item.testId}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
-                      <Icon className="w-4 h-4 text-primary" />
-                    </div>
-                    <span className="text-foreground text-sm">{t(item.labelKey)}</span>
-                  </div>
-                  <ChevronRight className={cn(
-                    "w-4 h-4 text-muted-foreground rtl:rotate-180 transition-transform",
-                    itemAction && showCalendar && item.testId === 'button-manage-availability' && "rotate-90"
-                  )} />
-                </motion.button>
-              );
               return (
                 <motion.div
                   key={item.testId}
@@ -349,7 +321,22 @@ const ProfileScreen = memo(function ProfileScreen() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.45 + index * 0.05 }}
                 >
-                  {item.path ? <Link href={item.path}>{ButtonContent}</Link> : ButtonContent}
+                  <Link href={item.path}>
+                    <motion.button 
+                      whileHover={{ x: 4 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full glass rounded-[18px] font-semibold flex items-center justify-between p-4"
+                      data-testid={item.testId}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
+                          <Icon className="w-4 h-4 text-primary" />
+                        </div>
+                        <span className="text-foreground text-sm">{t(item.labelKey)}</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground rtl:rotate-180" />
+                    </motion.button>
+                  </Link>
                 </motion.div>
               );
             })}

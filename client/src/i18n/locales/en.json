@@ -463,7 +463,9 @@
     "photoDeleted": "Photo deleted",
     "fileTooLarge": "File size must be less than 5MB",
     "uploadError": "Failed to upload photo",
-    "noPhotos": "No portfolio photos yet"
+    "noPhotos": "No portfolio photos yet",
+    "viewAll": "View All ({{count}})",
+    "showLess": "Show Less"
   },
   "availability": {
     "title": "Availability",

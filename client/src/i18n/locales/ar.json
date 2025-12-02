@@ -463,7 +463,9 @@
     "photoDeleted": "تم حذف الصورة",
     "fileTooLarge": "حجم الملف يجب أن يكون أقل من 5 ميجابايت",
     "uploadError": "فشل رفع الصورة",
-    "noPhotos": "لا توجد صور في معرض الأعمال بعد"
+    "noPhotos": "لا توجد صور في معرض الأعمال بعد",
+    "viewAll": "عرض الكل ({{count}})",
+    "showLess": "عرض أقل"
   },
   "availability": {
     "title": "التوفر",

@@ -19,6 +19,9 @@ export function PortfolioGallery({ userId, isEditable = false }: PortfolioGaller
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  
+  const MAX_VISIBLE_PHOTOS = 6;
   
   const { data: photos = [], isLoading } = useQuery<UserPhoto[]>({
     queryKey: ["/api/users", userId, "photos"],
@@ -116,14 +119,17 @@ export function PortfolioGallery({ userId, isEditable = false }: PortfolioGaller
     return null;
   }
   
+  const displayPhotos = showAll ? photos : photos.slice(0, MAX_VISIBLE_PHOTOS);
+  const hasMorePhotos = photos.length > MAX_VISIBLE_PHOTOS;
+  
   return (
     <div data-testid="gallery-portfolio">
       <div className="grid grid-cols-3 gap-2">
-        {photos.map((photo, index) => (
+        {displayPhotos.map((photo, index) => (
           <motion.button
             key={photo.id}
             layoutId={`photo-${photo.id}`}
-            onClick={() => setSelectedPhotoIndex(index)}
+            onClick={() => setSelectedPhotoIndex(photos.indexOf(photo))}
             className="aspect-square rounded-2xl overflow-hidden relative group"
             whileTap={{ scale: 0.98 }}
             data-testid={`gallery-photo-${photo.id}`}
@@ -156,6 +162,25 @@ export function PortfolioGallery({ userId, isEditable = false }: PortfolioGaller
           </motion.button>
         )}
       </div>
+      
+      {hasMorePhotos && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mt-3 text-center"
+        >
+          <Button
+            variant="ghost"
+            onClick={() => setShowAll(!showAll)}
+            className="text-primary font-semibold text-sm"
+            data-testid="button-view-all-photos"
+          >
+            {showAll 
+              ? t("portfolio.showLess") 
+              : t("portfolio.viewAll", { count: photos.length })}
+          </Button>
+        </motion.div>
+      )}
       
       <input
         ref={fileInputRef}
