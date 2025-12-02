@@ -7,18 +7,8 @@ import { cn } from '@/lib/utils';
 import { 
   ArrowLeft, User, Lock, Bell, Moon, Sun, ArrowLeftRight, 
   HelpCircle, FileText, Shield, LogOut, ChevronRight, Languages,
-  BadgeCheck, Trash2, Check
+  BadgeCheck, Check
 } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 interface SettingItem {
   icon: typeof User;
@@ -42,7 +32,6 @@ const SettingsScreen = memo(function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const { theme, toggleTheme, userRole, switchRole, logout } = useApp();
   const [showLanguageSheet, setShowLanguageSheet] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   const isArabic = i18n.language === 'ar';
   const currentLanguage = isArabic ? t('settings.arabic') : t('settings.english');
@@ -56,10 +45,6 @@ const SettingsScreen = memo(function SettingsScreen() {
     i18n.changeLanguage(lang);
     setShowLanguageSheet(false);
   }, [i18n]);
-
-  const handleDeleteAccount = useCallback(() => {
-    setShowDeleteDialog(false);
-  }, []);
 
   const handleSwitchRole = useCallback(() => {
     switchRole(userRole === 'client' ? 'tasker' : 'client');
@@ -282,26 +267,6 @@ const SettingsScreen = memo(function SettingsScreen() {
             </motion.button>
           </motion.div>
 
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <h2 className="text-xs font-bold text-destructive uppercase tracking-widest mb-3 px-1">
-              {t('settings.dangerZone')}
-            </h2>
-            <motion.button 
-              onClick={() => setShowDeleteDialog(true)}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full p-4 bg-destructive text-white rounded-2xl flex items-center justify-center gap-3 font-bold shadow-lg shadow-destructive/25 transition-all hover:bg-destructive/90"
-              data-testid="button-delete-account"
-            >
-              <Trash2 className="w-5 h-5" />
-              <span>{t('settings.deleteAccountPermanently')}</span>
-            </motion.button>
-          </motion.div>
-
           <motion.p 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -361,25 +326,6 @@ const SettingsScreen = memo(function SettingsScreen() {
         )}
       </AnimatePresence>
 
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('settings.deleteAccountConfirm')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('settings.deleteAccountWarning')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteAccount}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {t('settings.deleteAccount')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 });
