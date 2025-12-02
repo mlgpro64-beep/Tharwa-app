@@ -1,10 +1,12 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { Link } from 'wouter';
 import { motion } from 'framer-motion';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
 import { MapPin, Clock, Heart, DollarSign, ChevronRight } from 'lucide-react';
 import type { TaskWithDetails } from '@shared/schema';
+import { getCategoryInfo, TASK_CATEGORIES_WITH_SUBS } from '@shared/schema';
+import { useTranslation } from 'react-i18next';
 
 interface TaskCardProps {
   task: TaskWithDetails;
@@ -14,7 +16,27 @@ interface TaskCardProps {
 
 export const TaskCard = memo(function TaskCard({ task, showSaveButton = true, index = 0 }: TaskCardProps) {
   const { savedTaskIds, toggleSavedTask } = useApp();
+  const { i18n } = useTranslation();
   const isSaved = savedTaskIds.includes(task.id);
+  const isArabic = i18n.language === 'ar';
+
+  const categoryDisplay = useMemo(() => {
+    const info = getCategoryInfo(task.category);
+    if (!info) return task.category;
+    
+    if (info.subcategory) {
+      return isArabic ? info.subcategory.nameAr : info.subcategory.nameEn;
+    }
+    
+    const mainCat = TASK_CATEGORIES_WITH_SUBS[info.mainCategory];
+    return isArabic ? mainCat.nameAr : mainCat.nameEn;
+  }, [task.category, isArabic]);
+
+  const categoryColor = useMemo(() => {
+    const info = getCategoryInfo(task.category);
+    if (!info) return '#6B7280';
+    return TASK_CATEGORIES_WITH_SUBS[info.mainCategory]?.colorHex || '#6B7280';
+  }, [task.category]);
 
   const handleToggleSave = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -74,8 +96,14 @@ export const TaskCard = memo(function TaskCard({ task, showSaveButton = true, in
         <div className="flex justify-between items-start mb-3 pr-10">
           <div className="space-y-2">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary">
-                {task.category}
+              <span 
+                className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
+                style={{
+                  backgroundColor: `${categoryColor}20`,
+                  color: categoryColor,
+                }}
+              >
+                {categoryDisplay}
               </span>
               <span className={cn(
                 "px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider",

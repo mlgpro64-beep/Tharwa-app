@@ -6,7 +6,7 @@ import { TaskCard } from '@/components/TaskCard';
 import { useQuery } from '@tanstack/react-query';
 import { TaskCardSkeleton, EmptyState } from '@/components/ui/animated';
 import { cn } from '@/lib/utils';
-import { TASK_CATEGORIES } from '@shared/schema';
+import { TASK_CATEGORIES_WITH_SUBS, getCategoryInfo, type TaskCategoryId } from '@shared/schema';
 import { Search, SearchX, X, Filter } from 'lucide-react';
 import type { TaskWithDetails } from '@shared/schema';
 
@@ -36,7 +36,8 @@ const itemVariants = {
 
 const TasksFeedScreen = memo(function TasksFeedScreen() {
   const [, setLocation] = useLocation();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language === 'ar';
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -46,7 +47,10 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
 
   const filteredTasks = useMemo(() => {
     return tasks?.filter(task => {
-      const matchesCategory = !selectedCategory || task.category === selectedCategory;
+      if (!selectedCategory) return true;
+      
+      const taskCatInfo = getCategoryInfo(task.category);
+      const matchesCategory = taskCatInfo?.mainCategory === selectedCategory;
       const matchesSearch = !searchQuery || 
         task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         task.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -149,22 +153,35 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
             >
               {t('tasks.filters.allCategories')}
             </motion.button>
-            {TASK_CATEGORIES.map((category) => (
-              <motion.button
-                key={category}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => handleCategorySelect(category)}
-                data-testid={`button-filter-${category.toLowerCase().replace(/\s+/g, '-')}`}
-                className={cn(
-                  "px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-200",
-                  selectedCategory === category
-                    ? "gradient-primary text-white shadow-lg shadow-primary/25"
-                    : "glass text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {t(`tasks.categories.${category.toLowerCase()}`) || category}
-              </motion.button>
-            ))}
+            {(Object.entries(TASK_CATEGORIES_WITH_SUBS) as [TaskCategoryId, typeof TASK_CATEGORIES_WITH_SUBS[TaskCategoryId]][]).map(([categoryId, category]) => {
+              const displayName = isArabic ? category.nameAr : category.nameEn;
+              const colorHex = category.colorHex || '#6B7280';
+              
+              return (
+                <motion.button
+                  key={categoryId}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleCategorySelect(categoryId)}
+                  data-testid={`button-filter-${categoryId}`}
+                  className={cn(
+                    "px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-200",
+                    selectedCategory === categoryId
+                      ? "text-white shadow-lg"
+                      : "glass text-muted-foreground hover:text-foreground"
+                  )}
+                  style={{
+                    background: selectedCategory === categoryId 
+                      ? `linear-gradient(135deg, ${colorHex} 0%, ${colorHex}CC 100%)`
+                      : undefined,
+                    boxShadow: selectedCategory === categoryId 
+                      ? `0 8px 20px -8px ${colorHex}60`
+                      : undefined,
+                  }}
+                >
+                  {displayName}
+                </motion.button>
+              );
+            })}
           </div>
         </motion.div>
       </motion.div>

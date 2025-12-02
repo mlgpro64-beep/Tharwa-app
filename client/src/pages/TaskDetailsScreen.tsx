@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import TaskLocationMap from '@/components/TaskLocationMap';
 import type { TaskWithDetails, BidWithTasker } from '@shared/schema';
+import { getCategoryInfo, TASK_CATEGORIES_WITH_SUBS } from '@shared/schema';
+import { useTranslation } from 'react-i18next';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -39,6 +41,8 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
   const [, setLocation] = useLocation();
   const { userRole, savedTaskIds, toggleSavedTask } = useApp();
   const { toast } = useToast();
+  const { i18n } = useTranslation();
+  const isArabic = i18n.language === 'ar';
   
   const [showBidModal, setShowBidModal] = useState(false);
   const [bidAmount, setBidAmount] = useState('');
@@ -246,17 +250,44 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary">
-              {task.category}
-            </span>
-            <span className={cn(
-              "px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider",
-              statusConfig.bg, statusConfig.text
-            )}>
-              {statusConfig.label}
-            </span>
-          </div>
+          {(() => {
+            const catInfo = getCategoryInfo(task.category);
+            let categoryDisplay: string;
+            let categoryColor: string;
+            
+            if (catInfo?.subcategory) {
+              categoryDisplay = isArabic ? catInfo.subcategory.nameAr : catInfo.subcategory.nameEn;
+              categoryColor = TASK_CATEGORIES_WITH_SUBS[catInfo.mainCategory]?.colorHex || '#6B7280';
+            } else if (catInfo) {
+              categoryDisplay = isArabic 
+                ? TASK_CATEGORIES_WITH_SUBS[catInfo.mainCategory]?.nameAr || task.category
+                : TASK_CATEGORIES_WITH_SUBS[catInfo.mainCategory]?.nameEn || task.category;
+              categoryColor = TASK_CATEGORIES_WITH_SUBS[catInfo.mainCategory]?.colorHex || '#6B7280';
+            } else {
+              categoryDisplay = task.category;
+              categoryColor = '#6B7280';
+            }
+            
+            return (
+              <div className="flex items-center gap-2 mb-3">
+                <span 
+                  className="px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider"
+                  style={{
+                    backgroundColor: `${categoryColor}20`,
+                    color: categoryColor,
+                  }}
+                >
+                  {categoryDisplay}
+                </span>
+                <span className={cn(
+                  "px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider",
+                  statusConfig.bg, statusConfig.text
+                )}>
+                  {statusConfig.label}
+                </span>
+              </div>
+            );
+          })()}
 
           <h1 className="text-2xl font-extrabold text-foreground mb-3 leading-tight tracking-tight">
             {task.title}

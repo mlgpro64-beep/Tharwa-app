@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { TASK_CATEGORIES_WITH_SUBS, type TaskCategoryId } from '@shared/schema';
@@ -22,20 +22,42 @@ const categoryIcons: Record<TaskCategoryId, typeof Sparkles> = {
   other: MoreHorizontal,
 };
 
+const getAllSubcategoryIds = (): Set<string> => {
+  const ids = new Set<string>();
+  Object.values(TASK_CATEGORIES_WITH_SUBS).forEach(cat => {
+    cat.subcategories.forEach(sub => ids.add(sub.id));
+  });
+  return ids;
+};
+
+const findCategoryForSelection = (selected: string | null): TaskCategoryId | null => {
+  if (!selected) return null;
+  
+  if (selected === 'other') return 'other';
+  
+  for (const [catId, cat] of Object.entries(TASK_CATEGORIES_WITH_SUBS)) {
+    if (cat.subcategories.some(sub => sub.id === selected)) {
+      return catId as TaskCategoryId;
+    }
+  }
+  
+  return null;
+};
+
 const CategoryCard = memo(function CategoryCard({
   categoryId,
   category,
   isExpanded,
-  selectedSub,
+  selectedValue,
   onToggleExpand,
-  onSelectSub,
+  onSelectCategory,
 }: {
   categoryId: TaskCategoryId;
   category: typeof TASK_CATEGORIES_WITH_SUBS[TaskCategoryId];
   isExpanded: boolean;
-  selectedSub: string | null;
+  selectedValue: string | null;
   onToggleExpand: () => void;
-  onSelectSub: (sub: string) => void;
+  onSelectCategory: (value: string) => void;
 }) {
   const { i18n } = useTranslation();
   const isArabic = i18n.language === 'ar';
@@ -43,16 +65,16 @@ const CategoryCard = memo(function CategoryCard({
   const name = isArabic ? category.nameAr : category.nameEn;
   const hasSubcategories = category.subcategories.length > 0;
   
-  const isSelected = selectedSub?.startsWith(categoryId) || 
-    (categoryId === 'other' && selectedSub === 'other');
+  const mainCategoryOfSelection = useMemo(() => findCategoryForSelection(selectedValue), [selectedValue]);
+  const isSelected = mainCategoryOfSelection === categoryId;
   
   const handleClick = useCallback(() => {
     if (hasSubcategories) {
       onToggleExpand();
     } else {
-      onSelectSub('other');
+      onSelectCategory(categoryId);
     }
-  }, [hasSubcategories, onToggleExpand, onSelectSub]);
+  }, [hasSubcategories, onToggleExpand, onSelectCategory, categoryId]);
 
   return (
     <motion.div
@@ -145,8 +167,7 @@ const CategoryCard = memo(function CategoryCard({
             <div className="pt-3 px-1">
               <div className="grid grid-cols-2 gap-2">
                 {category.subcategories.map((sub, index) => {
-                  const subId = `${categoryId}:${sub.id}`;
-                  const isSubSelected = selectedSub === subId;
+                  const isSubSelected = selectedValue === sub.id;
                   const subName = isArabic ? sub.nameAr : sub.nameEn;
                   
                   return (
@@ -155,7 +176,7 @@ const CategoryCard = memo(function CategoryCard({
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      onClick={() => onSelectSub(subId)}
+                      onClick={() => onSelectCategory(sub.id)}
                       className={cn(
                         "relative p-4 rounded-2xl text-start transition-all",
                         "backdrop-blur-xl border",
@@ -235,8 +256,8 @@ export const CategoryPicker = memo(function CategoryPicker({
     setExpandedCategory(prev => prev === categoryId ? null : categoryId);
   }, []);
   
-  const handleSelectSub = useCallback((subId: string) => {
-    onSelect(subId);
+  const handleSelectCategory = useCallback((value: string) => {
+    onSelect(value);
     setTimeout(() => setExpandedCategory(null), 200);
   }, [onSelect]);
 
@@ -253,11 +274,13 @@ export const CategoryPicker = memo(function CategoryPicker({
           categoryId={categoryId}
           category={category}
           isExpanded={expandedCategory === categoryId}
-          selectedSub={selected}
+          selectedValue={selected}
           onToggleExpand={() => handleToggleExpand(categoryId)}
-          onSelectSub={handleSelectSub}
+          onSelectCategory={handleSelectCategory}
         />
       ))}
     </motion.div>
   );
 });
+
+export { findCategoryForSelection, getAllSubcategoryIds };

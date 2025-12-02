@@ -478,17 +478,46 @@ export const TASK_CATEGORIES_WITH_SUBS = {
 
 export type TaskCategoryId = keyof typeof TASK_CATEGORIES_WITH_SUBS;
 
-// Legacy task categories for backwards compatibility
+// All valid task categories (subcategory IDs + "other")
 export const TASK_CATEGORIES = [
-  "beauty_fashion",
-  "teaching_education",
-  "art",
-  "construction",
-  "special",
+  "model",
+  "makeup_artist",
+  "hair_stylist",
+  "clothing_designer",
+  "private_tutor",
+  "translator",
+  "sign_language",
+  "drawing",
+  "painting",
+  "photography",
+  "digital_art",
+  "carpenter",
+  "blacksmith",
+  "electrician",
+  "plumber",
+  "package_delivery",
+  "furniture_moving",
+  "car_washing",
+  "home_barber",
   "other",
 ] as const;
 
 export type TaskCategory = typeof TASK_CATEGORIES[number];
+
+export const getCategoryInfo = (categoryId: string): { mainCategory: TaskCategoryId; subcategory?: typeof TASK_CATEGORIES_WITH_SUBS[TaskCategoryId]['subcategories'][number] } | null => {
+  if (categoryId === 'other') {
+    return { mainCategory: 'other' };
+  }
+  
+  for (const [mainId, cat] of Object.entries(TASK_CATEGORIES_WITH_SUBS)) {
+    const sub = cat.subcategories.find(s => s.id === categoryId);
+    if (sub) {
+      return { mainCategory: mainId as TaskCategoryId, subcategory: sub };
+    }
+  }
+  
+  return null;
+};
 
 // Professional categories with colors (for professional badges)
 export const PROFESSIONAL_CATEGORIES = {
