@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { TaskCardSkeleton, EmptyState } from '@/components/ui/animated';
 import { cn } from '@/lib/utils';
 import { TASK_CATEGORIES } from '@shared/schema';
-import { Map, Search, SearchX, X, Filter, SlidersHorizontal } from 'lucide-react';
+import { Search, SearchX, X, Filter } from 'lucide-react';
 import type { TaskWithDetails } from '@shared/schema';
 
 const containerVariants = {
@@ -97,15 +97,6 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
               {taskCount} {t('tasks.available')}
             </p>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.92 }}
-            onClick={() => setLocation('/map')}
-            className="w-11 h-11 flex items-center justify-center rounded-2xl glass transition-all duration-200"
-            data-testid="button-map-view"
-          >
-            <Map className="w-5 h-5 text-foreground/80" />
-          </motion.button>
         </motion.div>
 
         <motion.div

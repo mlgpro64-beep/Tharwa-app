@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
+import { motion } from 'framer-motion';
 import { useApp } from '@/context/AppContext';
 import { Screen } from '@/components/layout/Screen';
 import { FloatingInput } from '@/components/FloatingInput';
@@ -7,12 +8,16 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
+import { Camera, ArrowLeft, Loader2 } from 'lucide-react';
 import type { User } from '@shared/schema';
 
 export default function EditProfileScreen() {
   const [, setLocation] = useLocation();
   const { setUser } = useApp();
   const { toast } = useToast();
+  const { t } = useTranslation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { data: currentUser } = useQuery<User>({
     queryKey: ['/api/users/me'],
@@ -25,6 +30,7 @@ export default function EditProfileScreen() {
     bio: '',
     location: '',
   });
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -36,22 +42,49 @@ export default function EditProfileScreen() {
         bio: currentUser.bio || '',
         location: currentUser.location || '',
       });
+      if (currentUser.avatar) {
+        setAvatarPreview(currentUser.avatar);
+      }
     }
   }, [currentUser]);
 
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ 
+          title: t('errors.somethingWentWrong'), 
+          description: 'Image size must be less than 5MB', 
+          variant: 'destructive' 
+        });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        setAvatarPreview(base64);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
+    mutationFn: async (data: typeof formData & { avatar?: string }) => {
       const response = await apiRequest('PATCH', '/api/users/me', data);
       return response.json();
     },
     onSuccess: (data) => {
       setUser(data);
       queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
-      toast({ title: 'Profile updated!', description: 'Your changes have been saved' });
+      toast({ title: t('profile.editProfile'), description: t('common.save') });
       setLocation('/profile');
     },
     onError: (error: Error) => {
-      toast({ title: 'Failed to update profile', description: error.message, variant: 'destructive' });
+      toast({ title: t('errors.somethingWentWrong'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -68,7 +101,10 @@ export default function EditProfileScreen() {
 
   const handleSubmit = () => {
     if (validateForm()) {
-      updateProfileMutation.mutate(formData);
+      const dataToSend = avatarPreview && avatarPreview !== currentUser?.avatar
+        ? { ...formData, avatar: avatarPreview }
+        : formData;
+      updateProfileMutation.mutate(dataToSend);
     }
   };
 
@@ -85,34 +121,63 @@ export default function EditProfileScreen() {
 
   return (
     <Screen className="px-6">
-      <div className="flex items-center gap-4 py-4 mb-4">
-        <button 
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center gap-4 py-4 mb-4"
+      >
+        <motion.button 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => window.history.back()}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-card border border-border hover:bg-muted transition-colors active:scale-90"
+          className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
           data-testid="button-back"
         >
-          <span className="material-symbols-outlined">arrow_back</span>
-        </button>
-        <h1 className="text-2xl font-extrabold text-foreground">Edit Profile</h1>
-      </div>
+          <ArrowLeft className="w-5 h-5 text-foreground/80 rtl:rotate-180" />
+        </motion.button>
+        <h1 className="text-2xl font-extrabold text-foreground">{t('profile.editProfile')}</h1>
+      </motion.div>
 
-      <div className="flex flex-col items-center mb-8">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex flex-col items-center mb-8"
+      >
         <div className="relative">
-          <Avatar className="w-24 h-24 border-4 border-border">
-            <AvatarImage src={currentUser?.avatar || undefined} />
-            <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
-              {formData.name ? getInitials(formData.name) : 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <button 
-            className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all"
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+            data-testid="input-avatar-file"
+          />
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleAvatarClick}
+            className="cursor-pointer"
+          >
+            <div className="absolute -inset-1 bg-gradient-to-br from-primary/40 to-accent/40 rounded-full blur-md" />
+            <Avatar className="relative w-28 h-28 border-4 border-white/50 dark:border-white/20 shadow-2xl">
+              <AvatarImage src={avatarPreview || undefined} />
+              <AvatarFallback className="gradient-primary text-white text-3xl font-bold">
+                {formData.name ? getInitials(formData.name) : 'U'}
+              </AvatarFallback>
+            </Avatar>
+          </motion.div>
+          <motion.button 
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handleAvatarClick}
+            className="absolute -bottom-1 -right-1 w-10 h-10 gradient-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 border-2 border-white/50 rtl:-left-1 rtl:right-auto"
             data-testid="button-change-avatar"
           >
-            <span className="material-symbols-outlined text-sm">photo_camera</span>
-          </button>
+            <Camera className="w-4 h-4" />
+          </motion.button>
         </div>
-        <p className="text-sm text-muted-foreground mt-3">Tap to change photo</p>
-      </div>
+        <p className="text-sm text-muted-foreground mt-4">{t('profile.editProfile')}</p>
+      </motion.div>
 
       <div className="space-y-4 flex-1">
         <FloatingInput
@@ -157,23 +222,30 @@ export default function EditProfileScreen() {
         </div>
       </div>
 
-      <div className="mt-8 pb-4">
-        <button
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="mt-8 pb-4"
+      >
+        <motion.button
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.98 }}
           onClick={handleSubmit}
           disabled={updateProfileMutation.isPending}
-          className="w-full h-14 bg-primary text-primary-foreground rounded-2xl font-bold text-lg shadow-lg shadow-primary/25 hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none"
+          className="w-full h-14 gradient-primary text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary/25 disabled:opacity-50 disabled:shadow-none transition-all"
           data-testid="button-save-profile"
         >
           {updateProfileMutation.isPending ? (
             <div className="flex items-center justify-center gap-2">
-              <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
-              Saving...
+              <Loader2 className="w-5 h-5 animate-spin" />
+              {t('common.loading')}
             </div>
           ) : (
-            'Save Changes'
+            t('common.save')
           )}
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
     </Screen>
   );
 }

@@ -4,7 +4,7 @@ import {
   insertUserSchema, insertTaskSchema, insertBidSchema, insertTransactionSchema,
   insertMessageSchema, insertNotificationSchema
 } from "@shared/schema";
-import { eq, and, or, desc, like } from "drizzle-orm";
+import { eq, and, or, desc, like, sql } from "drizzle-orm";
 import type { 
   User, Task, Bid, Transaction, Message, Notification, SavedTask,
   InsertUser, InsertTask, InsertBid, InsertTransaction, InsertMessage, InsertNotification
@@ -21,6 +21,7 @@ export interface IStorage {
   // Tasks
   getTask(id: string): Promise<Task | undefined>;
   getTasks(filters?: { clientId?: string; status?: string; category?: string }): Promise<Task[]>;
+  getTasksCreatedToday(userId: string): Promise<number>;
   createTask(data: InsertTask): Promise<Task>;
   updateTask(id: string, data: Partial<Task>): Promise<Task>;
   
@@ -103,6 +104,21 @@ export const storage: IStorage = {
       return db.select().from(tasks).where(and(...conditions)).orderBy(desc(tasks.createdAt));
     }
     return db.select().from(tasks).orderBy(desc(tasks.createdAt));
+  },
+
+  async getTasksCreatedToday(userId: string): Promise<number> {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.clientId, userId),
+          sql`${tasks.createdAt} >= ${todayStart.toISOString()}`
+        )
+      );
+    return Number(result[0]?.count || 0);
   },
   
   async createTask(data: InsertTask) {

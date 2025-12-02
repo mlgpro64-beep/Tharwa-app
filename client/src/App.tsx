@@ -29,6 +29,10 @@ const SettingsScreen = lazy(() => import("@/pages/SettingsScreen"));
 const MapScreen = lazy(() => import("@/pages/MapScreen"));
 const EditProfileScreen = lazy(() => import("@/pages/EditProfileScreen"));
 const SavedTasksScreen = lazy(() => import("@/pages/SavedTasksScreen"));
+const HelpScreen = lazy(() => import("@/pages/HelpScreen"));
+const PrivacyPolicyScreen = lazy(() => import("@/pages/PrivacyPolicyScreen"));
+const TermsScreen = lazy(() => import("@/pages/TermsScreen"));
+const VerifyIdentityScreen = lazy(() => import("@/pages/VerifyIdentityScreen"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 const PageLoader = memo(function PageLoader() {
@@ -92,6 +96,10 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes() {
       <Route path="/settings" component={SettingsScreen} />
       <Route path="/map" component={MapScreen} />
       <Route path="/saved" component={SavedTasksScreen} />
+      <Route path="/help" component={HelpScreen} />
+      <Route path="/privacy" component={PrivacyPolicyScreen} />
+      <Route path="/terms" component={TermsScreen} />
+      <Route path="/verify" component={VerifyIdentityScreen} />
       <Route component={NotFound} />
     </Switch>
   );

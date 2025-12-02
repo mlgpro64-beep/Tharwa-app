@@ -178,9 +178,34 @@ router.get("/api/tasks/:id", async (req, res) => {
   }
 });
 
+// Daily task limit for clients: 5 tasks per day
+const DAILY_TASK_LIMIT = 5;
+
+router.get("/api/tasks/my/today-count", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const count = await storage.getTasksCreatedToday(String(req.userId));
+    res.json({ count, limit: DAILY_TASK_LIMIT, remaining: DAILY_TASK_LIMIT - count });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.post("/api/tasks", async (req, res) => {
   try {
     if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    // Check daily task limit for clients
+    const todayCount = await storage.getTasksCreatedToday(String(req.userId));
+    if (todayCount >= DAILY_TASK_LIMIT) {
+      return res.status(429).json({ 
+        error: "Daily task limit reached",
+        message: "You can only post 5 tasks per day. Please try again tomorrow.",
+        limit: DAILY_TASK_LIMIT,
+        count: todayCount
+      });
+    }
     
     const data = { ...req.body, clientId: req.userId };
     const task = await storage.createTask(data);

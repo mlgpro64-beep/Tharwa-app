@@ -299,5 +299,159 @@
     "maxLength": "Must not exceed {{max}} characters",
     "minValue": "Must be at least {{min}}",
     "maxValue": "Must not exceed {{max}}"
+  },
+  "help": {
+    "title": "Help & Support",
+    "contactUs": "Contact Us",
+    "faqTitle": "Frequently Asked Questions",
+    "contact": {
+      "whatsapp": "WhatsApp",
+      "email": "Email",
+      "phone": "Phone"
+    },
+    "faq": {
+      "howToPost": {
+        "question": "How do I post a new task?",
+        "answer": "Tap the '+' button at the bottom of the screen, choose a task category, add details, budget, and location. Your task will then be visible to nearby taskers."
+      },
+      "howToEarn": {
+        "question": "How do I earn money as a tasker?",
+        "answer": "Switch to Tasker mode from Settings, browse available tasks, and submit your offers. When your offer is accepted and you complete the task, you'll receive your earnings directly in your wallet."
+      },
+      "platformFee": {
+        "question": "What are the platform fees?",
+        "answer": "THARWA keeps only 5% of each completed task value. The tasker receives 95% of the agreed amount."
+      },
+      "howToSwitch": {
+        "question": "How do I switch between Client and Tasker mode?",
+        "answer": "Go to Settings and tap 'Switch to Tasker Mode' or 'Switch to Client Mode'. You can switch at any time."
+      },
+      "verification": {
+        "question": "Why should I verify my identity?",
+        "answer": "Identity verification increases client trust in you as a tasker and gives you a 'Verified' badge on your profile. This helps you get more tasks."
+      },
+      "rating": {
+        "question": "How does the rating system work?",
+        "answer": "After completing each task, both client and tasker can rate each other. A high rating helps you get more opportunities."
+      }
+    }
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Last Updated",
+    "intro": "At THARWA, we are committed to protecting your privacy and personal data. This policy explains how we collect, use, and protect your information.",
+    "dataCollection": {
+      "title": "Data Collection",
+      "content": "We collect the following information:\n• Account information (name, email, phone number)\n• Location information to show nearby tasks\n• Task and transaction history\n• Chat messages between users"
+    },
+    "dataUsage": {
+      "title": "Data Usage",
+      "content": "We use your data to:\n• Provide and improve our services\n• Connect clients with nearby taskers\n• Process payments and transactions\n• Communicate with you about your account and tasks\n• Ensure platform security"
+    },
+    "dataSharing": {
+      "title": "Data Sharing",
+      "content": "We do not sell your personal data. We may share limited information with:\n• Other users when communicating about a task\n• Payment service providers to complete transactions\n• Legal authorities when officially requested"
+    },
+    "dataSecurity": {
+      "title": "Data Security",
+      "content": "We use advanced encryption technologies to protect your data. All communications are encrypted and we follow security best practices."
+    },
+    "userRights": {
+      "title": "Your Rights",
+      "content": "You have the right to:\n• Access your personal data\n• Correct any inaccurate information\n• Request deletion of your account and data\n• Opt out of marketing communications"
+    },
+    "cookies": {
+      "title": "Cookies",
+      "content": "We use cookies to improve your experience and remember your preferences. You can manage cookie settings through your browser."
+    },
+    "changes": {
+      "title": "Policy Changes",
+      "content": "We may update this policy from time to time. We will notify you of any significant changes through the app or email."
+    },
+    "contact": {
+      "title": "Contact Us",
+      "content": "If you have any questions about this privacy policy, you can contact us at:\n• Email: privacy@tharwa.app\n• Phone: +966 11 000 0000"
+    }
+  },
+  "terms": {
+    "title": "Terms & Conditions",
+    "lastUpdated": "Last Updated",
+    "intro": "Welcome to THARWA. By using our app, you agree to comply with these terms and conditions. Please read them carefully.",
+    "acceptance": {
+      "title": "Acceptance of Terms",
+      "content": "By using or registering for the THARWA app, you agree to comply with these terms and our privacy policy. If you do not agree to any of these terms, please do not use the app."
+    },
+    "eligibility": {
+      "title": "Eligibility",
+      "content": "You must be 18 years or older to use THARWA. By using the app, you confirm that you meet this requirement and that the information you provide is true and accurate."
+    },
+    "accounts": {
+      "title": "Accounts",
+      "content": "• You are responsible for maintaining the confidentiality of your account information\n• You must not share your login credentials with anyone\n• We reserve the right to suspend or terminate accounts that violate these terms\n• Registration information must be accurate and up-to-date"
+    },
+    "services": {
+      "title": "Services",
+      "content": "THARWA is a platform that connects clients with taskers. We are not a party to contracts between users and are not responsible for the quality of work performed. Users are responsible for:\n• Agreeing on task details\n• Communicating clearly\n• Completing tasks as agreed"
+    },
+    "payments": {
+      "title": "Payments",
+      "content": "• The platform retains 5% of each completed transaction\n• The tasker receives 95% of the agreed amount\n• Earnings are transferred to the tasker's wallet upon task completion\n• Clients must have sufficient balance to complete a task"
+    },
+    "conduct": {
+      "title": "Code of Conduct",
+      "content": "All users must:\n• Treat other users with respect\n• Provide honest and accurate information\n• Not engage in any illegal activity\n• Not use the platform for fraud or deception\n• Comply with all local laws"
+    },
+    "liability": {
+      "title": "Liability",
+      "content": "THARWA is not responsible for:\n• Quality of work performed between users\n• Any disputes between clients and taskers\n• Any losses resulting from platform use\n• Any content posted by users"
+    },
+    "termination": {
+      "title": "Termination",
+      "content": "We reserve the right to terminate or suspend your account at any time if you:\n• Violate these terms and conditions\n• Provide false information\n• Engage in fraudulent activities\n• Misuse the platform in any way"
+    },
+    "disputes": {
+      "title": "Disputes",
+      "content": "In case of any dispute, we encourage users to contact us first for an amicable resolution. These terms are governed by the laws of the Kingdom of Saudi Arabia."
+    }
+  },
+  "verification": {
+    "pageTitle": "Identity Verification",
+    "title": "Verify Your Identity",
+    "description": "Verifying your identity increases client trust and helps you get more tasks",
+    "taskerOnly": "Available for Taskers Only",
+    "taskerOnlyDesc": "Identity verification is only available for users in Tasker mode",
+    "requirements": "Requirements",
+    "req": {
+      "validId": "Valid national ID or residency permit",
+      "clearPhoto": "Clear photo of ID from both sides",
+      "selfie": "Clear selfie photo"
+    },
+    "startVerification": "Start Verification",
+    "steps": {
+      "idFront": "Front of ID",
+      "idBack": "Back of ID",
+      "selfie": "Selfie"
+    },
+    "uploadIdFront": "Take a clear photo of the front of your ID",
+    "uploadIdBack": "Take a clear photo of the back of your ID",
+    "uploadSelfie": "Take a clear selfie of your face",
+    "tapToUpload": "Tap to capture or upload photo",
+    "submit": "Submit for Review",
+    "pending": {
+      "title": "Under Review",
+      "description": "Your request has been received and will be reviewed within 24-48 hours",
+      "note": "We'll notify you once verification is approved or if additional information is needed"
+    },
+    "verified": {
+      "title": "Successfully Verified",
+      "description": "Congratulations! Your identity has been verified and the verification badge will appear on your profile"
+    },
+    "backToProfile": "Back to Profile"
+  },
+  "limits": {
+    "dailyTaskLimit": "Daily Task Limit",
+    "dailyLimitReached": "You've reached the limit",
+    "dailyLimitDesc": "You can only post {{max}} tasks per day. Try again tomorrow.",
+    "tasksPostedToday": "Tasks posted today: {{count}}/{{max}}"
   }
 }

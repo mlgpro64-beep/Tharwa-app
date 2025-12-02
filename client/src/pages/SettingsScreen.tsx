@@ -54,8 +54,8 @@ const SettingsScreen = memo(function SettingsScreen() {
     { icon: User, label: t('profile.editProfile'), path: '/profile/edit' },
     { icon: Lock, label: t('settings.changePassword'), action: () => {} },
     { icon: Bell, label: t('settings.notifications'), action: () => {} },
-    { icon: BadgeCheck, label: t('settings.verifyIdentity'), action: () => {}, iconColor: 'text-accent' },
-  ], [t]);
+    ...(userRole === 'tasker' ? [{ icon: BadgeCheck, label: t('settings.verifyIdentity'), path: '/verify', iconColor: 'text-accent' }] : []),
+  ], [t, userRole]);
 
   const preferencesItems: SettingItem[] = useMemo(() => [
     { 
@@ -64,14 +64,7 @@ const SettingsScreen = memo(function SettingsScreen() {
       rightText: currentLanguage,
       action: () => setShowLanguageSheet(true)
     },
-    { 
-      icon: theme === 'dark' ? Moon : Sun, 
-      label: t('settings.darkMode'), 
-      toggle: true, 
-      value: theme === 'dark',
-      action: toggleTheme 
-    },
-  ], [t, theme, toggleTheme, currentLanguage]);
+  ], [t, currentLanguage]);
 
   const supportItems: SettingItem[] = useMemo(() => [
     { icon: HelpCircle, label: t('settings.help'), path: '/help' },
@@ -208,6 +201,51 @@ const SettingsScreen = memo(function SettingsScreen() {
             </h2>
             <div className="glass rounded-3xl overflow-hidden">
               {preferencesItems.map((item, idx) => renderSettingItem(item, idx, preferencesItems.length))}
+              <motion.button 
+                onClick={toggleTheme}
+                whileTap={{ scale: 0.98 }}
+                className="flex items-center justify-between p-4 transition-all hover:bg-white/5 w-full"
+                data-testid="button-theme-toggle"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center bg-primary/15">
+                    {theme === 'dark' ? (
+                      <Moon className="w-5 h-5 text-primary" />
+                    ) : (
+                      <Sun className="w-5 h-5 text-primary" />
+                    )}
+                  </div>
+                  <span className="font-medium text-foreground text-start">
+                    {t('settings.darkMode')}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 p-1 rounded-full bg-muted/50">
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={(e) => { e.stopPropagation(); if (theme === 'dark') toggleTheme(); }}
+                    className={cn(
+                      "w-9 h-9 rounded-full flex items-center justify-center transition-all",
+                      theme === 'light' 
+                        ? "gradient-primary text-white shadow-lg" 
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Sun className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={(e) => { e.stopPropagation(); if (theme === 'light') toggleTheme(); }}
+                    className={cn(
+                      "w-9 h-9 rounded-full flex items-center justify-center transition-all",
+                      theme === 'dark' 
+                        ? "gradient-primary text-white shadow-lg" 
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Moon className="w-4 h-4" />
+                  </motion.button>
+                </div>
+              </motion.button>
             </div>
           </motion.div>
 

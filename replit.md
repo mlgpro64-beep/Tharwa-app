@@ -18,6 +18,18 @@ THARWA (ذروة) is a mobile-first community marketplace application for everyd
 - Location checked via browser geolocation API
 - Riyadh bounds: Lat 24.4-25.1, Lon 46.3-47.1
 
+**Daily Task Limit**
+- Clients can only post 5 tasks per day
+- Limit enforced in backend via `getTasksCreatedToday` storage method
+- Returns HTTP 429 when limit exceeded with remaining count info
+- API endpoint: GET /api/tasks/my/today-count returns current count and limit
+
+**Identity Verification (Taskers Only)**
+- Available at /verify route for taskers
+- Requires ID photo (front/back) and selfie
+- Shows verification status: pending, verified
+- Verified taskers get a badge on their profile
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -179,3 +191,26 @@ Preferred communication style: Simple, everyday language.
 - Vite dev server with HMR
 - Express middleware mode for API proxy
 - WebSocket server running alongside HTTP server
+
+## Recent Features (December 2024)
+
+**Help & Support System**
+- /help route with comprehensive FAQ sections
+- Contact options (WhatsApp, email, phone)
+- Topics: getting started, payments, verification, ratings
+
+**Legal Pages**
+- /privacy route with privacy policy (data collection, usage, security, rights)
+- /terms route with terms & conditions (acceptance, eligibility, accounts, payments, conduct, liability)
+- Full Arabic/English localization
+
+**Profile Picture Upload**
+- Base64 image encoding for avatar storage
+- Image preview before upload
+- 5MB file size limit
+- Stored in user.avatar field
+
+**Premium Dark Mode Toggle**
+- Glassmorphism design with sun/moon toggle buttons
+- Smooth transitions with Framer Motion
+- Persistent theme preference in localStorage
