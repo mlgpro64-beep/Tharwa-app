@@ -135,9 +135,8 @@ const LoginScreen = memo(function LoginScreen() {
               onBlur={() => setFocusedField(null)}
               placeholder={t('auth.phoneOrEmail')}
               autoComplete="username"
-              dir="ltr"
               className={cn(
-                "w-full h-16 px-5 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-200",
+                "w-full h-16 px-5 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-200 text-start",
                 errors.username && "border-destructive",
                 focusedField === 'username' && "ring-2 ring-primary/30"
               )}
@@ -167,7 +166,7 @@ const LoginScreen = memo(function LoginScreen() {
               placeholder={t('auth.password')}
               autoComplete="current-password"
               className={cn(
-                "w-full h-16 px-5 pe-14 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-200",
+                "w-full h-16 ps-5 pe-14 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-200 text-start",
                 errors.password && "border-destructive",
                 focusedField === 'password' && "ring-2 ring-primary/30"
               )}
@@ -176,7 +175,7 @@ const LoginScreen = memo(function LoginScreen() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute left-4 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground transition-colors rtl:right-4 rtl:left-auto"
+              className="absolute end-4 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>

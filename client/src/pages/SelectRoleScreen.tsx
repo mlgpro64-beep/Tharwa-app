@@ -57,19 +57,11 @@ const RoleCard = memo(function RoleCard({
       className={cn(
         "w-full text-start p-6 rounded-3xl transition-all duration-300 relative overflow-hidden",
         isSelected
-          ? "glass-premium shadow-xl"
-          : "glass hover:shadow-lg"
+          ? "glass-premium shadow-xl border-2 border-primary"
+          : "glass hover:shadow-lg border-2 border-transparent"
       )}
       data-testid={`button-role-${role.id}`}
     >
-      {isSelected && (
-        <motion.div
-          layoutId="selectedBorder"
-          className="absolute inset-0 rounded-3xl gradient-border"
-          initial={false}
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
-        />
-      )}
       
       <div className="flex items-start gap-4 relative z-10">
         <motion.div 
