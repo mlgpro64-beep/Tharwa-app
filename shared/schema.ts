@@ -10,6 +10,14 @@ export const bidStatusEnum = pgEnum("bid_status", ["pending", "accepted", "rejec
 export const transactionTypeEnum = pgEnum("transaction_type", ["credit", "debit"]);
 export const transactionStatusEnum = pgEnum("transaction_status", ["completed", "pending"]);
 export const notificationTypeEnum = pgEnum("notification_type", ["offer", "system", "chat", "task_update"]);
+export const professionalCategoryEnum = pgEnum("professional_category", [
+  "beauty_fashion", 
+  "teaching_education", 
+  "art", 
+  "construction", 
+  "special"
+]);
+export const availabilityStatusEnum = pgEnum("availability_status", ["available", "busy"]);
 
 // Users table
 export const users = pgTable("users", {
@@ -105,6 +113,48 @@ export const savedTasks = pgTable("saved_tasks", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Professional roles lookup table
+export const professionalRoles = pgTable("professional_roles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  category: professionalCategoryEnum("category").notNull(),
+  slug: text("slug").notNull().unique(),
+  nameEn: text("name_en").notNull(),
+  nameAr: text("name_ar").notNull(),
+  colorHex: text("color_hex").notNull(),
+  icon: text("icon"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// User professional roles (join table - verified professionals)
+export const userProfessionalRoles = pgTable("user_professional_roles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  roleId: varchar("role_id").notNull().references(() => professionalRoles.id),
+  verifiedBy: varchar("verified_by").references(() => users.id),
+  verifiedAt: timestamp("verified_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Tasker availability calendar
+export const taskerAvailability = pgTable("tasker_availability", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  date: text("date").notNull(),
+  status: availabilityStatusEnum("status").notNull().default("busy"),
+  note: text("note"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// User portfolio photos
+export const userPhotos = pgTable("user_photos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  url: text("url").notNull(),
+  caption: text("caption"),
+  displayOrder: integer("display_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   postedTasks: many(tasks, { relationName: "clientTasks" }),
@@ -115,6 +165,9 @@ export const usersRelations = relations(users, ({ many }) => ({
   receivedMessages: many(messages, { relationName: "receivedMessages" }),
   notifications: many(notifications),
   savedTasks: many(savedTasks),
+  professionalRoles: many(userProfessionalRoles),
+  availability: many(taskerAvailability),
+  photos: many(userPhotos),
 }));
 
 export const tasksRelations = relations(tasks, ({ one, many }) => ({
@@ -190,6 +243,39 @@ export const savedTasksRelations = relations(savedTasks, ({ one }) => ({
   }),
 }));
 
+export const professionalRolesRelations = relations(professionalRoles, ({ many }) => ({
+  users: many(userProfessionalRoles),
+}));
+
+export const userProfessionalRolesRelations = relations(userProfessionalRoles, ({ one }) => ({
+  user: one(users, {
+    fields: [userProfessionalRoles.userId],
+    references: [users.id],
+  }),
+  role: one(professionalRoles, {
+    fields: [userProfessionalRoles.roleId],
+    references: [professionalRoles.id],
+  }),
+  verifier: one(users, {
+    fields: [userProfessionalRoles.verifiedBy],
+    references: [users.id],
+  }),
+}));
+
+export const taskerAvailabilityRelations = relations(taskerAvailability, ({ one }) => ({
+  user: one(users, {
+    fields: [taskerAvailability.userId],
+    references: [users.id],
+  }),
+}));
+
+export const userPhotosRelations = relations(userPhotos, ({ one }) => ({
+  user: one(users, {
+    fields: [userPhotos.userId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -234,6 +320,27 @@ export const insertSavedTaskSchema = createInsertSchema(savedTasks).omit({
   createdAt: true,
 });
 
+export const insertProfessionalRoleSchema = createInsertSchema(professionalRoles).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserProfessionalRoleSchema = createInsertSchema(userProfessionalRoles).omit({
+  id: true,
+  createdAt: true,
+  verifiedAt: true,
+});
+
+export const insertTaskerAvailabilitySchema = createInsertSchema(taskerAvailability).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserPhotoSchema = createInsertSchema(userPhotos).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -255,6 +362,18 @@ export type Notification = typeof notifications.$inferSelect;
 
 export type InsertSavedTask = z.infer<typeof insertSavedTaskSchema>;
 export type SavedTask = typeof savedTasks.$inferSelect;
+
+export type InsertProfessionalRole = z.infer<typeof insertProfessionalRoleSchema>;
+export type ProfessionalRole = typeof professionalRoles.$inferSelect;
+
+export type InsertUserProfessionalRole = z.infer<typeof insertUserProfessionalRoleSchema>;
+export type UserProfessionalRole = typeof userProfessionalRoles.$inferSelect;
+
+export type InsertTaskerAvailability = z.infer<typeof insertTaskerAvailabilitySchema>;
+export type TaskerAvailability = typeof taskerAvailability.$inferSelect;
+
+export type InsertUserPhoto = z.infer<typeof insertUserPhotoSchema>;
+export type UserPhoto = typeof userPhotos.$inferSelect;
 
 // Extended types for frontend
 export type TaskWithDetails = Task & {
@@ -297,3 +416,75 @@ export const TASK_CATEGORIES = [
 ] as const;
 
 export type TaskCategory = typeof TASK_CATEGORIES[number];
+
+// Professional categories with colors
+export const PROFESSIONAL_CATEGORIES = {
+  beauty_fashion: {
+    id: "beauty_fashion",
+    nameEn: "Beauty & Fashion",
+    nameAr: "الجمال والموضة",
+    colorHex: "#EC4899",
+    roles: [
+      { slug: "model", nameEn: "Model", nameAr: "مودل" },
+      { slug: "makeup_artist", nameEn: "Makeup Artist", nameAr: "ميكب ارتست" },
+      { slug: "hair_stylist", nameEn: "Hair Stylist", nameAr: "مصففة الشعر" },
+      { slug: "clothing_designer", nameEn: "Clothing Designer", nameAr: "تصميم الملابس" },
+    ],
+  },
+  teaching_education: {
+    id: "teaching_education",
+    nameEn: "Teaching & Education",
+    nameAr: "التدريس والتعليم",
+    colorHex: "#22C55E",
+    roles: [
+      { slug: "private_tutor", nameEn: "Private Tutor", nameAr: "مدرس خصوصي" },
+      { slug: "translator", nameEn: "Language Translator", nameAr: "ترجمة لغات" },
+      { slug: "sign_language", nameEn: "Sign Language", nameAr: "لغة الإشارة" },
+    ],
+  },
+  art: {
+    id: "art",
+    nameEn: "Art",
+    nameAr: "الفن",
+    colorHex: "#3B82F6",
+    roles: [
+      { slug: "drawing", nameEn: "Drawing", nameAr: "الرسم" },
+      { slug: "painting", nameEn: "Painting", nameAr: "الطلاء" },
+      { slug: "photography", nameEn: "Photography", nameAr: "التصوير" },
+      { slug: "digital_art", nameEn: "Digital Art", nameAr: "الفن الرقمي" },
+    ],
+  },
+  construction: {
+    id: "construction",
+    nameEn: "Construction Workers",
+    nameAr: "عمال المقاولات",
+    colorHex: "#EF4444",
+    roles: [
+      { slug: "carpenter", nameEn: "Carpenter", nameAr: "النجار" },
+      { slug: "blacksmith", nameEn: "Blacksmith", nameAr: "الحداد" },
+      { slug: "electrician", nameEn: "Electrician", nameAr: "الكهربائي" },
+      { slug: "plumber", nameEn: "Plumber", nameAr: "السباك" },
+    ],
+  },
+  special: {
+    id: "special",
+    nameEn: "Special Category",
+    nameAr: "فئة خاصة",
+    colorHex: "#EAB308",
+    roles: [
+      { slug: "package_delivery", nameEn: "Package Delivery", nameAr: "توصيل الطرود واستلامها" },
+      { slug: "furniture_moving", nameEn: "Furniture Moving", nameAr: "نقل العفش" },
+      { slug: "car_washing", nameEn: "Car Washing", nameAr: "غسيل السيارات" },
+      { slug: "home_barber", nameEn: "Home Barber", nameAr: "حلاق منزلي" },
+    ],
+  },
+} as const;
+
+export type ProfessionalCategoryId = keyof typeof PROFESSIONAL_CATEGORIES;
+
+// Extended types for user with professional roles
+export type UserWithProfessionalRoles = User & {
+  professionalRoles?: (UserProfessionalRole & { role: ProfessionalRole })[];
+  availability?: TaskerAvailability[];
+  photos?: UserPhoto[];
+};
