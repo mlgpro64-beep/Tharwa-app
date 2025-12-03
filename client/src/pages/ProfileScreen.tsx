@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { Link, useParams, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { useApp } from '@/context/AppContext';
@@ -9,11 +9,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { 
   ArrowLeft, Settings, Star, CheckCircle, Calendar, 
-  MapPin, ChevronRight, User, ListTodo, HelpCircle, Edit3, Shield
+  MapPin, ChevronRight, User, ListTodo, HelpCircle, Edit3, Shield, Send
 } from 'lucide-react';
 import { ProfessionalBadgeList } from '@/components/ProfessionalBadge';
 import { AvailabilityCalendar } from '@/components/AvailabilityCalendar';
 import { PortfolioGallery } from '@/components/PortfolioGallery';
+import { DirectServiceRequestModal } from '@/components/DirectServiceRequestModal';
 import type { User as UserType, ProfessionalRole, UserProfessionalRole, TaskerAvailability, UserPhoto } from '@shared/schema';
 
 type UserWithExtended = UserType & {
@@ -43,8 +44,10 @@ const ProfileScreen = memo(function ProfileScreen() {
   const { userId } = useParams<{ userId?: string }>();
   const [, setLocation] = useLocation();
   const { user: currentUser, userRole } = useApp();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [showRequestModal, setShowRequestModal] = useState(false);
   
+  const isArabic = i18n.language === 'ar';
   const isOwnProfile = !userId;
   const targetUserId = userId || currentUser?.id;
   
@@ -282,6 +285,24 @@ const ProfileScreen = memo(function ProfileScreen() {
           </motion.div>
         )}
 
+        {!isOwnProfile && isTasker && userRole === 'client' && (
+          <motion.div
+            variants={itemVariants}
+            className="mb-5"
+          >
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowRequestModal(true)}
+              className="w-full h-14 gradient-primary text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary/25 flex items-center justify-center gap-3"
+              data-testid="button-request-service"
+            >
+              <Send className="w-5 h-5" />
+              {isArabic ? 'اطلب خدمة مباشرة' : 'Request Direct Service'}
+            </motion.button>
+          </motion.div>
+        )}
+
         {isTasker && targetUserId && (
           <motion.div
             variants={itemVariants}
@@ -343,6 +364,14 @@ const ProfileScreen = memo(function ProfileScreen() {
           </motion.div>
         )}
       </motion.div>
+
+      {profileUser && !isOwnProfile && isTasker && (
+        <DirectServiceRequestModal
+          isOpen={showRequestModal}
+          onClose={() => setShowRequestModal(false)}
+          tasker={profileUser}
+        />
+      )}
     </div>
   );
 });
