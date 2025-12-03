@@ -51,7 +51,11 @@
     "taskerRegisterDesc": "ابدأ بكسب المال من خلال مساعدة الآخرين",
     "clientRegisterDesc": "أنجز مهامك بمساعدة محلية",
     "creatingAccount": "جاري إنشاء الحساب...",
-    "signIn": "تسجيل الدخول"
+    "signIn": "تسجيل الدخول",
+    "passwordWeak": "ضعيفة - أضف أرقام أو رموز",
+    "passwordMedium": "متوسطة - جرب إضافة حروف كبيرة",
+    "passwordStrong": "كلمة مرور قوية",
+    "passwordVeryStrong": "كلمة مرور قوية جداً"
   },
   "welcome": {
     "title": "ذروة",

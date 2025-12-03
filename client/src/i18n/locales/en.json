@@ -51,7 +51,11 @@
     "taskerRegisterDesc": "Start earning by helping others",
     "clientRegisterDesc": "Get things done with local help",
     "creatingAccount": "Creating account...",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "passwordWeak": "Weak - add numbers or symbols",
+    "passwordMedium": "Medium - try adding uppercase",
+    "passwordStrong": "Strong password",
+    "passwordVeryStrong": "Very strong password"
   },
   "welcome": {
     "title": "THARWA",

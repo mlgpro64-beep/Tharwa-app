@@ -378,19 +378,20 @@
   
   /* Glass Input - floating label ready */
   .glass-input {
-    @apply bg-white/50 dark:bg-white/[0.06] backdrop-blur-xl transition-all duration-200;
-    border: 1.5px solid rgba(0,0,0,0.06);
+    @apply bg-white/60 dark:bg-white/[0.10] backdrop-blur-xl transition-all duration-200;
+    border: 1.5px solid rgba(0,0,0,0.08);
   }
   .dark .glass-input {
-    border-color: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.15);
   }
   .glass-input:focus {
-    @apply bg-white/80 dark:bg-white/[0.10];
+    @apply bg-white/90 dark:bg-white/[0.14];
     border-color: hsl(231 98% 61% / 0.5);
     box-shadow: 0 0 0 4px hsl(231 98% 61% / 0.12), 0 4px 12px -2px hsl(231 98% 61% / 0.15);
   }
   .dark .glass-input:focus {
-    box-shadow: 0 0 0 4px hsl(231 98% 65% / 0.15), 0 4px 12px -2px hsl(231 98% 65% / 0.20);
+    border-color: hsl(231 98% 65% / 0.6);
+    box-shadow: 0 0 0 4px hsl(231 98% 65% / 0.18), 0 4px 12px -2px hsl(231 98% 65% / 0.25);
   }
   
   /* Glass Button */

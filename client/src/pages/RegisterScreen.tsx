@@ -140,6 +140,24 @@ const RegisterScreen = memo(function RegisterScreen() {
   const [certificateImage, setCertificateImage] = useState<string | null>(null);
   const [certificateError, setCertificateError] = useState<string | null>(null);
 
+  const getPasswordStrength = useCallback((password: string): { level: number; label: string; color: string } => {
+    if (!password) return { level: 0, label: '', color: '' };
+    
+    let score = 0;
+    if (password.length >= 6) score++;
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+    
+    if (score <= 2) return { level: 1, label: t('auth.passwordWeak'), color: 'bg-destructive' };
+    if (score <= 3) return { level: 2, label: t('auth.passwordMedium'), color: 'bg-warning' };
+    if (score <= 4) return { level: 3, label: t('auth.passwordStrong'), color: 'bg-success' };
+    return { level: 4, label: t('auth.passwordVeryStrong'), color: 'bg-success' };
+  }, [t]);
+
+  const passwordStrength = getPasswordStrength(formData.password);
+
   const registerMutation = useMutation({
     mutationFn: async (data: FormData & { certificateUrl?: string }) => {
       const requestData: Record<string, unknown> = {
@@ -266,7 +284,7 @@ const RegisterScreen = memo(function RegisterScreen() {
   }, []);
 
   const currentStep = showCertificateStep ? 2 : 1;
-  const totalSteps = isSpecialized ? 3 : 2;
+  const totalSteps = isSpecialized ? 2 : 1;
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-primary/5 pt-safe">
@@ -305,20 +323,22 @@ const RegisterScreen = memo(function RegisterScreen() {
           <ArrowLeft className={cn("w-5 h-5", isRTL && "rotate-180")} />
         </motion.button>
         
-        <div className="flex gap-2">
-          {Array.from({ length: totalSteps + 1 }).map((_, step) => (
-            <motion.div 
-              key={step}
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ delay: step * 0.1 }}
-              className={cn(
-                "w-10 h-1.5 rounded-full transition-colors",
-                step <= currentStep ? "bg-primary" : "bg-muted"
-              )}
-            />
-          ))}
-        </div>
+        {totalSteps > 1 && (
+          <div className="flex gap-2">
+            {Array.from({ length: totalSteps }).map((_, step) => (
+              <motion.div 
+                key={step}
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ delay: step * 0.1 }}
+                className={cn(
+                  "w-10 h-1.5 rounded-full transition-colors",
+                  step < currentStep ? "bg-primary" : "bg-muted"
+                )}
+              />
+            ))}
+          </div>
+        )}
         
         <div className="w-11" />
       </motion.div>
@@ -401,6 +421,37 @@ const RegisterScreen = memo(function RegisterScreen() {
                   onTogglePassword={() => setShowPassword(!showPassword)}
                   testId="input-password"
                 />
+                
+                {formData.password && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-2"
+                  >
+                    <div className="flex gap-1.5">
+                      {[1, 2, 3, 4].map((level) => (
+                        <div
+                          key={level}
+                          className={cn(
+                            "h-1.5 flex-1 rounded-full transition-all duration-300",
+                            level <= passwordStrength.level
+                              ? passwordStrength.color
+                              : "bg-muted"
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <p className={cn(
+                      "text-xs font-medium",
+                      passwordStrength.level <= 1 && "text-destructive",
+                      passwordStrength.level === 2 && "text-warning",
+                      passwordStrength.level >= 3 && "text-success",
+                      isRTL && "text-right"
+                    )}>
+                      {passwordStrength.label}
+                    </p>
+                  </motion.div>
+                )}
               </motion.div>
 
               <motion.div

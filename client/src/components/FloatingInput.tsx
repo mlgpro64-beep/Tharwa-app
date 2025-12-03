@@ -1,5 +1,7 @@
 import { useState, type InputHTMLAttributes } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { AlertCircle } from 'lucide-react';
 
 interface FloatingInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -18,6 +20,8 @@ export function FloatingInput({
   ...props 
 }: FloatingInputProps) {
   const [isFocused, setIsFocused] = useState(false);
+  const { i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
   const hasValue = value !== '' && value !== undefined;
 
   return (
@@ -33,14 +37,17 @@ export function FloatingInput({
             error 
               ? "border-destructive/50 focus:border-destructive text-destructive" 
               : "border-transparent focus:border-primary/50",
+            isRTL && "text-right",
             className
           )}
           placeholder={label}
+          dir={props.type === 'email' || props.type === 'tel' ? 'ltr' : undefined}
           data-testid={`input-${label.toLowerCase().replace(/\s+/g, '-')}`}
         />
         <label 
           className={cn(
-            "absolute left-4 transition-all duration-200 pointer-events-none truncate max-w-[calc(100%-32px)]",
+            "absolute transition-all duration-200 pointer-events-none truncate max-w-[calc(100%-32px)]",
+            isRTL ? "right-4" : "left-4",
             isFocused || hasValue 
               ? "top-3 text-[10px] font-bold text-primary uppercase tracking-wider" 
               : "top-5 text-base text-muted-foreground",
@@ -51,8 +58,11 @@ export function FloatingInput({
         </label>
       </div>
       {error && (
-        <div className="flex items-center gap-1 mt-1.5 ml-2 animate-slide-up">
-          <span className="material-symbols-outlined text-xs text-destructive">error</span>
+        <div className={cn(
+          "flex items-center gap-1.5 mt-1.5 animate-slide-up",
+          isRTL ? "mr-2 flex-row-reverse" : "ml-2"
+        )}>
+          <AlertCircle className="w-3.5 h-3.5 text-destructive shrink-0" />
           <p className="text-xs text-destructive font-bold">{error}</p>
         </div>
       )}

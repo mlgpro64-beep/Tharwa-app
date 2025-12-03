@@ -18,7 +18,8 @@ const LoginScreen = memo(function LoginScreen() {
   const [, setLocation] = useLocation();
   const { setUser, switchRole } = useApp();
   const { toast } = useToast();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
   
   const [formData, setFormData] = useState<FormData>({
     username: '',
@@ -79,7 +80,10 @@ const LoginScreen = memo(function LoginScreen() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.4 }}
-          className="absolute top-40 -right-32 w-80 h-80 bg-primary/15 rounded-full blur-3xl rtl:-left-32 rtl:right-auto"
+          className={cn(
+            "absolute top-40 w-80 h-80 bg-primary/15 rounded-full blur-3xl",
+            isRTL ? "-left-32" : "-right-32"
+          )}
         />
       </div>
 
@@ -95,7 +99,7 @@ const LoginScreen = memo(function LoginScreen() {
           className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
           data-testid="button-back"
         >
-          <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
+          <ArrowLeft className={cn("w-5 h-5", isRTL && "rotate-180")} />
         </motion.button>
       </motion.div>
 
