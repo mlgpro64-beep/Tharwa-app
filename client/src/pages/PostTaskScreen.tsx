@@ -222,20 +222,22 @@ const PostTaskScreen = memo(function PostTaskScreen() {
   const handleNext = useCallback(() => {
     if (validateStep(currentStep)) {
       if (currentStep < 3) {
-        setLocation(`/post-task/${currentStep + 1}`);
+        const queryParams = categoryFromUrl ? `?category=${categoryFromUrl}` : '';
+        setLocation(`/post-task/${currentStep + 1}${queryParams}`);
       } else {
         createTaskMutation.mutate(formData);
       }
     }
-  }, [validateStep, currentStep, setLocation, createTaskMutation, formData]);
+  }, [validateStep, currentStep, setLocation, createTaskMutation, formData, categoryFromUrl]);
 
   const handleBack = useCallback(() => {
     if (currentStep > 1) {
-      setLocation(`/post-task/${currentStep - 1}`);
+      const queryParams = categoryFromUrl ? `?category=${categoryFromUrl}` : '';
+      setLocation(`/post-task/${currentStep - 1}${queryParams}`);
     } else {
-      window.history.back();
+      setLocation('/categories');
     }
-  }, [currentStep, setLocation]);
+  }, [currentStep, setLocation, categoryFromUrl]);
 
   const updateField = useCallback((field: keyof TaskFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
