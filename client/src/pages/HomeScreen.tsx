@@ -7,7 +7,7 @@ import { TaskCard } from '@/components/TaskCard';
 import { CountUp } from '@/components/CountUp';
 import { useQuery } from '@tanstack/react-query';
 import { TaskCardSkeleton, EmptyState } from '@/components/ui/animated';
-import { Bell, Settings, Wallet, Plus, ArrowRight, TrendingUp, CheckCircle, Search, Sparkles, GraduationCap, HardHat } from 'lucide-react';
+import { Bell, Settings, Wallet, Plus, ArrowRight, TrendingUp, CheckCircle, Search, Sparkles, GraduationCap, HardHat, Inbox } from 'lucide-react';
 import type { TaskWithDetails, User } from '@shared/schema';
 import { TASK_CATEGORIES_WITH_SUBS } from '@shared/schema';
 
@@ -46,7 +46,7 @@ const categoryIcons: Record<string, typeof Sparkles> = {
 const HomeScreen = memo(function HomeScreen() {
   const [, setLocation] = useLocation();
   const { userRole, user } = useApp();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const { data: currentUser } = useQuery<User>({
     queryKey: ['/api/users/me'],
@@ -61,6 +61,16 @@ const HomeScreen = memo(function HomeScreen() {
     queryKey: ['/api/stats'],
     enabled: userRole === 'tasker',
   });
+
+  const { data: directRequests } = useQuery<any[]>({
+    queryKey: ['/api/direct-requests'],
+    enabled: userRole === 'tasker',
+  });
+  
+  const pendingRequestsCount = useMemo(() => 
+    directRequests?.filter(r => r.status === 'pending')?.length || 0,
+    [directRequests]
+  );
 
   const displayUser = currentUser || user;
   const balance = useMemo(() => 
@@ -277,7 +287,7 @@ const HomeScreen = memo(function HomeScreen() {
         {userRole === 'tasker' && (
           <motion.div 
             variants={itemVariants}
-            className="grid grid-cols-2 gap-3 mb-7"
+            className="grid grid-cols-2 gap-3 mb-5"
           >
             <motion.div 
               whileHover={{ scale: 1.02, y: -2 }}
@@ -306,6 +316,47 @@ const HomeScreen = memo(function HomeScreen() {
               </p>
               <p className="text-xs text-muted-foreground font-medium">{t('home.jobsCompleted')}</p>
             </motion.div>
+          </motion.div>
+        )}
+
+        {userRole === 'tasker' && (
+          <motion.div variants={itemVariants}>
+            <Link href="/direct-requests">
+              <motion.div 
+                whileHover={{ scale: 1.01, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="glass rounded-[20px] p-4 mb-7 cursor-pointer"
+                data-testid="card-direct-requests"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center">
+                      <Inbox className="w-5 h-5 text-accent" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {i18n.language === 'ar' ? 'طلبات الخدمة المباشرة' : 'Direct Service Requests'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {pendingRequestsCount > 0 
+                          ? (i18n.language === 'ar' 
+                              ? `${pendingRequestsCount} طلب جديد` 
+                              : `${pendingRequestsCount} new request${pendingRequestsCount > 1 ? 's' : ''}`)
+                          : (i18n.language === 'ar' ? 'لا توجد طلبات جديدة' : 'No new requests')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {pendingRequestsCount > 0 && (
+                      <span className="w-6 h-6 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center">
+                        {pendingRequestsCount}
+                      </span>
+                    )}
+                    <ArrowRight className="w-5 h-5 text-muted-foreground rtl:rotate-180" />
+                  </div>
+                </div>
+              </motion.div>
+            </Link>
           </motion.div>
         )}
 
