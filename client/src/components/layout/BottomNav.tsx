@@ -4,12 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, ListTodo, Wallet, User, Home, List, Search, Grid3X3 } from 'lucide-react';
+import { LayoutDashboard, ListTodo, Wallet, User, Home, List, Search, Plus } from 'lucide-react';
 
 interface NavItem {
   icon: typeof Home;
   labelKey: string;
   path: string;
+  isCenter?: boolean;
 }
 
 export const BottomNav = memo(function BottomNav() {
@@ -33,7 +34,7 @@ export const BottomNav = memo(function BottomNav() {
       : [
           { icon: Home, labelKey: 'nav.home', path: '/home' },
           { icon: List, labelKey: 'tasks.myTasks', path: '/my-tasks' },
-          { icon: Grid3X3, labelKey: 'nav.categories', path: '/categories' },
+          { icon: Plus, labelKey: 'nav.categories', path: '/categories', isCenter: true },
           { icon: Search, labelKey: 'searchTaskers.title', path: '/search-taskers' },
           { icon: User, labelKey: 'nav.profile', path: '/profile' },
         ],
@@ -77,6 +78,43 @@ export const BottomNav = memo(function BottomNav() {
               const Icon = item.icon;
               const active = isActive(item.path);
               const label = t(item.labelKey);
+              
+              if (item.isCenter) {
+                return (
+                  <Link
+                    key={item.path}
+                    href={item.path}
+                    data-testid="nav-categories-center"
+                    className="flex-1 flex justify-center -mt-8"
+                  >
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                      className="relative"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary via-primary to-accent shadow-lg shadow-primary/40 flex items-center justify-center ring-4 ring-background">
+                        <Icon 
+                          className="w-7 h-7 text-white"
+                          strokeWidth={2.5}
+                        />
+                      </div>
+                      <motion.div
+                        className="absolute inset-0 rounded-full bg-white/20"
+                        animate={{ 
+                          scale: [1, 1.2, 1],
+                          opacity: [0.5, 0, 0.5]
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      />
+                    </motion.button>
+                  </Link>
+                );
+              }
               
               return (
                 <Link
