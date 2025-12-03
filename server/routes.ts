@@ -1072,3 +1072,262 @@ router.post("/api/payments/confirm", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// ===== Direct Service Requests =====
+
+// Create a direct service request
+router.post("/api/direct-requests", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const { taskerId, category, title, description, scheduledDate, scheduledTime, location, latitude, longitude, budget } = req.body;
+    
+    if (!taskerId || !category || !title || !description || !scheduledDate || !scheduledTime || !location || !budget) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    
+    // Verify tasker exists
+    const tasker = await storage.getUser(taskerId);
+    if (!tasker || tasker.role !== 'tasker') {
+      return res.status(400).json({ error: "Invalid tasker" });
+    }
+    
+    const request = await storage.createDirectServiceRequest({
+      clientId: req.userId,
+      taskerId,
+      category,
+      title,
+      description,
+      scheduledDate,
+      scheduledTime,
+      location,
+      latitude: latitude || null,
+      longitude: longitude || null,
+      budget: budget.toString(),
+    });
+    
+    // Notify the tasker about the new service request
+    const client = await storage.getUser(req.userId);
+    await storage.createNotification({
+      userId: taskerId,
+      type: 'direct_request',
+      title: 'طلب خدمة مباشر',
+      message: `${client?.name || 'عميل'} يطلب خدمتك: ${title}`,
+      icon: 'user-check',
+      color: 'primary',
+      actionUrl: `/direct-requests`,
+    });
+    
+    res.status(201).json(request);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get direct requests for current user (client or tasker)
+router.get("/api/direct-requests", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const user = await storage.getUser(req.userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    
+    let requests;
+    if (user.role === 'tasker') {
+      requests = await storage.getDirectServiceRequestsForTasker(req.userId);
+    } else {
+      requests = await storage.getDirectServiceRequestsForClient(req.userId);
+    }
+    
+    // Enrich with user details
+    const enrichedRequests = await Promise.all(requests.map(async (r) => {
+      const client = await storage.getUser(r.clientId);
+      const tasker = await storage.getUser(r.taskerId);
+      return {
+        ...r,
+        client: client ? sanitizeUser(client) : null,
+        tasker: tasker ? sanitizeUser(tasker) : null,
+      };
+    }));
+    
+    res.json(enrichedRequests);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get a single direct request
+router.get("/api/direct-requests/:id", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const request = await storage.getDirectServiceRequest(req.params.id);
+    if (!request) return res.status(404).json({ error: "Request not found" });
+    
+    // Only client or tasker can view
+    if (request.clientId !== req.userId && request.taskerId !== req.userId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    
+    const client = await storage.getUser(request.clientId);
+    const tasker = await storage.getUser(request.taskerId);
+    
+    res.json({
+      ...request,
+      client: client ? sanitizeUser(client) : null,
+      tasker: tasker ? sanitizeUser(tasker) : null,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Accept a direct request (tasker only)
+router.post("/api/direct-requests/:id/accept", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const request = await storage.getDirectServiceRequest(req.params.id);
+    if (!request) return res.status(404).json({ error: "Request not found" });
+    
+    if (request.taskerId !== req.userId) {
+      return res.status(403).json({ error: "Only the assigned tasker can accept" });
+    }
+    
+    if (request.status !== 'pending') {
+      return res.status(400).json({ error: "Request is no longer pending" });
+    }
+    
+    // Create a task from this direct request
+    const task = await storage.createTask({
+      clientId: request.clientId,
+      title: request.title,
+      description: request.description,
+      category: request.category,
+      location: request.location,
+      latitude: request.latitude,
+      longitude: request.longitude,
+      budget: request.budget,
+      date: request.scheduledDate,
+      time: request.scheduledTime,
+    });
+    
+    // Update task with assigned tasker and status
+    await storage.updateTask(task.id, { 
+      taskerId: request.taskerId,
+      status: 'assigned',
+    });
+    
+    // Create a bid for consistency
+    const bid = await storage.createBid({
+      taskId: task.id,
+      taskerId: request.taskerId,
+      amount: request.budget,
+      message: `طلب خدمة مباشر - موعد: ${request.scheduledDate} ${request.scheduledTime}`,
+    });
+    
+    // Accept the bid
+    await storage.updateBid(bid.id, { status: 'accepted' });
+    
+    // Update the direct request
+    const updatedRequest = await storage.updateDirectServiceRequest(request.id, {
+      status: 'accepted',
+      linkedTaskId: task.id,
+    });
+    
+    // Notify client
+    const tasker = await storage.getUser(request.taskerId);
+    await storage.createNotification({
+      userId: request.clientId,
+      type: 'direct_request_accepted',
+      title: 'تم قبول طلبك',
+      message: `${tasker?.name || 'المنفذ'} قبل طلب خدمتك: ${request.title}`,
+      icon: 'check-circle',
+      color: 'success',
+      actionUrl: `/task/${task.id}`,
+    });
+    
+    res.json({
+      ...updatedRequest,
+      task,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Reject a direct request (tasker only)
+router.post("/api/direct-requests/:id/reject", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const request = await storage.getDirectServiceRequest(req.params.id);
+    if (!request) return res.status(404).json({ error: "Request not found" });
+    
+    if (request.taskerId !== req.userId) {
+      return res.status(403).json({ error: "Only the assigned tasker can reject" });
+    }
+    
+    if (request.status !== 'pending') {
+      return res.status(400).json({ error: "Request is no longer pending" });
+    }
+    
+    const updatedRequest = await storage.updateDirectServiceRequest(request.id, {
+      status: 'rejected',
+    });
+    
+    // Notify client
+    const tasker = await storage.getUser(request.taskerId);
+    await storage.createNotification({
+      userId: request.clientId,
+      type: 'direct_request_rejected',
+      title: 'تم رفض طلبك',
+      message: `${tasker?.name || 'المنفذ'} رفض طلب خدمتك: ${request.title}`,
+      icon: 'x-circle',
+      color: 'error',
+      actionUrl: `/direct-requests`,
+    });
+    
+    res.json(updatedRequest);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Cancel a direct request (client only)
+router.post("/api/direct-requests/:id/cancel", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const request = await storage.getDirectServiceRequest(req.params.id);
+    if (!request) return res.status(404).json({ error: "Request not found" });
+    
+    if (request.clientId !== req.userId) {
+      return res.status(403).json({ error: "Only the client can cancel" });
+    }
+    
+    if (request.status !== 'pending') {
+      return res.status(400).json({ error: "Request is no longer pending" });
+    }
+    
+    const updatedRequest = await storage.updateDirectServiceRequest(request.id, {
+      status: 'cancelled',
+    });
+    
+    // Notify tasker
+    const client = await storage.getUser(request.clientId);
+    await storage.createNotification({
+      userId: request.taskerId,
+      type: 'system',
+      title: 'تم إلغاء الطلب',
+      message: `${client?.name || 'العميل'} ألغى طلب الخدمة: ${request.title}`,
+      icon: 'x-circle',
+      color: 'warning',
+      actionUrl: `/direct-requests`,
+    });
+    
+    res.json(updatedRequest);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
