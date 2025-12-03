@@ -87,6 +87,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/direct-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
       toast({
         title: isArabic ? 'تم إرسال الطلب!' : 'Request Sent!',
         description: isArabic 

@@ -296,3 +296,15 @@ Preferred communication style: Simple, everyday language.
 - isAdmin field added to users table
 - Admin-only endpoints for professional role management
 - Admin verification for tasker approval
+
+**Direct Service Request Feature (December 2024)**
+- Clients can request services directly from tasker profiles
+- DirectServiceRequestModal: category selection, date/time picker, location, budget input
+- DirectRequestsScreen: taskers view and manage incoming requests (/direct-requests)
+- Request status workflow: pending → accepted/rejected/cancelled
+- When accepted: automatically creates assigned task with tasker pre-assigned
+- Notification system integration for request creation, acceptance, and rejection
+- HomeScreen shows pending direct requests count for taskers
+- Full Arabic/English localization with RTL support
+- Database table: direct_service_requests
+- API routes: POST /api/direct-requests, GET /api/direct-requests, POST /api/direct-requests/:id/accept, POST /api/direct-requests/:id/reject

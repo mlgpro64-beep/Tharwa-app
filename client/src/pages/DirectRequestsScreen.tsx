@@ -62,13 +62,16 @@ const DirectRequestsScreen = memo(function DirectRequestsScreen() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/direct-requests'] });
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
       toast({
         title: isArabic ? 'تم قبول الطلب' : 'Request Accepted',
         description: isArabic 
           ? 'تم إنشاء المهمة بنجاح. يمكنك الآن بدء العمل.'
           : 'Task created successfully. You can start working now.',
       });
-      setLocation(`/tasks/${data.task?.id}`);
+      if (data.task?.id) {
+        setLocation(`/task/${data.task.id}`);
+      }
     },
     onError: () => {
       toast({
@@ -88,6 +91,7 @@ const DirectRequestsScreen = memo(function DirectRequestsScreen() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/direct-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
       toast({
         title: isArabic ? 'تم رفض الطلب' : 'Request Rejected',
         description: isArabic 
