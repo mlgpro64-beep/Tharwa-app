@@ -2,6 +2,7 @@ import { db } from "./db";
 import { 
   users, tasks, bids, transactions, messages, notifications, savedTasks,
   professionalRoles, userProfessionalRoles, taskerAvailability, userPhotos,
+  directServiceRequests,
   insertUserSchema, insertTaskSchema, insertBidSchema, insertTransactionSchema,
   insertMessageSchema, insertNotificationSchema
 } from "@shared/schema";
@@ -9,6 +10,7 @@ import { eq, and, or, desc, like, sql, asc } from "drizzle-orm";
 import type { 
   User, Task, Bid, Transaction, Message, Notification, SavedTask,
   ProfessionalRole, UserProfessionalRole, TaskerAvailability, UserPhoto,
+  DirectServiceRequest, InsertDirectServiceRequest,
   InsertUser, InsertTask, InsertBid, InsertTransaction, InsertMessage, InsertNotification,
   InsertProfessionalRole, InsertUserProfessionalRole, InsertTaskerAvailability, InsertUserPhoto
 } from "@shared/schema";
@@ -84,6 +86,13 @@ export interface IStorage {
   updateUserPhoto(id: string, data: Partial<InsertUserPhoto>): Promise<UserPhoto>;
   deleteUserPhoto(id: string): Promise<void>;
   reorderUserPhotos(userId: string, photoIds: string[]): Promise<void>;
+  
+  // Direct Service Requests
+  getDirectServiceRequest(id: string): Promise<DirectServiceRequest | undefined>;
+  getDirectServiceRequestsForClient(clientId: string): Promise<DirectServiceRequest[]>;
+  getDirectServiceRequestsForTasker(taskerId: string): Promise<DirectServiceRequest[]>;
+  createDirectServiceRequest(data: InsertDirectServiceRequest): Promise<DirectServiceRequest>;
+  updateDirectServiceRequest(id: string, data: Partial<DirectServiceRequest>): Promise<DirectServiceRequest>;
 }
 
 export const storage: IStorage = {
@@ -451,5 +460,37 @@ export const storage: IStorage = {
         .set({ displayOrder: i })
         .where(and(eq(userPhotos.id, photoIds[i]), eq(userPhotos.userId, userId)));
     }
+  },
+  
+  // Direct Service Requests
+  async getDirectServiceRequest(id: string) {
+    const result = await db.select().from(directServiceRequests).where(eq(directServiceRequests.id, id)).limit(1);
+    return result[0];
+  },
+  
+  async getDirectServiceRequestsForClient(clientId: string) {
+    return db
+      .select()
+      .from(directServiceRequests)
+      .where(eq(directServiceRequests.clientId, clientId))
+      .orderBy(desc(directServiceRequests.createdAt));
+  },
+  
+  async getDirectServiceRequestsForTasker(taskerId: string) {
+    return db
+      .select()
+      .from(directServiceRequests)
+      .where(eq(directServiceRequests.taskerId, taskerId))
+      .orderBy(desc(directServiceRequests.createdAt));
+  },
+  
+  async createDirectServiceRequest(data: InsertDirectServiceRequest) {
+    const result = await db.insert(directServiceRequests).values(data).returning();
+    return result[0];
+  },
+  
+  async updateDirectServiceRequest(id: string, data: Partial<DirectServiceRequest>) {
+    const result = await db.update(directServiceRequests).set(data).where(eq(directServiceRequests.id, id)).returning();
+    return result[0];
   },
 };
