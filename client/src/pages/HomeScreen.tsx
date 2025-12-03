@@ -7,8 +7,9 @@ import { TaskCard } from '@/components/TaskCard';
 import { CountUp } from '@/components/CountUp';
 import { useQuery } from '@tanstack/react-query';
 import { TaskCardSkeleton, EmptyState } from '@/components/ui/animated';
-import { Bell, Settings, Wallet, Plus, ArrowRight, TrendingUp, CheckCircle, Search, Sparkles } from 'lucide-react';
+import { Bell, Settings, Wallet, Plus, ArrowRight, TrendingUp, CheckCircle, Search, Sparkles, GraduationCap, HardHat } from 'lucide-react';
 import type { TaskWithDetails, User } from '@shared/schema';
+import { TASK_CATEGORIES_WITH_SUBS } from '@shared/schema';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -32,6 +33,14 @@ const itemVariants = {
       damping: 24
     }
   }
+};
+
+const promoCategoryIds = ['beauty_fashion', 'teaching_education', 'construction'] as const;
+
+const categoryIcons: Record<string, typeof Sparkles> = {
+  beauty_fashion: Sparkles,
+  teaching_education: GraduationCap,
+  construction: HardHat,
 };
 
 const HomeScreen = memo(function HomeScreen() {
@@ -118,6 +127,17 @@ const HomeScreen = memo(function HomeScreen() {
             </motion.h1>
           </div>
           <div className="flex items-center gap-2.5">
+            {userRole === 'client' && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.92 }}
+                onClick={() => setLocation('/wallet')}
+                className="w-11 h-11 flex items-center justify-center rounded-2xl glass transition-all duration-200"
+                data-testid="button-wallet"
+              >
+                <Wallet className="w-5 h-5 text-foreground/80" />
+              </motion.button>
+            )}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.92 }}
@@ -139,53 +159,120 @@ const HomeScreen = memo(function HomeScreen() {
           </div>
         </motion.div>
 
-        <motion.div variants={itemVariants}>
-          <Link href="/wallet">
-            <motion.div 
-              whileHover={{ scale: 1.01, y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              className="relative overflow-hidden rounded-[28px] mb-6 cursor-pointer"
-              data-testid="card-wallet-balance"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-dark to-primary/90" />
-              
-              <div className="absolute inset-0 opacity-30">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl rtl:left-0 rtl:right-auto rtl:-translate-x-1/4" />
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/20 rounded-full translate-y-1/2 -translate-x-1/4 blur-2xl rtl:right-0 rtl:left-auto rtl:translate-x-1/4" />
-              </div>
-              
-              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxIiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz48L2c+PC9zdmc+')] opacity-60" />
-              
-              <div className="relative p-6">
-                <div className="flex items-start justify-between mb-5">
-                  <div>
-                    <p className="text-sm text-white/70 font-medium mb-1.5">{t('home.availableBalance')}</p>
-                    <p className="text-[40px] font-extrabold text-white tracking-tight leading-none">
-                      $<CountUp end={balance} decimals={2} />
-                    </p>
-                  </div>
-                  <motion.div 
-                    whileHover={{ rotate: 10 }}
-                    className="w-14 h-14 bg-white/15 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-white/20"
-                  >
-                    <Wallet className="w-7 h-7 text-white" />
-                  </motion.div>
+        {userRole === 'tasker' ? (
+          <motion.div variants={itemVariants}>
+            <Link href="/wallet">
+              <motion.div 
+                whileHover={{ scale: 1.01, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="relative overflow-hidden rounded-[28px] mb-6 cursor-pointer"
+                data-testid="card-wallet-balance"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-dark to-primary/90" />
+                
+                <div className="absolute inset-0 opacity-30">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl rtl:left-0 rtl:right-auto rtl:-translate-x-1/4" />
+                  <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/20 rounded-full translate-y-1/2 -translate-x-1/4 blur-2xl rtl:right-0 rtl:left-auto rtl:translate-x-1/4" />
                 </div>
                 
-                <div className="flex items-center gap-2 text-sm text-white/80 font-medium">
-                  <span>{t('home.tapToManageWallet')}</span>
-                  <motion.div
-                    animate={{ x: [0, 4, 0] }}
-                    transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                    className="rtl:rotate-180"
-                  >
-                    <ArrowRight className="w-4 h-4" />
-                  </motion.div>
+                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxIiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz48L2c+PC9zdmc+')] opacity-60" />
+                
+                <div className="relative p-6">
+                  <div className="flex items-start justify-between mb-5">
+                    <div>
+                      <p className="text-sm text-white/70 font-medium mb-1.5">{t('home.availableBalance')}</p>
+                      <p className="text-[40px] font-extrabold text-white tracking-tight leading-none">
+                        $<CountUp end={balance} decimals={2} />
+                      </p>
+                    </div>
+                    <motion.div 
+                      whileHover={{ rotate: 10 }}
+                      className="w-14 h-14 bg-white/15 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-white/20"
+                    >
+                      <Wallet className="w-7 h-7 text-white" />
+                    </motion.div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm text-white/80 font-medium">
+                    <span>{t('home.tapToManageWallet')}</span>
+                    <motion.div
+                      animate={{ x: [0, 4, 0] }}
+                      transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                      className="rtl:rotate-180"
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                    </motion.div>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          </Link>
-        </motion.div>
+              </motion.div>
+            </Link>
+          </motion.div>
+        ) : (
+          <motion.div variants={itemVariants} className="mb-6">
+            <div className="flex overflow-x-auto gap-3 pb-2 -mx-5 px-5 scrollbar-hide" data-testid="carousel-promo-cards">
+              {promoCategoryIds.map((categoryId, index) => {
+                const category = TASK_CATEGORIES_WITH_SUBS[categoryId];
+                const IconComponent = categoryIcons[categoryId];
+                
+                return (
+                  <Link href="/post-task/1" key={categoryId}>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.1, type: "spring", stiffness: 300 }}
+                      whileHover={{ scale: 1.05, y: -4 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="relative min-w-[140px] h-[160px] rounded-[24px] overflow-hidden cursor-pointer flex-shrink-0"
+                      style={{
+                        background: `linear-gradient(135deg, ${category.colorHex}20, ${category.colorHex}10)`,
+                      }}
+                      data-testid={`card-promo-${categoryId}`}
+                    >
+                      <div 
+                        className="absolute inset-0 backdrop-blur-xl"
+                        style={{
+                          background: `linear-gradient(135deg, ${category.colorHex}30, transparent)`,
+                        }}
+                      />
+                      <div 
+                        className="absolute inset-0 border rounded-[24px]"
+                        style={{
+                          borderColor: `${category.colorHex}40`,
+                        }}
+                      />
+                      
+                      <div className="absolute top-0 right-0 w-20 h-20 rounded-full blur-2xl opacity-40 rtl:left-0 rtl:right-auto"
+                        style={{ backgroundColor: category.colorHex }}
+                      />
+                      
+                      <div className="relative h-full p-4 flex flex-col justify-between">
+                        <motion.div 
+                          className="w-12 h-12 rounded-xl flex items-center justify-center"
+                          style={{ backgroundColor: `${category.colorHex}30` }}
+                          whileHover={{ rotate: 10 }}
+                        >
+                          <IconComponent 
+                            className="w-6 h-6" 
+                            style={{ color: category.colorHex }} 
+                          />
+                        </motion.div>
+                        
+                        <div>
+                          <p className="text-sm font-bold text-foreground leading-tight mb-1">
+                            {t(`tasks.categories.${categoryId}`)}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground font-medium">
+                            {t('home.promoCards.findExpert')}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </Link>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
 
         {userRole === 'tasker' && (
           <motion.div 

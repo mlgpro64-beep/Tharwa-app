@@ -13,6 +13,7 @@ import ComingSoon from "@/components/ComingSoon";
 
 const WelcomeScreen = lazy(() => import("@/pages/WelcomeScreen"));
 const SelectRoleScreen = lazy(() => import("@/pages/SelectRoleScreen"));
+const TaskerTypeScreen = lazy(() => import("@/pages/TaskerTypeScreen"));
 const RegisterScreen = lazy(() => import("@/pages/RegisterScreen"));
 const LoginScreen = lazy(() => import("@/pages/LoginScreen"));
 const HomeScreen = lazy(() => import("@/pages/HomeScreen"));
@@ -69,6 +70,7 @@ const UnauthenticatedRoutes = memo(function UnauthenticatedRoutes() {
     <Switch>
       <Route path="/" component={WelcomeScreen} />
       <Route path="/role" component={SelectRoleScreen} />
+      <Route path="/tasker-type" component={TaskerTypeScreen} />
       <Route path="/register" component={RegisterScreen} />
       <Route path="/login" component={LoginScreen} />
       <Route component={WelcomeScreen} />

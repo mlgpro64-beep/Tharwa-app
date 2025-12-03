@@ -41,6 +41,8 @@
     "getStarted": "Get Started",
     "alreadyHaveAccount": "I already have an account",
     "accountCreated": "Account created!",
+    "accountCreatedPending": "Account created and pending review",
+    "pendingReviewDesc": "Your account will be reviewed within 24-48 hours",
     "welcomeTo": "Welcome to {{appName}}",
     "welcomeBack": "Welcome back!",
     "welcomeBackName": "Hello {{name}}",
@@ -93,7 +95,11 @@
     "noTasksAvailable": "No tasks available",
     "checkBackLater": "Check back later for new opportunities",
     "noTasksYet": "No tasks yet",
-    "postFirstTask": "Post your first task to get started"
+    "postFirstTask": "Post your first task to get started",
+    "promoCards": {
+      "title": "What do you need help with?",
+      "findExpert": "Find an expert"
+    }
   },
   "tasks": {
     "title": "Tasks",
@@ -520,6 +526,40 @@
       "furniture_moving": "Furniture Moving",
       "car_washing": "Car Washing",
       "home_barber": "Home Barber"
+    }
+  },
+  "taskerType": {
+    "title": "What type of tasker are you?",
+    "subtitle": "Choose the option that best describes you",
+    "general": {
+      "title": "General Tasker",
+      "subtitle": "Perform various tasks without professional certification",
+      "badge": "Quick Start",
+      "features": {
+        "anyTask": "Can perform any available task",
+        "noCertificate": "No professional certificate required",
+        "immediateActivation": "Account activated immediately"
+      }
+    },
+    "specialized": {
+      "title": "Specialized Tasker",
+      "subtitle": "Professional with certification in a specific field",
+      "badge": "Professional",
+      "features": {
+        "professional": "Access to specialized professional tasks",
+        "uploadCertificate": "Upload your professional certificate",
+        "pendingReview": "Account pending review after registration"
+      }
+    },
+    "certificate": {
+      "title": "Upload Your Certificate",
+      "description": "Upload your professional certificate for verification",
+      "uploadPrompt": "Tap to upload certificate image",
+      "changeImage": "Change Image",
+      "skipForNow": "Skip for now",
+      "pendingNote": "Your account will be pending review after registration",
+      "fileTooLarge": "File size must be less than 5MB",
+      "invalidFormat": "Please upload a valid image file"
     }
   }
 }

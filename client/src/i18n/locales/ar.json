@@ -41,6 +41,8 @@
     "getStarted": "ابدأ الآن",
     "alreadyHaveAccount": "لدي حساب بالفعل",
     "accountCreated": "تم إنشاء الحساب!",
+    "accountCreatedPending": "تم إنشاء الحساب وهو قيد المراجعة",
+    "pendingReviewDesc": "سيتم مراجعة حسابك خلال 24-48 ساعة",
     "welcomeTo": "مرحباً بك في {{appName}}",
     "welcomeBack": "أهلاً بعودتك!",
     "welcomeBackName": "مرحباً {{name}}",
@@ -93,7 +95,11 @@
     "noTasksAvailable": "لا توجد مهام متاحة",
     "checkBackLater": "تحقق لاحقاً للحصول على فرص جديدة",
     "noTasksYet": "لا توجد مهام بعد",
-    "postFirstTask": "انشر مهمتك الأولى للبدء"
+    "postFirstTask": "انشر مهمتك الأولى للبدء",
+    "promoCards": {
+      "title": "ما الذي تحتاج المساعدة فيه؟",
+      "findExpert": "ابحث عن خبير"
+    }
   },
   "tasks": {
     "title": "المهام",
@@ -520,6 +526,40 @@
       "furniture_moving": "نقل العفش",
       "car_washing": "غسيل السيارات",
       "home_barber": "حلاق منزلي"
+    }
+  },
+  "taskerType": {
+    "title": "ما نوع المنفذ الذي أنت عليه؟",
+    "subtitle": "اختر الخيار الذي يناسبك",
+    "general": {
+      "title": "منفذ عام",
+      "subtitle": "تنفيذ مهام متنوعة بدون شهادة مهنية",
+      "badge": "بداية سريعة",
+      "features": {
+        "anyTask": "يمكنك تنفيذ أي مهمة متاحة",
+        "noCertificate": "لا تحتاج شهادة مهنية",
+        "immediateActivation": "تفعيل الحساب فوري"
+      }
+    },
+    "specialized": {
+      "title": "منفذ متخصص",
+      "subtitle": "محترف لديه شهادة في مجال معين",
+      "badge": "محترف",
+      "features": {
+        "professional": "الوصول لمهام التخصص المهني",
+        "uploadCertificate": "رفع شهادتك المهنية",
+        "pendingReview": "الحساب قيد المراجعة بعد التسجيل"
+      }
+    },
+    "certificate": {
+      "title": "رفع شهادتك",
+      "description": "ارفع شهادتك المهنية للتحقق منها",
+      "uploadPrompt": "اضغط لرفع صورة الشهادة",
+      "changeImage": "تغيير الصورة",
+      "skipForNow": "تخطي الآن",
+      "pendingNote": "سيكون حسابك قيد المراجعة بعد التسجيل",
+      "fileTooLarge": "حجم الملف يجب أن يكون أقل من 5 ميجابايت",
+      "invalidFormat": "يرجى رفع ملف صورة صالح"
     }
   }
 }

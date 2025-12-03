@@ -18,6 +18,8 @@ export const professionalCategoryEnum = pgEnum("professional_category", [
   "special"
 ]);
 export const availabilityStatusEnum = pgEnum("availability_status", ["available", "busy"]);
+export const taskerTypeEnum = pgEnum("tasker_type", ["general", "specialized"]);
+export const taskerVerificationStatusEnum = pgEnum("tasker_verification_status", ["pending", "approved", "rejected"]);
 
 // Users table
 export const users = pgTable("users", {
@@ -34,6 +36,10 @@ export const users = pgTable("users", {
   completedTasks: integer("completed_tasks").notNull().default(0),
   bio: text("bio"),
   location: text("location"),
+  taskerType: taskerTypeEnum("tasker_type"),
+  verificationStatus: taskerVerificationStatusEnum("verification_status"),
+  certificateUrl: text("certificate_url"),
+  specializationCategory: text("specialization_category"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -53,7 +53,7 @@ router.use(getCurrentUser);
 // Auth routes
 router.post("/api/auth/register", async (req, res) => {
   try {
-    const { username, email, password, name, role } = req.body;
+    const { username, email, password, name, role, taskerType, certificateUrl } = req.body;
     
     const existingUser = await storage.getUserByUsername(username);
     if (existingUser) {
@@ -61,13 +61,31 @@ router.post("/api/auth/register", async (req, res) => {
     }
     
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await storage.createUser({
+    const userData: any = {
       username,
       email,
       password: hashedPassword,
       name,
       role: role || "client",
-    });
+    };
+    
+    if (role === 'tasker') {
+      const validTaskerType = taskerType === 'specialized' ? 'specialized' : 'general';
+      userData.taskerType = validTaskerType;
+      userData.verificationStatus = validTaskerType === 'specialized' ? 'pending' : 'approved';
+      
+      if (validTaskerType === 'specialized' && certificateUrl) {
+        if (typeof certificateUrl === 'string' && certificateUrl.startsWith('data:image/')) {
+          const base64Length = certificateUrl.length * 0.75;
+          const maxSize = 5 * 1024 * 1024;
+          if (base64Length <= maxSize) {
+            userData.certificateUrl = certificateUrl;
+          }
+        }
+      }
+    }
+    
+    const user = await storage.createUser(userData);
     
     req.session!.userId = user.id;
     res.json({ user: sanitizeUser(user) });
