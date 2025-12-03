@@ -317,7 +317,8 @@
     "tasks": "Tasks",
     "post": "Post",
     "messages": "Messages",
-    "profile": "Profile"
+    "profile": "Profile",
+    "categories": "Categories"
   },
   "errors": {
     "required": "This field is required",

@@ -317,7 +317,8 @@
     "tasks": "المهام",
     "post": "نشر",
     "messages": "الرسائل",
-    "profile": "الملف"
+    "profile": "الملف",
+    "categories": "الفئات"
   },
   "errors": {
     "required": "هذا الحقل مطلوب",

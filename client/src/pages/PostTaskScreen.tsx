@@ -31,6 +31,8 @@ const PostTaskScreen = memo(function PostTaskScreen() {
   const currentStep = parseInt(step || '1');
   const isEditMode = window.location.pathname.includes('/edit');
   const taskId = isEditMode ? window.location.pathname.split('/')[2] : null;
+  
+  const categoryFromUrl = new URLSearchParams(window.location.search).get('category');
 
   const { data: existingTask } = useQuery<TaskWithDetails>({
     queryKey: ['/api/tasks', taskId],
@@ -73,6 +75,12 @@ const PostTaskScreen = memo(function PostTaskScreen() {
       }
     }
   }, [existingTask, isEditMode]);
+
+  useEffect(() => {
+    if (categoryFromUrl && !isEditMode && !formData.category) {
+      setFormData(prev => ({ ...prev, category: categoryFromUrl }));
+    }
+  }, [categoryFromUrl, isEditMode, formData.category]);
 
   const reverseGeocode = useCallback(async (latitude: number, longitude: number): Promise<string> => {
     try {
