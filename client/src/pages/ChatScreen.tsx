@@ -17,18 +17,22 @@ const ChatScreen = memo(function ChatScreen() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const isAuthenticated = !!localStorage.getItem('userId');
 
   const { data: currentUser } = useQuery<User>({
     queryKey: ['/api/users/me'],
+    enabled: isAuthenticated,
   });
 
   const { data: task } = useQuery<TaskWithDetails>({
     queryKey: ['/api/tasks', taskId],
+    enabled: isAuthenticated && !!taskId,
   });
 
   const { data: messages, isLoading } = useQuery<MessageWithUsers[]>({
     queryKey: ['/api/tasks', taskId, 'messages'],
     refetchInterval: 3000,
+    enabled: isAuthenticated && !!taskId,
   });
 
   useEffect(() => {

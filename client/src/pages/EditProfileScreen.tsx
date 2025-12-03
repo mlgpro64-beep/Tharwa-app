@@ -18,9 +18,11 @@ export default function EditProfileScreen() {
   const { toast } = useToast();
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isAuthenticated = !!localStorage.getItem('userId');
   
   const { data: currentUser } = useQuery<User>({
     queryKey: ['/api/users/me'],
+    enabled: isAuthenticated,
   });
 
   const [formData, setFormData] = useState({

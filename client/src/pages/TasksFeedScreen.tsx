@@ -40,9 +40,11 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
   const isArabic = i18n.language === 'ar';
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const isAuthenticated = !!localStorage.getItem('userId');
 
   const { data: tasks, isLoading } = useQuery<TaskWithDetails[]>({
     queryKey: ['/api/tasks/available', selectedCategory],
+    enabled: isAuthenticated,
   });
 
   const filteredTasks = useMemo(() => {

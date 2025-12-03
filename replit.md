@@ -308,3 +308,18 @@ Preferred communication style: Simple, everyday language.
 - Full Arabic/English localization with RTL support
 - Database table: direct_service_requests
 - API routes: POST /api/direct-requests, GET /api/direct-requests, POST /api/direct-requests/:id/accept, POST /api/direct-requests/:id/reject
+
+**PWA Setup (December 2024)**
+- Progressive Web App with installable app experience
+- manifest.json with bilingual Arabic/English metadata
+- Service worker (sw.js) with offline caching strategy
+- Generated branded app icons (72x72 to 512x512)
+- Apple-specific meta tags for iOS home screen support
+- Theme colors matching app design (#3b5bff primary)
+- Files: client/public/manifest.json, client/public/sw.js, client/public/icons/
+
+**Performance Optimizations (December 2024)**
+- Added `enabled: isAuthenticated` guards to all TanStack queries
+- Prevents 401 API errors when user is not logged in
+- Screens optimized: HomeScreen, MyTasksScreen, NotificationScreen, ConversationsScreen, WalletScreen, ChatScreen, EditProfileScreen, TasksFeedScreen, MyDirectRequestsScreen
+- Reduced unnecessary network requests on app load

@@ -10,9 +10,11 @@ import type { ConversationPreview } from '@shared/schema';
 
 const ConversationsScreen = memo(function ConversationsScreen() {
   const [, setLocation] = useLocation();
+  const isAuthenticated = !!localStorage.getItem('userId');
   
   const { data: conversations, isLoading, error } = useQuery<ConversationPreview[]>({
     queryKey: ['/api/conversations'],
+    enabled: isAuthenticated,
   });
 
   const getInitials = useCallback((name: string) => {

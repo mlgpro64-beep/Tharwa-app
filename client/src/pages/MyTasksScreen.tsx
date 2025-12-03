@@ -13,9 +13,11 @@ type TabType = 'all' | 'open' | 'in_progress' | 'completed';
 const MyTasksScreen = memo(function MyTasksScreen() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<TabType>('all');
+  const isAuthenticated = !!localStorage.getItem('userId');
 
   const { data: tasks, isLoading, error } = useQuery<TaskWithDetails[]>({
     queryKey: ['/api/tasks/my'],
+    enabled: isAuthenticated,
   });
 
   const filteredTasks = useMemo(() => {

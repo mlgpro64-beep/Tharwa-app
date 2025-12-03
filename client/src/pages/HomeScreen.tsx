@@ -54,13 +54,16 @@ const HomeScreen = memo(function HomeScreen() {
     enabled: !!localStorage.getItem('userId'),
   });
 
+  const isAuthenticated = !!localStorage.getItem('userId');
+
   const { data: tasks, isLoading: tasksLoading } = useQuery<TaskWithDetails[]>({
     queryKey: ['/api/tasks', userRole === 'tasker' ? 'available' : 'my'],
+    enabled: isAuthenticated,
   });
 
   const { data: stats } = useQuery<{ earnings: number; jobsDone: number }>({
     queryKey: ['/api/stats'],
-    enabled: userRole === 'tasker',
+    enabled: isAuthenticated && userRole === 'tasker',
   });
 
   type DirectRequestWithUsers = DirectServiceRequest & {
@@ -70,6 +73,7 @@ const HomeScreen = memo(function HomeScreen() {
 
   const { data: directRequests } = useQuery<DirectRequestWithUsers[]>({
     queryKey: ['/api/direct-requests'],
+    enabled: isAuthenticated,
   });
   
   const pendingRequestsCount = useMemo(() => 

@@ -39,9 +39,11 @@ const MyDirectRequestsScreen = memo(function MyDirectRequestsScreen() {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const isArabic = i18n.language === 'ar';
+  const isAuthenticated = !!localStorage.getItem('userId');
 
   const { data: requests, isLoading } = useQuery<DirectRequestWithUsers[]>({
     queryKey: ['/api/direct-requests'],
+    enabled: isAuthenticated,
   });
 
   const cancelMutation = useMutation({

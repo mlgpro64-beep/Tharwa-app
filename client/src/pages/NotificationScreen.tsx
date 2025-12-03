@@ -10,9 +10,11 @@ import type { Notification } from '@shared/schema';
 
 const NotificationScreen = memo(function NotificationScreen() {
   const [, setLocation] = useLocation();
+  const isAuthenticated = !!localStorage.getItem('userId');
   
   const { data: notifications, isLoading } = useQuery<Notification[]>({
     queryKey: ['/api/notifications'],
+    enabled: isAuthenticated,
   });
 
   const markReadMutation = useMutation({

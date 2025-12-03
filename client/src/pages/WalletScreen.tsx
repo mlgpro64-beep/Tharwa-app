@@ -29,13 +29,16 @@ const itemVariants = {
 const WalletScreen = memo(function WalletScreen() {
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
+  const isAuthenticated = !!localStorage.getItem('userId');
   
   const { data: user } = useQuery<User>({
     queryKey: ['/api/users/me'],
+    enabled: isAuthenticated,
   });
 
   const { data: transactions, isLoading } = useQuery<Transaction[]>({
     queryKey: ['/api/transactions'],
+    enabled: isAuthenticated,
   });
 
   const balance = useMemo(() => 
