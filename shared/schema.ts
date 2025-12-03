@@ -9,7 +9,7 @@ export const taskStatusEnum = pgEnum("task_status", ["open", "assigned", "in_pro
 export const bidStatusEnum = pgEnum("bid_status", ["pending", "accepted", "rejected"]);
 export const transactionTypeEnum = pgEnum("transaction_type", ["credit", "debit"]);
 export const transactionStatusEnum = pgEnum("transaction_status", ["completed", "pending"]);
-export const notificationTypeEnum = pgEnum("notification_type", ["offer", "system", "chat", "task_update"]);
+export const notificationTypeEnum = pgEnum("notification_type", ["offer", "system", "chat", "task_update", "new_task", "bid_received", "task_completed", "payment_request"]);
 export const professionalCategoryEnum = pgEnum("professional_category", [
   "beauty_fashion", 
   "teaching_education", 
@@ -40,6 +40,7 @@ export const users = pgTable("users", {
   verificationStatus: taskerVerificationStatusEnum("verification_status"),
   certificateUrl: text("certificate_url"),
   specializationCategory: text("specialization_category"),
+  isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

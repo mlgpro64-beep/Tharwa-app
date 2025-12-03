@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, ListTodo, Wallet, User, Home, List } from 'lucide-react';
+import { LayoutDashboard, ListTodo, Wallet, User, Home, List, Search } from 'lucide-react';
 
 interface NavItem {
   icon: typeof Home;
@@ -33,7 +33,7 @@ export const BottomNav = memo(function BottomNav() {
       : [
           { icon: Home, labelKey: 'nav.home', path: '/home' },
           { icon: List, labelKey: 'tasks.myTasks', path: '/my-tasks' },
-          { icon: Wallet, labelKey: 'wallet.title', path: '/wallet' },
+          { icon: Search, labelKey: 'searchTaskers.title', path: '/search-taskers' },
           { icon: User, labelKey: 'nav.profile', path: '/profile' },
         ],
     [userRole]

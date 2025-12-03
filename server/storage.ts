@@ -20,6 +20,8 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(data: InsertUser): Promise<User>;
   updateUser(id: string, data: Partial<InsertUser> & { balance?: string; completedTasks?: number; rating?: string }): Promise<User>;
+  searchTaskers(filters?: { category?: string; verified?: boolean; search?: string }): Promise<User[]>;
+  getTaskersByCategory(category: string): Promise<User[]>;
   
   // Tasks
   getTask(id: string): Promise<Task | undefined>;
@@ -27,6 +29,7 @@ export interface IStorage {
   getTasksCreatedToday(userId: string): Promise<number>;
   createTask(data: InsertTask): Promise<Task>;
   updateTask(id: string, data: Partial<Task>): Promise<Task>;
+  deleteTask(id: string): Promise<void>;
   
   // Bids
   getBid(id: string): Promise<Bid | undefined>;
@@ -109,6 +112,63 @@ export const storage: IStorage = {
     const result = await db.update(users).set(data).where(eq(users.id, id)).returning();
     return result[0];
   },
+
+  async searchTaskers(filters?: { category?: string; verified?: boolean; search?: string }) {
+    const conditions = [eq(users.role, 'tasker')];
+    
+    if (filters?.verified) {
+      conditions.push(eq(users.verificationStatus, 'approved'));
+    }
+    
+    if (filters?.search) {
+      conditions.push(
+        or(
+          like(users.name, `%${filters.search}%`),
+          like(users.bio, `%${filters.search}%`)
+        ) as any
+      );
+    }
+    
+    let query = db.select().from(users).where(and(...conditions));
+    
+    if (filters?.category) {
+      const taskersWithRole = await db
+        .select({ userId: userProfessionalRoles.userId })
+        .from(userProfessionalRoles)
+        .innerJoin(professionalRoles, eq(userProfessionalRoles.roleId, professionalRoles.id))
+        .where(eq(professionalRoles.slug, filters.category));
+      
+      const userIds = taskersWithRole.map(t => t.userId);
+      if (userIds.length > 0) {
+        return db.select().from(users)
+          .where(and(...conditions, sql`${users.id} IN (${sql.join(userIds.map(id => sql`${id}`), sql`, `)})`))
+          .orderBy(desc(users.rating), desc(users.completedTasks));
+      }
+      return [];
+    }
+    
+    return db.select().from(users).where(and(...conditions)).orderBy(desc(users.rating), desc(users.completedTasks));
+  },
+
+  async getTaskersByCategory(category: string) {
+    const taskersWithRole = await db
+      .select({ userId: userProfessionalRoles.userId })
+      .from(userProfessionalRoles)
+      .innerJoin(professionalRoles, eq(userProfessionalRoles.roleId, professionalRoles.id))
+      .where(eq(professionalRoles.slug, category));
+    
+    const userIds = taskersWithRole.map(t => t.userId);
+    
+    if (userIds.length === 0) {
+      return db.select().from(users)
+        .where(and(eq(users.role, 'tasker'), eq(users.verificationStatus, 'approved')))
+        .orderBy(desc(users.rating));
+    }
+    
+    return db.select().from(users)
+      .where(sql`${users.id} IN (${sql.join(userIds.map(id => sql`${id}`), sql`, `)})`)
+      .orderBy(desc(users.rating));
+  },
   
   // Tasks
   async getTask(id: string) {
@@ -157,6 +217,10 @@ export const storage: IStorage = {
   async updateTask(id: string, data: Partial<Task>) {
     const result = await db.update(tasks).set(data as any).where(eq(tasks.id, id)).returning();
     return result[0];
+  },
+
+  async deleteTask(id: string) {
+    await db.update(tasks).set({ status: 'cancelled' }).where(eq(tasks.id, id));
   },
   
   // Bids

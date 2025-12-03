@@ -227,6 +227,27 @@ router.post("/api/tasks", async (req, res) => {
     
     const data = { ...req.body, clientId: req.userId };
     const task = await storage.createTask(data);
+    
+    // Send notifications to taskers in the same category
+    try {
+      const taskersInCategory = await storage.getTaskersByCategory(task.category);
+      for (const tasker of taskersInCategory) {
+        if (tasker.id !== req.userId) {
+          await storage.createNotification({
+            userId: tasker.id,
+            type: 'new_task',
+            title: 'مهمة جديدة في تخصصك',
+            message: `تم نشر مهمة جديدة: "${task.title}"`,
+            icon: 'briefcase',
+            color: 'primary',
+            actionUrl: `/task/${task.id}`,
+          });
+        }
+      }
+    } catch (notifError) {
+      console.error('Failed to send category notifications:', notifError);
+    }
+    
     res.json(task);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -248,6 +269,59 @@ router.patch("/api/tasks/:id", async (req, res) => {
   }
 });
 
+router.delete("/api/tasks/:id", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const task = await storage.getTask(req.params.id);
+    if (!task) return res.status(404).json({ error: "Task not found" });
+    if (task.clientId !== req.userId) return res.status(403).json({ error: "Not authorized" });
+    
+    if (task.status !== 'open') {
+      return res.status(400).json({ error: "Only open tasks can be deleted" });
+    }
+    
+    await storage.deleteTask(req.params.id);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post("/api/tasks/:id/request-completion", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const task = await storage.getTask(req.params.id);
+    if (!task) return res.status(404).json({ error: "Task not found" });
+    
+    if (task.taskerId !== req.userId) {
+      return res.status(403).json({ error: "Only the assigned tasker can request completion" });
+    }
+    
+    if (task.status !== 'assigned' && task.status !== 'in_progress') {
+      return res.status(400).json({ error: "Task is not in a state that can be completed" });
+    }
+    
+    const updated = await storage.updateTask(req.params.id, { status: 'in_progress' });
+    
+    const tasker = await storage.getUser(req.userId);
+    await storage.createNotification({
+      userId: task.clientId,
+      type: 'task_update',
+      title: 'طلب إتمام المهمة',
+      message: `${tasker?.name || 'المنفذ'} يطلب تأكيد إتمام "${task.title}"`,
+      icon: 'check_circle',
+      color: 'success',
+      actionUrl: `/task/${task.id}`,
+    });
+    
+    res.json({ task: updated });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Bids routes
 router.get("/api/tasks/:id/bids", async (req, res) => {
   try {
@@ -262,12 +336,28 @@ router.post("/api/tasks/:id/bids", async (req, res) => {
   try {
     if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
     
+    const task = await storage.getTask(req.params.id);
+    if (!task) return res.status(404).json({ error: "Task not found" });
+    
     const bid = await storage.createBid({
       taskId: req.params.id,
       taskerId: req.userId,
       amount: req.body.amount,
       message: req.body.message,
     });
+    
+    // Notify client about new bid
+    const tasker = await storage.getUser(req.userId);
+    await storage.createNotification({
+      userId: task.clientId,
+      type: 'bid_received',
+      title: 'عرض جديد على مهمتك',
+      message: `قدم ${tasker?.name || 'منفذ'} عرضًا بقيمة $${req.body.amount} على "${task.title}"`,
+      icon: 'tag',
+      color: 'accent',
+      actionUrl: `/task/${task.id}`,
+    });
+    
     res.json(bid);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -752,6 +842,231 @@ router.get("/api/users/:userId", async (req, res) => {
       professionalRoles,
       availability,
       photos,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete task (client only - soft delete by setting status to cancelled)
+router.delete("/api/tasks/:id", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const task = await storage.getTask(req.params.id);
+    if (!task) return res.status(404).json({ error: "Task not found" });
+    if (task.clientId !== req.userId) return res.status(403).json({ error: "Not authorized" });
+    
+    if (task.status !== 'open') {
+      return res.status(400).json({ error: "Can only delete open tasks" });
+    }
+    
+    await storage.deleteTask(req.params.id);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Search taskers with professional roles
+router.get("/api/taskers/search", async (req, res) => {
+  try {
+    const { category, verified, search } = req.query;
+    const taskers = await storage.searchTaskers({
+      category: category as string,
+      verified: verified === 'true',
+      search: search as string,
+    });
+    
+    const taskersWithRoles = await Promise.all(
+      taskers.map(async (tasker) => {
+        const professionalRoles = await storage.getUserProfessionalRoles(tasker.id);
+        return {
+          ...sanitizeUser(tasker),
+          professionalRoles,
+        };
+      })
+    );
+    
+    res.json(taskersWithRoles);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Tasker marks task as completed - triggers payment request to client
+router.post("/api/tasks/:id/request-completion", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const task = await storage.getTask(req.params.id);
+    if (!task) return res.status(404).json({ error: "Task not found" });
+    if (task.taskerId !== req.userId) return res.status(403).json({ error: "Only assigned tasker can complete" });
+    
+    if (task.status !== 'assigned' && task.status !== 'in_progress') {
+      return res.status(400).json({ error: "Task is not in progress" });
+    }
+    
+    const acceptedBid = await storage.getAcceptedBidForTask(task.id);
+    if (!acceptedBid) {
+      return res.status(400).json({ error: "No accepted bid found" });
+    }
+    
+    // Notify client that tasker has completed and payment is required
+    await storage.createNotification({
+      userId: task.clientId,
+      type: 'payment_request',
+      title: 'تم إنجاز المهمة',
+      message: `أكمل المنفذ المهمة "${task.title}". يرجى الدفع لإتمام المعاملة.`,
+      icon: 'check-circle',
+      color: 'success',
+      actionUrl: `/task/${task.id}/payment`,
+    });
+    
+    res.json({ 
+      success: true,
+      taskId: task.id,
+      amount: acceptedBid.amount,
+      message: 'Completion request sent to client'
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create Stripe payment intent for task completion
+router.post("/api/payments/create-intent", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const { taskId } = req.body;
+    if (!taskId) return res.status(400).json({ error: "taskId required" });
+    
+    const task = await storage.getTask(taskId);
+    if (!task) return res.status(404).json({ error: "Task not found" });
+    if (task.clientId !== req.userId) return res.status(403).json({ error: "Only client can pay" });
+    
+    const acceptedBid = await storage.getAcceptedBidForTask(task.id);
+    if (!acceptedBid) {
+      return res.status(400).json({ error: "No accepted bid found" });
+    }
+    
+    const amount = Math.round(parseFloat(acceptedBid.amount) * 100); // Convert to cents
+    
+    const { getUncachableStripeClient } = await import('./stripeClient');
+    const stripe = await getUncachableStripeClient();
+    
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency: 'usd',
+      metadata: {
+        taskId: task.id,
+        clientId: task.clientId,
+        taskerId: task.taskerId || '',
+        bidId: acceptedBid.id,
+      },
+    });
+    
+    const { getStripePublishableKey } = await import('./stripeClient');
+    const publishableKey = await getStripePublishableKey();
+    
+    res.json({
+      clientSecret: paymentIntent.client_secret,
+      publishableKey,
+      amount: parseFloat(acceptedBid.amount),
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Confirm payment and complete task
+router.post("/api/payments/confirm", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const { taskId, paymentIntentId } = req.body;
+    if (!taskId || !paymentIntentId) {
+      return res.status(400).json({ error: "taskId and paymentIntentId required" });
+    }
+    
+    const task = await storage.getTask(taskId);
+    if (!task) return res.status(404).json({ error: "Task not found" });
+    if (task.clientId !== req.userId) return res.status(403).json({ error: "Only client can confirm" });
+    
+    const { getUncachableStripeClient } = await import('./stripeClient');
+    const stripe = await getUncachableStripeClient();
+    
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    
+    if (paymentIntent.status !== 'succeeded') {
+      return res.status(400).json({ error: "Payment not successful" });
+    }
+    
+    const acceptedBid = await storage.getAcceptedBidForTask(task.id);
+    if (!acceptedBid) {
+      return res.status(400).json({ error: "No accepted bid found" });
+    }
+    
+    const totalAmount = parseFloat(acceptedBid.amount);
+    const platformFee = totalAmount * PLATFORM_FEE_PERCENTAGE;
+    const taskerPayout = totalAmount - platformFee;
+    
+    // Update task status
+    await storage.updateTask(task.id, { status: "completed" });
+    
+    // Credit tasker
+    if (task.taskerId) {
+      const tasker = await storage.getUser(task.taskerId);
+      if (tasker) {
+        const newBalance = parseFloat(tasker.balance || "0") + taskerPayout;
+        await storage.updateUser(task.taskerId, { 
+          balance: newBalance.toFixed(2),
+          completedTasks: (tasker.completedTasks || 0) + 1
+        });
+        
+        // Create transaction for tasker
+        await storage.createTransaction({
+          userId: task.taskerId,
+          taskId: task.id,
+          title: `أرباح: ${task.title}`,
+          amount: taskerPayout.toFixed(2),
+          type: "credit",
+          status: "completed",
+          icon: "account_balance_wallet",
+        });
+        
+        // Notify tasker
+        await storage.createNotification({
+          userId: task.taskerId,
+          type: 'task_completed',
+          title: 'تم إتمام الدفع',
+          message: `تم استلام ${taskerPayout.toFixed(2)} ريال مقابل "${task.title}"`,
+          icon: 'check-circle',
+          color: 'success',
+          actionUrl: `/task/${task.id}`,
+        });
+      }
+    }
+    
+    // Create transaction for client
+    await storage.createTransaction({
+      userId: task.clientId,
+      taskId: task.id,
+      title: `دفع: ${task.title}`,
+      amount: totalAmount.toFixed(2),
+      type: "debit",
+      status: "completed",
+      icon: "payment",
+    });
+    
+    res.json({ 
+      success: true,
+      payment: {
+        total: totalAmount,
+        platformFee,
+        taskerPayout,
+      }
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

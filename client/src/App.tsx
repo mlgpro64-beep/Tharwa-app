@@ -22,6 +22,7 @@ const MyTasksScreen = lazy(() => import("@/pages/MyTasksScreen"));
 const TaskDetailsScreen = lazy(() => import("@/pages/TaskDetailsScreen"));
 const PostTaskScreen = lazy(() => import("@/pages/PostTaskScreen"));
 const WalletScreen = lazy(() => import("@/pages/WalletScreen"));
+const SearchTaskersScreen = lazy(() => import("@/pages/SearchTaskersScreen"));
 const ProfileScreen = lazy(() => import("@/pages/ProfileScreen"));
 const ChatScreen = lazy(() => import("@/pages/ChatScreen"));
 const ConversationsScreen = lazy(() => import("@/pages/ConversationsScreen"));
@@ -34,6 +35,7 @@ const HelpScreen = lazy(() => import("@/pages/HelpScreen"));
 const PrivacyPolicyScreen = lazy(() => import("@/pages/PrivacyPolicyScreen"));
 const TermsScreen = lazy(() => import("@/pages/TermsScreen"));
 const VerifyIdentityScreen = lazy(() => import("@/pages/VerifyIdentityScreen"));
+const PaymentScreen = lazy(() => import("@/pages/PaymentScreen"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 const PageLoader = memo(function PageLoader() {
@@ -86,9 +88,11 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes() {
       <Route path="/tasks-feed" component={TasksFeedScreen} />
       <Route path="/my-tasks" component={MyTasksScreen} />
       <Route path="/task/:id" component={TaskDetailsScreen} />
+      <Route path="/task/:id/payment" component={PaymentScreen} />
       <Route path="/post-task/:step" component={PostTaskScreen} />
       <Route path="/task/:id/edit" component={PostTaskScreen} />
       <Route path="/wallet" component={WalletScreen} />
+      <Route path="/search-taskers" component={SearchTaskersScreen} />
       <Route path="/profile" component={ProfileScreen} />
       <Route path="/profile/:userId" component={ProfileScreen} />
       <Route path="/profile/edit" component={EditProfileScreen} />

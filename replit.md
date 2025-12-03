@@ -146,8 +146,10 @@ Preferred communication style: Simple, everyday language.
 - Client-side geolocation API for user positioning
 
 **Payment Processing**
-- Wallet system with balance tracking (infrastructure ready for Stripe/payment gateway integration)
+- **Stripe** integration via stripe-replit-sync for real payments
+- Wallet system with balance tracking for tasker earnings
 - Transaction history with credit/debit tracking
+- 5% platform fee on all completed tasks
 
 ### Database & Hosting
 
@@ -256,3 +258,41 @@ Preferred communication style: Simple, everyday language.
 - Glassmorphism design with sun/moon toggle buttons
 - Smooth transitions with Framer Motion
 - Persistent theme preference in localStorage
+
+**Search Taskers Screen (December 2024)**
+- Replaced client WalletScreen with SearchTaskersScreen in bottom nav
+- Glass-styled search input with category filters
+- Verified-only toggle to filter approved taskers
+- Tasker cards showing: avatar, name, rating, completed tasks, professional badges
+- Links to tasker profiles for viewing details
+- Full RTL support for Arabic
+- Route: /search-taskers
+
+**Enhanced Notification System (December 2024)**
+- New notification types: new_task, bid_received, task_completed, payment_request
+- Category-based notifications: taskers receive alerts when tasks posted in their specialization
+- Bid submission notifications: clients notified immediately when taskers submit offers
+- Actionable notifications with deep links to relevant pages
+
+**Task Deletion (December 2024)**
+- Clients can delete their own open tasks
+- Soft delete pattern (status='cancelled') preserves task history
+- Delete button with confirmation modal on TaskDetailsScreen
+- Ownership validation in backend
+- Route: DELETE /api/tasks/:id
+
+**Stripe Payment Integration (December 2024)**
+- Real Stripe payments via stripe-replit-sync integration
+- Payment flow: assigned → in_progress → completed (after Stripe confirmation)
+- 5% platform fee applied on all transactions
+- Tasker marks task complete → Client sees payment screen
+- PaymentScreen with Stripe Elements for card input
+- Payment summary showing: total, platform fee, tasker payout
+- Transaction records for both client (debit) and tasker (credit)
+- Routes: POST /api/payments/create-intent, POST /api/payments/confirm
+- Task completion route: POST /api/tasks/:id/request-completion
+
+**Admin Features**
+- isAdmin field added to users table
+- Admin-only endpoints for professional role management
+- Admin verification for tasker approval

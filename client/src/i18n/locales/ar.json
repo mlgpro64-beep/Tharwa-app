@@ -181,6 +181,18 @@
     },
     "available": "مهمة متاحة"
   },
+  "taskers": {
+    "title": "البحث عن منفذين",
+    "available": "منفذ متاح",
+    "searchPlaceholder": "ابحث بالاسم أو المهارة...",
+    "verifiedOnly": "الموثقين فقط",
+    "specialty": "التخصص",
+    "clearFilters": "مسح الفلاتر",
+    "empty": {
+      "title": "لم يتم العثور على منفذين",
+      "description": "حاول تعديل الفلاتر أو كلمات البحث"
+    }
+  },
   "wallet": {
     "title": "المحفظة",
     "balance": "الرصيد",
@@ -561,5 +573,35 @@
       "fileTooLarge": "حجم الملف يجب أن يكون أقل من 5 ميجابايت",
       "invalidFormat": "يرجى رفع ملف صورة صالح"
     }
+  },
+  "searchTaskers": {
+    "title": "البحث عن منفذين",
+    "searchPlaceholder": "ابحث بالاسم أو المهارة...",
+    "filters": "الفلاتر",
+    "verifiedOnly": "الموثقين فقط",
+    "allCategories": "جميع التخصصات",
+    "clearFilters": "مسح الفلاتر",
+    "noTaskersFound": "لم يتم العثور على منفذين",
+    "noTaskersDesc": "حاول تعديل الفلاتر أو البحث",
+    "completedTasks": "{{count}} مهمة مكتملة",
+    "viewProfile": "عرض الملف الشخصي"
+  },
+  "payment": {
+    "title": "إتمام الدفع",
+    "paymentSummary": "ملخص الدفع",
+    "taskTitle": "المهمة",
+    "totalAmount": "المبلغ الإجمالي",
+    "platformFee": "رسوم المنصة (5%)",
+    "taskerPayout": "مستحقات المنفذ",
+    "payNow": "ادفع الآن",
+    "processing": "جاري المعالجة...",
+    "paymentSuccessful": "تم الدفع بنجاح",
+    "paymentSuccessDesc": "تم إتمام المهمة وإرسال الدفع للمنفذ",
+    "paymentFailed": "فشل الدفع",
+    "tryAgain": "يرجى المحاولة مرة أخرى",
+    "awaitingPayment": "في انتظار الدفع",
+    "completePayment": "إتمام الدفع",
+    "completionRequested": "تم طلب الإتمام",
+    "completionRequestedDesc": "تم إرسال طلب الدفع للعميل"
   }
 }

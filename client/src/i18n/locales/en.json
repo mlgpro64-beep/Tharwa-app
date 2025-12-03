@@ -181,6 +181,18 @@
     },
     "available": "tasks available"
   },
+  "taskers": {
+    "title": "Find Taskers",
+    "available": "taskers available",
+    "searchPlaceholder": "Search by name or skill...",
+    "verifiedOnly": "Verified only",
+    "specialty": "Specialty",
+    "clearFilters": "Clear filters",
+    "empty": {
+      "title": "No taskers found",
+      "description": "Try adjusting your filters or search terms"
+    }
+  },
   "wallet": {
     "title": "Wallet",
     "balance": "Balance",
@@ -561,5 +573,35 @@
       "fileTooLarge": "File size must be less than 5MB",
       "invalidFormat": "Please upload a valid image file"
     }
+  },
+  "searchTaskers": {
+    "title": "Find Taskers",
+    "searchPlaceholder": "Search by name or skill...",
+    "filters": "Filters",
+    "verifiedOnly": "Verified Only",
+    "allCategories": "All Categories",
+    "clearFilters": "Clear Filters",
+    "noTaskersFound": "No taskers found",
+    "noTaskersDesc": "Try adjusting your filters or search term",
+    "completedTasks": "{{count}} tasks completed",
+    "viewProfile": "View Profile"
+  },
+  "payment": {
+    "title": "Complete Payment",
+    "paymentSummary": "Payment Summary",
+    "taskTitle": "Task",
+    "totalAmount": "Total Amount",
+    "platformFee": "Platform Fee (5%)",
+    "taskerPayout": "Tasker Payout",
+    "payNow": "Pay Now",
+    "processing": "Processing...",
+    "paymentSuccessful": "Payment Successful",
+    "paymentSuccessDesc": "Task completed and payment sent to tasker",
+    "paymentFailed": "Payment Failed",
+    "tryAgain": "Please try again",
+    "awaitingPayment": "Awaiting Payment",
+    "completePayment": "Complete Payment",
+    "completionRequested": "Completion Requested",
+    "completionRequestedDesc": "Payment request sent to client"
   }
 }

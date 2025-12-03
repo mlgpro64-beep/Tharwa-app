@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { 
   ArrowLeft, Heart, Edit3, MapPin, Clock, DollarSign, 
-  MessageCircle, Star, AlertCircle, Loader2, Send, Calendar, Sparkles
+  MessageCircle, Star, AlertCircle, Loader2, Send, Calendar, Sparkles, Trash2, CheckCircle
 } from 'lucide-react';
 import TaskLocationMap from '@/components/TaskLocationMap';
 import type { TaskWithDetails, BidWithTasker } from '@shared/schema';
@@ -39,12 +39,13 @@ const itemVariants = {
 const TaskDetailsScreen = memo(function TaskDetailsScreen() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
-  const { userRole, savedTaskIds, toggleSavedTask } = useApp();
+  const { user, userRole, savedTaskIds, toggleSavedTask } = useApp();
   const { toast } = useToast();
   const { i18n } = useTranslation();
   const isArabic = i18n.language === 'ar';
   
   const [showBidModal, setShowBidModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [bidAmount, setBidAmount] = useState('');
   const [bidMessage, setBidMessage] = useState('');
   
@@ -58,6 +59,10 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
   
   const handleCloseBidModal = useCallback(() => {
     setShowBidModal(false);
+  }, []);
+  
+  const handleCloseDeleteModal = useCallback(() => {
+    setShowDeleteModal(false);
   }, []);
 
   const { data: task, isLoading } = useQuery<TaskWithDetails>({
@@ -98,6 +103,38 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
     },
     onError: (error: Error) => {
       toast({ title: 'Failed to accept offer', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('DELETE', `/api/tasks/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks/my'] });
+      setShowDeleteModal(false);
+      toast({ title: isArabic ? 'تم حذف المهمة' : 'Task deleted', description: isArabic ? 'تم حذف المهمة بنجاح' : 'The task has been removed successfully' });
+      setLocation('/my-tasks');
+    },
+    onError: (error: Error) => {
+      toast({ title: isArabic ? 'فشل الحذف' : 'Failed to delete', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const requestCompletionMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('POST', `/api/tasks/${id}/request-completion`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks', id] });
+      toast({ 
+        title: isArabic ? 'تم إرسال الطلب' : 'Request sent', 
+        description: isArabic ? 'تم إرسال طلب إتمام المهمة للعميل' : 'Completion request sent to client'
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: isArabic ? 'فشل الإرسال' : 'Request failed', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -235,16 +272,27 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
               </motion.button>
             )}
             {isClient && task.status === 'open' && (
-              <Link href={`/task/${id}/edit`}>
-                <motion.button 
+              <>
+                <Link href={`/task/${id}/edit`}>
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.92 }}
+                    className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
+                    data-testid="button-edit-task"
+                  >
+                    <Edit3 className="w-5 h-5 text-foreground/80" />
+                  </motion.button>
+                </Link>
+                <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.92 }}
+                  onClick={() => setShowDeleteModal(true)}
                   className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
-                  data-testid="button-edit-task"
+                  data-testid="button-delete-task"
                 >
-                  <Edit3 className="w-5 h-5 text-foreground/80" />
+                  <Trash2 className="w-5 h-5 text-destructive" />
                 </motion.button>
-              </Link>
+              </>
             )}
           </div>
         </motion.div>
@@ -427,7 +475,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
           </motion.div>
         )}
 
-        {task.status === 'in_progress' && (
+        {isTasker && task.status === 'assigned' && task.taskerId === user?.id && (
           <motion.div 
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -435,16 +483,70 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="fixed bottom-0 left-0 right-0 p-5 glass-premium border-t-0 rounded-t-[28px] pb-safe"
           >
-            <Link href={`/task/${id}/progress`}>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => requestCompletionMutation.mutate()}
+              disabled={requestCompletionMutation.isPending}
+              className="w-full h-14 bg-gradient-to-r from-success to-success/80 text-white rounded-2xl font-bold text-base shadow-xl shadow-success/30 flex items-center justify-center gap-2.5 disabled:opacity-50"
+              data-testid="button-request-completion"
+            >
+              {requestCompletionMutation.isPending ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  {isArabic ? 'جاري الإرسال...' : 'Sending...'}
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5" />
+                  {isArabic ? 'تم إنجاز المهمة' : 'Task Completed'}
+                </>
+              )}
+            </motion.button>
+          </motion.div>
+        )}
+
+        {isClient && task.status === 'in_progress' && task.clientId === user?.id && (
+          <motion.div 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed bottom-0 left-0 right-0 p-5 glass-premium border-t-0 rounded-t-[28px] pb-safe"
+          >
+            <Link href={`/task/${id}/payment`}>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full h-14 gradient-primary text-white rounded-2xl font-bold text-base shadow-xl shadow-primary/30"
-                data-testid="button-view-progress"
+                className="w-full h-14 bg-gradient-to-r from-success to-success/80 text-white rounded-2xl font-bold text-base shadow-xl shadow-success/30 flex items-center justify-center gap-2.5"
+                data-testid="button-complete-payment"
               >
-                View Progress
+                <DollarSign className="w-5 h-5" />
+                {isArabic ? 'إتمام الدفع' : 'Complete Payment'}
               </motion.button>
             </Link>
+          </motion.div>
+        )}
+
+        {isTasker && task.status === 'in_progress' && task.taskerId === user?.id && (
+          <motion.div 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed bottom-0 left-0 right-0 p-5 glass-premium border-t-0 rounded-t-[28px] pb-safe"
+          >
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-2xl bg-warning/15 flex items-center justify-center mx-auto mb-3">
+                <Clock className="w-6 h-6 text-warning" />
+              </div>
+              <p className="font-bold text-foreground mb-1" data-testid="text-waiting-payment">
+                {isArabic ? 'في انتظار الدفع' : 'Awaiting Payment'}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {isArabic ? 'العميل سيقوم بالدفع لإتمام المهمة' : 'Client will complete payment to finish the task'}
+              </p>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -508,6 +610,59 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
               Client's budget: <span className="font-bold text-primary">{formatCurrency(task.budget)}</span>
             </p>
           </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={handleCloseDeleteModal}
+        title={isArabic ? 'حذف المهمة' : 'Delete Task'}
+        action={
+          <div className="flex gap-3">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleCloseDeleteModal}
+              className="flex-1 h-14 rounded-2xl font-bold glass"
+              data-testid="button-cancel-delete"
+            >
+              {isArabic ? 'إلغاء' : 'Cancel'}
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => deleteTaskMutation.mutate()}
+              disabled={deleteTaskMutation.isPending}
+              className="flex-1 h-14 bg-destructive text-white rounded-2xl font-bold shadow-xl shadow-destructive/30 disabled:opacity-50 flex items-center justify-center gap-2"
+              data-testid="button-confirm-delete"
+            >
+              {deleteTaskMutation.isPending ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  {isArabic ? 'جاري الحذف...' : 'Deleting...'}
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-5 h-5" />
+                  {isArabic ? 'حذف' : 'Delete'}
+                </>
+              )}
+            </motion.button>
+          </div>
+        }
+      >
+        <div className="text-center py-4">
+          <div className="w-16 h-16 rounded-2xl bg-destructive/15 flex items-center justify-center mx-auto mb-5">
+            <AlertCircle className="w-8 h-8 text-destructive" />
+          </div>
+          <p className="text-muted-foreground mb-2" data-testid="text-delete-confirmation">
+            {isArabic 
+              ? 'هل أنت متأكد من حذف هذه المهمة؟ لا يمكن التراجع عن هذا الإجراء.'
+              : 'Are you sure you want to delete this task? This action cannot be undone.'}
+          </p>
+          <p className="font-bold text-foreground" data-testid="text-delete-task-title">
+            {task.title}
+          </p>
         </div>
       </Modal>
     </div>
