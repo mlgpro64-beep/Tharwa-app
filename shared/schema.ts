@@ -9,7 +9,8 @@ export const taskStatusEnum = pgEnum("task_status", ["open", "assigned", "in_pro
 export const bidStatusEnum = pgEnum("bid_status", ["pending", "accepted", "rejected"]);
 export const transactionTypeEnum = pgEnum("transaction_type", ["credit", "debit"]);
 export const transactionStatusEnum = pgEnum("transaction_status", ["completed", "pending"]);
-export const notificationTypeEnum = pgEnum("notification_type", ["offer", "system", "chat", "task_update", "new_task", "bid_received", "task_completed", "payment_request"]);
+export const notificationTypeEnum = pgEnum("notification_type", ["offer", "system", "chat", "task_update", "new_task", "bid_received", "task_completed", "payment_request", "direct_request", "direct_request_accepted", "direct_request_rejected"]);
+export const directRequestStatusEnum = pgEnum("direct_request_status", ["pending", "accepted", "rejected", "cancelled"]);
 export const professionalCategoryEnum = pgEnum("professional_category", [
   "beauty_fashion", 
   "teaching_education", 
@@ -162,6 +163,25 @@ export const userPhotos = pgTable("user_photos", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Direct service requests (client requests service directly from specific tasker)
+export const directServiceRequests = pgTable("direct_service_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientId: varchar("client_id").notNull().references(() => users.id),
+  taskerId: varchar("tasker_id").notNull().references(() => users.id),
+  category: text("category").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  scheduledDate: text("scheduled_date").notNull(),
+  scheduledTime: text("scheduled_time").notNull(),
+  location: text("location").notNull(),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+  budget: decimal("budget", { precision: 10, scale: 2 }).notNull(),
+  status: directRequestStatusEnum("status").notNull().default("pending"),
+  linkedTaskId: varchar("linked_task_id").references(() => tasks.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   postedTasks: many(tasks, { relationName: "clientTasks" }),
@@ -283,6 +303,21 @@ export const userPhotosRelations = relations(userPhotos, ({ one }) => ({
   }),
 }));
 
+export const directServiceRequestsRelations = relations(directServiceRequests, ({ one }) => ({
+  client: one(users, {
+    fields: [directServiceRequests.clientId],
+    references: [users.id],
+  }),
+  tasker: one(users, {
+    fields: [directServiceRequests.taskerId],
+    references: [users.id],
+  }),
+  linkedTask: one(tasks, {
+    fields: [directServiceRequests.linkedTaskId],
+    references: [tasks.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -348,6 +383,13 @@ export const insertUserPhotoSchema = createInsertSchema(userPhotos).omit({
   createdAt: true,
 });
 
+export const insertDirectServiceRequestSchema = createInsertSchema(directServiceRequests).omit({
+  id: true,
+  createdAt: true,
+  status: true,
+  linkedTaskId: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -381,6 +423,9 @@ export type TaskerAvailability = typeof taskerAvailability.$inferSelect;
 
 export type InsertUserPhoto = z.infer<typeof insertUserPhotoSchema>;
 export type UserPhoto = typeof userPhotos.$inferSelect;
+
+export type InsertDirectServiceRequest = z.infer<typeof insertDirectServiceRequestSchema>;
+export type DirectServiceRequest = typeof directServiceRequests.$inferSelect;
 
 // Extended types for frontend
 export type TaskWithDetails = Task & {
