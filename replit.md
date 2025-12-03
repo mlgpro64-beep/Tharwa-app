@@ -44,6 +44,7 @@ The application prioritizes an iOS-native feel with a premium glassmorphism aest
 -   **Task Deletion**: Clients can soft-delete their open tasks.
 -   **Direct Service Request Feature**: Clients can directly request services from tasker profiles, initiating a workflow of pending, accepted, or rejected requests, which can lead to auto-assigned tasks.
 -   **iOS PWA Setup**: Optimized for iOS devices with manifest.json, service worker for offline caching, branded icons, splash screens, and iOS-specific CSS.
+-   **Capacitor iOS Integration**: Configured for App Store deployment with all required app icons (20px-1024px), splash screens, and native plugins (SplashScreen, StatusBar, Keyboard, Haptics).
 
 ## External Dependencies
 
