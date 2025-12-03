@@ -37,6 +37,7 @@ const TermsScreen = lazy(() => import("@/pages/TermsScreen"));
 const VerifyIdentityScreen = lazy(() => import("@/pages/VerifyIdentityScreen"));
 const PaymentScreen = lazy(() => import("@/pages/PaymentScreen"));
 const DirectRequestsScreen = lazy(() => import("@/pages/DirectRequestsScreen"));
+const MyDirectRequestsScreen = lazy(() => import("@/pages/MyDirectRequestsScreen"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 const PageLoader = memo(function PageLoader() {
@@ -108,6 +109,7 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes() {
       <Route path="/terms" component={TermsScreen} />
       <Route path="/verify" component={VerifyIdentityScreen} />
       <Route path="/direct-requests" component={DirectRequestsScreen} />
+      <Route path="/my-direct-requests" component={MyDirectRequestsScreen} />
       <Route component={NotFound} />
     </Switch>
   );

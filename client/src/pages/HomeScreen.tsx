@@ -7,8 +7,9 @@ import { TaskCard } from '@/components/TaskCard';
 import { CountUp } from '@/components/CountUp';
 import { useQuery } from '@tanstack/react-query';
 import { TaskCardSkeleton, EmptyState } from '@/components/ui/animated';
-import { Bell, Settings, Wallet, Plus, ArrowRight, TrendingUp, CheckCircle, Search, Sparkles, GraduationCap, HardHat, Inbox } from 'lucide-react';
-import type { TaskWithDetails, User } from '@shared/schema';
+import { Bell, Settings, Wallet, Plus, ArrowRight, TrendingUp, CheckCircle, Search, Sparkles, GraduationCap, HardHat, Inbox, Clock, CheckCircle2, XCircle, Send } from 'lucide-react';
+import type { TaskWithDetails, User, DirectServiceRequest } from '@shared/schema';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { TASK_CATEGORIES_WITH_SUBS } from '@shared/schema';
 
 const containerVariants = {
@@ -62,14 +63,23 @@ const HomeScreen = memo(function HomeScreen() {
     enabled: userRole === 'tasker',
   });
 
-  const { data: directRequests } = useQuery<any[]>({
+  type DirectRequestWithUsers = DirectServiceRequest & {
+    client: Omit<User, 'password'> | null;
+    tasker: Omit<User, 'password'> | null;
+  };
+
+  const { data: directRequests } = useQuery<DirectRequestWithUsers[]>({
     queryKey: ['/api/direct-requests'],
-    enabled: userRole === 'tasker',
   });
   
   const pendingRequestsCount = useMemo(() => 
     directRequests?.filter(r => r.status === 'pending')?.length || 0,
     [directRequests]
+  );
+
+  const clientDirectRequests = useMemo(() => 
+    userRole === 'client' ? (directRequests || []).slice(0, 3) : [],
+    [directRequests, userRole]
   );
 
   const displayUser = currentUser || user;
@@ -386,6 +396,123 @@ const HomeScreen = memo(function HomeScreen() {
               </motion.button>
             </Link>
           </motion.div>
+        )}
+
+        {userRole === 'client' && clientDirectRequests.length > 0 && (
+          <>
+            <motion.div 
+              variants={itemVariants}
+              className="flex items-center justify-between mb-4"
+            >
+              <h2 className="text-lg font-bold text-foreground">
+                {i18n.language === 'ar' ? 'طلباتي المباشرة' : 'My Direct Requests'}
+              </h2>
+              <Link 
+                href="/my-direct-requests"
+                className="text-sm text-primary font-semibold flex items-center gap-1.5 hover:gap-2.5 transition-all duration-300"
+                data-testid="link-see-all-direct-requests"
+              >
+                {t('common.seeAll')}
+                <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+              </Link>
+            </motion.div>
+
+            <motion.div variants={containerVariants} className="space-y-3 mb-7">
+              {clientDirectRequests.map((request, index) => {
+                const statusConfig = {
+                  pending: { 
+                    icon: Clock, 
+                    color: 'text-warning', 
+                    bgColor: 'bg-warning/10',
+                    label: i18n.language === 'ar' ? 'قيد الانتظار' : 'Pending'
+                  },
+                  accepted: { 
+                    icon: CheckCircle2, 
+                    color: 'text-success', 
+                    bgColor: 'bg-success/10',
+                    label: i18n.language === 'ar' ? 'مقبول' : 'Accepted'
+                  },
+                  rejected: { 
+                    icon: XCircle, 
+                    color: 'text-destructive', 
+                    bgColor: 'bg-destructive/10',
+                    label: i18n.language === 'ar' ? 'مرفوض' : 'Rejected'
+                  },
+                  cancelled: { 
+                    icon: XCircle, 
+                    color: 'text-muted-foreground', 
+                    bgColor: 'bg-muted/10',
+                    label: i18n.language === 'ar' ? 'ملغي' : 'Cancelled'
+                  },
+                };
+                const config = statusConfig[request.status as keyof typeof statusConfig] || statusConfig.pending;
+                const StatusIcon = config.icon;
+                const category = TASK_CATEGORIES_WITH_SUBS[request.category as keyof typeof TASK_CATEGORIES_WITH_SUBS];
+
+                const linkHref = request.status === 'accepted' && request.linkedTaskId 
+                  ? `/task/${request.linkedTaskId}` 
+                  : '/my-direct-requests';
+
+                return (
+                  <motion.div
+                    key={request.id}
+                    variants={itemVariants}
+                    custom={index}
+                  >
+                    <Link href={linkHref}>
+                      <motion.div
+                        whileHover={{ scale: 1.01, y: -2 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="glass rounded-[20px] p-4 cursor-pointer"
+                        data-testid={`card-direct-request-${request.id}`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <Avatar className="w-12 h-12 border-2 border-white/10">
+                            <AvatarImage src={request.tasker?.avatar || undefined} />
+                            <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                              {request.tasker?.name?.charAt(0) || 'T'}
+                            </AvatarFallback>
+                          </Avatar>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <p className="font-bold text-foreground truncate">
+                                {request.tasker?.name || (i18n.language === 'ar' ? 'منفذ' : 'Tasker')}
+                              </p>
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${config.bgColor} ${config.color}`}>
+                                <StatusIcon className="w-3 h-3" />
+                                {config.label}
+                              </span>
+                            </div>
+                            
+                            <p className="text-sm text-muted-foreground truncate mb-2">
+                              {request.title}
+                            </p>
+                            
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              {category && (
+                                <span 
+                                  className="px-2 py-0.5 rounded-full"
+                                  style={{ backgroundColor: `${category.colorHex}20`, color: category.colorHex }}
+                                >
+                                  {i18n.language === 'ar' ? category.nameAr : category.nameEn}
+                                </span>
+                              )}
+                              <span className="font-semibold text-primary">
+                                {request.budget} {i18n.language === 'ar' ? 'ر.س' : 'SAR'}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <ArrowRight className="w-5 h-5 text-muted-foreground flex-shrink-0 rtl:rotate-180" />
+                        </div>
+                      </motion.div>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          </>
         )}
 
         <motion.div 
