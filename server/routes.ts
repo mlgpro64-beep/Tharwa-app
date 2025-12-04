@@ -4,6 +4,7 @@ import { insertUserSchema, insertTaskSchema, insertBidSchema, insertMessageSchem
 import type { User } from "@shared/schema";
 import "express-session";
 import { sendOtpEmail } from "./email";
+import { sendOtpSms, isValidSaudiPhone } from "./sms";
 
 let bcrypt: any;
 try {
@@ -243,6 +244,108 @@ router.post("/api/auth/login-with-otp", async (req, res) => {
     const user = await storage.getUserByEmail(email);
     if (!user) {
       return res.status(400).json({ error: "No account found with this email" });
+    }
+    
+    // Mark OTP as verified
+    await storage.markOtpAsVerified(otpRecord.id);
+    
+    // Create session
+    req.session!.userId = user.id;
+    
+    res.json({ 
+      success: true, 
+      user: sanitizeUser(user),
+      message: "Logged in successfully" 
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Send OTP via SMS (phone)
+router.post("/api/auth/send-phone-otp", async (req, res) => {
+  try {
+    const { phone, type = "login" } = req.body;
+    
+    if (!phone) {
+      return res.status(400).json({ error: "Phone number is required" });
+    }
+    
+    // Validate Saudi phone number
+    if (!isValidSaudiPhone(phone)) {
+      return res.status(400).json({ error: "Please enter a valid Saudi phone number" });
+    }
+    
+    // For login type, verify user exists with this phone
+    if (type === "login") {
+      const existingUser = await storage.getUserByPhone(phone);
+      if (!existingUser) {
+        return res.status(400).json({ error: "No account found with this phone number" });
+      }
+    }
+    
+    // For registration, check phone isn't already registered
+    if (type === "registration") {
+      const existingUser = await storage.getUserByPhone(phone);
+      if (existingUser) {
+        return res.status(400).json({ error: "Phone number already registered" });
+      }
+    }
+    
+    const code = generateOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    
+    // Store OTP with phone as identifier (using email field for compatibility)
+    await storage.createOtpCode({
+      email: phone, // Using email field to store phone for OTP lookup
+      code,
+      type: `phone_${type}`,
+      expiresAt,
+    });
+    
+    // Send SMS via Infobip
+    const smsResult = await sendOtpSms(phone, code, type as any);
+    
+    if (!smsResult.success) {
+      console.warn(`[OTP] SMS sending failed: ${smsResult.error}`);
+      console.log(`[OTP] Phone: ${phone}, Code: ${code}, Type: ${type}`);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: "OTP sent successfully",
+      // Include OTP in dev mode for testing if SMS fails
+      ...(process.env.NODE_ENV !== 'production' && !smsResult.success && { devCode: code })
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Login with phone OTP
+router.post("/api/auth/login-with-phone-otp", async (req, res) => {
+  try {
+    const { phone, otpCode } = req.body;
+    
+    if (!phone || !otpCode) {
+      return res.status(400).json({ error: "Phone and OTP code are required" });
+    }
+    
+    // Verify OTP (phone stored in email field)
+    const otpRecord = await storage.getValidOtpCode(phone, otpCode, "phone_login");
+    
+    if (!otpRecord) {
+      const existingOtp = await storage.getPendingOtpByEmail(phone, "phone_login");
+      if (existingOtp) {
+        await storage.incrementOtpAttempts(existingOtp.id);
+      }
+      return res.status(400).json({ error: "Invalid or expired OTP" });
+    }
+    
+    // Get user by phone
+    const user = await storage.getUserByPhone(phone);
+    if (!user) {
+      return res.status(400).json({ error: "No account found with this phone number" });
     }
     
     // Mark OTP as verified

@@ -21,6 +21,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByPhone(phone: string): Promise<User | undefined>;
   createUser(data: InsertUser): Promise<User>;
   updateUser(id: string, data: Partial<InsertUser> & { balance?: string; completedTasks?: number; rating?: string }): Promise<User>;
   searchTaskers(filters?: { category?: string; verified?: boolean; search?: string }): Promise<User[]>;
@@ -129,6 +130,26 @@ export const storage: IStorage = {
   async getUserByEmail(email: string) {
     const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
     return result[0];
+  },
+  
+  async getUserByPhone(phone: string) {
+    // Normalize phone number for lookup
+    const normalizedPhone = phone.replace(/[\s\-\(\)\.]/g, '');
+    // Try multiple formats: with/without country code, with/without leading zero
+    const phoneVariants = [
+      normalizedPhone,
+      normalizedPhone.replace(/^\+/, ''),
+      normalizedPhone.replace(/^966/, '0'),
+      normalizedPhone.replace(/^\+966/, '0'),
+      `+${normalizedPhone}`,
+      `+966${normalizedPhone.replace(/^0/, '')}`,
+    ];
+    
+    for (const variant of phoneVariants) {
+      const result = await db.select().from(users).where(eq(users.phone, variant)).limit(1);
+      if (result[0]) return result[0];
+    }
+    return undefined;
   },
   
   async createUser(data: InsertUser) {
