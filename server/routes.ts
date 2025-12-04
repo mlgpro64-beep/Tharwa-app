@@ -3,6 +3,7 @@ import { storage } from "./storage";
 import { insertUserSchema, insertTaskSchema, insertBidSchema, insertMessageSchema } from "@shared/schema";
 import type { User } from "@shared/schema";
 import "express-session";
+import { sendOtpEmail } from "./email";
 
 let bcrypt: any;
 try {
@@ -127,7 +128,7 @@ function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Send OTP (for now just console log - will integrate email later)
+// Send OTP via email
 router.post("/api/auth/send-otp", async (req, res) => {
   try {
     const { email, type = "registration" } = req.body;
@@ -144,6 +145,14 @@ router.post("/api/auth/send-otp", async (req, res) => {
       }
     }
     
+    // For login type, verify user exists
+    if (type === "login") {
+      const existingUser = await storage.getUserByEmail(email);
+      if (!existingUser) {
+        return res.status(400).json({ error: "No account found with this email" });
+      }
+    }
+    
     const code = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     
@@ -154,14 +163,19 @@ router.post("/api/auth/send-otp", async (req, res) => {
       expiresAt,
     });
     
-    // Log OTP for testing (in production, would send via email service)
-    console.log(`[OTP] Email: ${email}, Code: ${code}, Type: ${type}`);
+    // Send email via Resend
+    const emailResult = await sendOtpEmail(email, code, type as any);
+    
+    if (!emailResult.success) {
+      console.warn(`[OTP] Email sending failed, falling back to console: ${emailResult.error}`);
+      console.log(`[OTP] Email: ${email}, Code: ${code}, Type: ${type}`);
+    }
     
     res.json({ 
       success: true, 
       message: "OTP sent successfully",
-      // Include OTP in dev mode for testing (remove in production)
-      ...(process.env.NODE_ENV !== 'production' && { devCode: code })
+      // Include OTP in dev mode for testing if email fails
+      ...(process.env.NODE_ENV !== 'production' && !emailResult.success && { devCode: code })
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -199,6 +213,49 @@ router.post("/api/auth/verify-otp", async (req, res) => {
     }
     
     res.json({ success: true, message: "OTP verified successfully" });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Login with OTP (passwordless)
+router.post("/api/auth/login-with-otp", async (req, res) => {
+  try {
+    const { email, otpCode } = req.body;
+    
+    if (!email || !otpCode) {
+      return res.status(400).json({ error: "Email and OTP code are required" });
+    }
+    
+    // Verify OTP
+    const otpRecord = await storage.getValidOtpCode(email, otpCode, "login");
+    
+    if (!otpRecord) {
+      // Check if there's any pending OTP for this email to increment attempts
+      const existingOtp = await storage.getPendingOtpByEmail(email, "login");
+      if (existingOtp) {
+        await storage.incrementOtpAttempts(existingOtp.id);
+      }
+      return res.status(400).json({ error: "Invalid or expired OTP" });
+    }
+    
+    // Get user by email
+    const user = await storage.getUserByEmail(email);
+    if (!user) {
+      return res.status(400).json({ error: "No account found with this email" });
+    }
+    
+    // Mark OTP as verified
+    await storage.markOtpAsVerified(otpRecord.id);
+    
+    // Create session
+    req.session!.userId = user.id;
+    
+    res.json({ 
+      success: true, 
+      user: sanitizeUser(user),
+      message: "Logged in successfully" 
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

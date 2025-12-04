@@ -9,7 +9,7 @@ export const taskStatusEnum = pgEnum("task_status", ["open", "assigned", "in_pro
 export const bidStatusEnum = pgEnum("bid_status", ["pending", "accepted", "rejected"]);
 export const transactionTypeEnum = pgEnum("transaction_type", ["credit", "debit"]);
 export const transactionStatusEnum = pgEnum("transaction_status", ["completed", "pending"]);
-export const notificationTypeEnum = pgEnum("notification_type", ["offer", "system", "chat", "task_update", "new_task", "bid_received", "task_completed", "payment_request", "direct_request", "direct_request_accepted", "direct_request_rejected"]);
+export const notificationTypeEnum = pgEnum("notification_type", ["offer", "system", "chat", "task_update", "new_task", "bid_received", "task_completed", "payment_request", "direct_request", "direct_request_accepted", "direct_request_rejected", "review"]);
 export const directRequestStatusEnum = pgEnum("direct_request_status", ["pending", "accepted", "rejected", "cancelled"]);
 export const professionalCategoryEnum = pgEnum("professional_category", [
   "beauty_fashion", 
