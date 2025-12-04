@@ -2,15 +2,16 @@ import { db } from "./db";
 import { 
   users, tasks, bids, transactions, messages, notifications, savedTasks,
   professionalRoles, userProfessionalRoles, taskerAvailability, userPhotos,
-  directServiceRequests,
+  directServiceRequests, otpCodes, reviews,
   insertUserSchema, insertTaskSchema, insertBidSchema, insertTransactionSchema,
   insertMessageSchema, insertNotificationSchema
 } from "@shared/schema";
-import { eq, and, or, desc, like, sql, asc } from "drizzle-orm";
+import { eq, and, or, desc, like, sql, asc, lt, gt, avg, count } from "drizzle-orm";
 import type { 
   User, Task, Bid, Transaction, Message, Notification, SavedTask,
   ProfessionalRole, UserProfessionalRole, TaskerAvailability, UserPhoto,
-  DirectServiceRequest, InsertDirectServiceRequest,
+  DirectServiceRequest, InsertDirectServiceRequest, OtpCode, InsertOtpCode,
+  Review, InsertReview,
   InsertUser, InsertTask, InsertBid, InsertTransaction, InsertMessage, InsertNotification,
   InsertProfessionalRole, InsertUserProfessionalRole, InsertTaskerAvailability, InsertUserPhoto
 } from "@shared/schema";
@@ -93,6 +94,24 @@ export interface IStorage {
   getDirectServiceRequestsForTasker(taskerId: string): Promise<DirectServiceRequest[]>;
   createDirectServiceRequest(data: InsertDirectServiceRequest): Promise<DirectServiceRequest>;
   updateDirectServiceRequest(id: string, data: Partial<DirectServiceRequest>): Promise<DirectServiceRequest>;
+  
+  // OTP Codes
+  createOtpCode(data: InsertOtpCode): Promise<OtpCode>;
+  getValidOtpCode(email: string, code: string, type: string): Promise<OtpCode | undefined>;
+  getPendingOtpByEmail(email: string, type: string): Promise<OtpCode | undefined>;
+  markOtpAsVerified(id: string): Promise<OtpCode>;
+  incrementOtpAttempts(id: string): Promise<OtpCode>;
+  deleteExpiredOtpCodes(): Promise<void>;
+  
+  // Admin operations
+  getAllUsers(): Promise<User[]>;
+  getPendingVerifications(): Promise<User[]>;
+  
+  // Reviews
+  createReview(data: InsertReview): Promise<Review>;
+  getReviewsForUser(userId: string): Promise<Review[]>;
+  getReviewForTask(taskId: string): Promise<Review | undefined>;
+  calculateUserRating(userId: string): Promise<{ rating: string; count: number }>;
 }
 
 export const storage: IStorage = {
@@ -492,5 +511,109 @@ export const storage: IStorage = {
   async updateDirectServiceRequest(id: string, data: Partial<DirectServiceRequest>) {
     const result = await db.update(directServiceRequests).set(data).where(eq(directServiceRequests.id, id)).returning();
     return result[0];
+  },
+  
+  // OTP Codes
+  async createOtpCode(data: InsertOtpCode) {
+    // Delete any existing OTP codes for this email and type
+    await db.delete(otpCodes).where(
+      and(eq(otpCodes.email, data.email), sql`${otpCodes.type} = ${data.type}`)
+    );
+    const result = await db.insert(otpCodes).values(data).returning();
+    return result[0];
+  },
+  
+  async getValidOtpCode(email: string, code: string, type: string) {
+    const now = new Date();
+    const result = await db.select().from(otpCodes).where(
+      and(
+        eq(otpCodes.email, email),
+        eq(otpCodes.code, code),
+        sql`${otpCodes.type} = ${type}`,
+        eq(otpCodes.verified, false),
+        gt(otpCodes.expiresAt, now),
+        lt(otpCodes.attempts, 5) // Max 5 attempts
+      )
+    ).limit(1);
+    return result[0];
+  },
+  
+  async getPendingOtpByEmail(email: string, type: string) {
+    const now = new Date();
+    const result = await db.select().from(otpCodes).where(
+      and(
+        eq(otpCodes.email, email),
+        sql`${otpCodes.type} = ${type}`,
+        eq(otpCodes.verified, false),
+        gt(otpCodes.expiresAt, now),
+        lt(otpCodes.attempts, 5)
+      )
+    ).limit(1);
+    return result[0];
+  },
+  
+  async markOtpAsVerified(id: string) {
+    const result = await db.update(otpCodes).set({ verified: true }).where(eq(otpCodes.id, id)).returning();
+    return result[0];
+  },
+  
+  async incrementOtpAttempts(id: string) {
+    const result = await db.update(otpCodes).set({ 
+      attempts: sql`${otpCodes.attempts} + 1` 
+    }).where(eq(otpCodes.id, id)).returning();
+    return result[0];
+  },
+  
+  async deleteExpiredOtpCodes() {
+    const now = new Date();
+    await db.delete(otpCodes).where(lt(otpCodes.expiresAt, now));
+  },
+  
+  // Admin operations
+  async getAllUsers() {
+    return db.select().from(users).orderBy(desc(users.createdAt));
+  },
+  
+  async getPendingVerifications() {
+    return db.select().from(users).where(
+      and(
+        eq(users.role, 'tasker'),
+        eq(users.taskerType, 'specialized'),
+        eq(users.verificationStatus, 'pending')
+      )
+    ).orderBy(desc(users.createdAt));
+  },
+  
+  // Reviews
+  async createReview(data: InsertReview) {
+    const result = await db.insert(reviews).values(data).returning();
+    return result[0];
+  },
+  
+  async getReviewsForUser(userId: string) {
+    return db.select().from(reviews)
+      .where(eq(reviews.revieweeId, userId))
+      .orderBy(desc(reviews.createdAt));
+  },
+  
+  async getReviewForTask(taskId: string) {
+    const result = await db.select().from(reviews)
+      .where(eq(reviews.taskId, taskId))
+      .limit(1);
+    return result[0];
+  },
+  
+  async calculateUserRating(userId: string) {
+    const result = await db.select({
+      avgRating: sql<string>`COALESCE(AVG(${reviews.rating})::numeric(3,2), 0)`,
+      totalCount: sql<number>`COUNT(*)::int`
+    })
+      .from(reviews)
+      .where(eq(reviews.revieweeId, userId));
+    
+    return {
+      rating: result[0]?.avgRating || "0.00",
+      count: result[0]?.totalCount || 0
+    };
   },
 };

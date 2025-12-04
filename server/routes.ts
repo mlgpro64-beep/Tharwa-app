@@ -122,6 +122,153 @@ router.post("/api/auth/logout", (req, res) => {
   });
 });
 
+// Generate a 6-digit OTP
+function generateOTP(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Send OTP (for now just console log - will integrate email later)
+router.post("/api/auth/send-otp", async (req, res) => {
+  try {
+    const { email, type = "registration" } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+    
+    // Check if email already exists for registration
+    if (type === "registration") {
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "Email already registered" });
+      }
+    }
+    
+    const code = generateOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    
+    await storage.createOtpCode({
+      email,
+      code,
+      type,
+      expiresAt,
+    });
+    
+    // Log OTP for testing (in production, would send via email service)
+    console.log(`[OTP] Email: ${email}, Code: ${code}, Type: ${type}`);
+    
+    res.json({ 
+      success: true, 
+      message: "OTP sent successfully",
+      // Include OTP in dev mode for testing (remove in production)
+      ...(process.env.NODE_ENV !== 'production' && { devCode: code })
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Verify OTP
+router.post("/api/auth/verify-otp", async (req, res) => {
+  try {
+    const { email, code, type = "registration" } = req.body;
+    
+    if (!email || !code) {
+      return res.status(400).json({ error: "Email and code are required" });
+    }
+    
+    const otpRecord = await storage.getValidOtpCode(email, code, type);
+    
+    if (!otpRecord) {
+      // Check if there's any pending OTP for this email to increment attempts
+      const existingOtp = await storage.getPendingOtpByEmail(email, type);
+      if (existingOtp) {
+        await storage.incrementOtpAttempts(existingOtp.id);
+      }
+      return res.status(400).json({ error: "Invalid or expired OTP" });
+    }
+    
+    await storage.markOtpAsVerified(otpRecord.id);
+    
+    // If verifying email for existing user, mark email as verified
+    if (type === "email_verification") {
+      const user = await storage.getUserByEmail(email);
+      if (user) {
+        await storage.updateUser(user.id, { emailVerified: true } as any);
+      }
+    }
+    
+    res.json({ success: true, message: "OTP verified successfully" });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Register with OTP verification
+router.post("/api/auth/register-with-otp", async (req, res) => {
+  try {
+    const { username, email, password, name, role, taskerType, certificateUrl, otpCode } = req.body;
+    
+    // Verify OTP first
+    const otpRecord = await storage.getValidOtpCode(email, otpCode, "registration");
+    if (!otpRecord || !otpRecord.verified) {
+      // Try to verify the OTP if not already verified
+      if (otpRecord && !otpRecord.verified) {
+        const validOtp = await storage.getValidOtpCode(email, otpCode, "registration");
+        if (!validOtp) {
+          return res.status(400).json({ error: "Invalid or expired OTP" });
+        }
+        await storage.markOtpAsVerified(validOtp.id);
+      } else if (!otpRecord) {
+        return res.status(400).json({ error: "Please verify your email first" });
+      }
+    }
+    
+    const existingUser = await storage.getUserByUsername(username);
+    if (existingUser) {
+      return res.status(400).json({ error: "Username already taken" });
+    }
+    
+    const existingEmail = await storage.getUserByEmail(email);
+    if (existingEmail) {
+      return res.status(400).json({ error: "Email already registered" });
+    }
+    
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const userData: any = {
+      username,
+      email,
+      password: hashedPassword,
+      name,
+      role: role || "client",
+      emailVerified: true, // Email verified through OTP
+    };
+    
+    if (role === 'tasker') {
+      const validTaskerType = taskerType === 'specialized' ? 'specialized' : 'general';
+      userData.taskerType = validTaskerType;
+      userData.verificationStatus = validTaskerType === 'specialized' ? 'pending' : 'approved';
+      
+      if (validTaskerType === 'specialized' && certificateUrl) {
+        if (typeof certificateUrl === 'string' && certificateUrl.startsWith('data:image/')) {
+          const base64Length = certificateUrl.length * 0.75;
+          const maxSize = 5 * 1024 * 1024;
+          if (base64Length <= maxSize) {
+            userData.certificateUrl = certificateUrl;
+          }
+        }
+      }
+    }
+    
+    const user = await storage.createUser(userData);
+    
+    req.session!.userId = user.id;
+    res.json({ user: sanitizeUser(user) });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.get("/api/users/me", (req, res) => {
   if (!req.user) {
     return res.status(401).json({ error: "Not authenticated" });
@@ -1327,6 +1474,219 @@ router.post("/api/direct-requests/:id/cancel", async (req, res) => {
     });
     
     res.json(updatedRequest);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============= ADMIN ROUTES =============
+
+// Middleware to check if user is admin
+const requireAdmin = async (req: Request, res: Response, next: Function) => {
+  if (!req.user?.isAdmin) {
+    return res.status(403).json({ error: "Admin access required" });
+  }
+  next();
+};
+
+// Get all users (admin only)
+router.get("/api/admin/users", requireAdmin, async (req, res) => {
+  try {
+    const users = await storage.getAllUsers();
+    res.json(users.map(u => sanitizeUser(u)));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get pending certificate verifications (admin only)
+router.get("/api/admin/pending-verifications", requireAdmin, async (req, res) => {
+  try {
+    const pending = await storage.getPendingVerifications();
+    res.json(pending.map(u => sanitizeUser(u)));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Approve tasker verification (admin only)
+router.post("/api/admin/users/:id/approve", requireAdmin, async (req, res) => {
+  try {
+    const user = await storage.getUser(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    
+    const updated = await storage.updateUser(req.params.id, {
+      verificationStatus: 'approved',
+    } as any);
+    
+    // Notify tasker
+    await storage.createNotification({
+      userId: user.id,
+      type: 'system',
+      title: 'تم اعتماد حسابك',
+      message: 'تهانينا! تم التحقق من شهادتك واعتماد حسابك كمنفذ متخصص',
+      icon: 'badge-check',
+      color: 'success',
+      actionUrl: '/profile',
+    });
+    
+    res.json(sanitizeUser(updated));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Reject tasker verification (admin only)
+router.post("/api/admin/users/:id/reject", requireAdmin, async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const user = await storage.getUser(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    
+    const updated = await storage.updateUser(req.params.id, {
+      verificationStatus: 'rejected',
+    } as any);
+    
+    // Notify tasker
+    await storage.createNotification({
+      userId: user.id,
+      type: 'system',
+      title: 'تم رفض طلب التحقق',
+      message: reason || 'للأسف، لم يتم قبول الشهادة المقدمة. يرجى التواصل مع الدعم لمزيد من المعلومات',
+      icon: 'alert-circle',
+      color: 'error',
+      actionUrl: '/verify',
+    });
+    
+    res.json(sanitizeUser(updated));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get admin dashboard stats
+router.get("/api/admin/stats", requireAdmin, async (req, res) => {
+  try {
+    const allUsers = await storage.getAllUsers();
+    const allTasks = await storage.getTasks({});
+    const pendingVerifications = await storage.getPendingVerifications();
+    
+    const stats = {
+      totalUsers: allUsers.length,
+      totalClients: allUsers.filter(u => u.role === 'client').length,
+      totalTaskers: allUsers.filter(u => u.role === 'tasker').length,
+      verifiedTaskers: allUsers.filter(u => u.role === 'tasker' && u.verificationStatus === 'approved').length,
+      pendingVerifications: pendingVerifications.length,
+      totalTasks: allTasks.length,
+      openTasks: allTasks.filter(t => t.status === 'open').length,
+      completedTasks: allTasks.filter(t => t.status === 'completed').length,
+      assignedTasks: allTasks.filter(t => t.status === 'assigned' || t.status === 'in_progress').length,
+    };
+    
+    res.json(stats);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update user (admin only)
+router.patch("/api/admin/users/:id", requireAdmin, async (req, res) => {
+  try {
+    const user = await storage.getUser(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    
+    const updated = await storage.updateUser(req.params.id, req.body);
+    res.json(sanitizeUser(updated));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============= REVIEWS ROUTES =============
+
+// Create a review for a completed task
+router.post("/api/reviews", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const { taskId, rating, comment } = req.body;
+    
+    if (!taskId || !rating) {
+      return res.status(400).json({ error: "Task ID and rating are required" });
+    }
+    
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({ error: "Rating must be between 1 and 5" });
+    }
+    
+    const task = await storage.getTask(taskId);
+    if (!task) return res.status(404).json({ error: "Task not found" });
+    
+    // Only client can review the tasker
+    if (task.clientId !== req.userId) {
+      return res.status(403).json({ error: "Only the client can review the tasker" });
+    }
+    
+    // Task must be completed
+    if (task.status !== 'completed') {
+      return res.status(400).json({ error: "Task must be completed before reviewing" });
+    }
+    
+    if (!task.taskerId) {
+      return res.status(400).json({ error: "Task has no assigned tasker" });
+    }
+    
+    // Check if review already exists
+    const existingReview = await storage.getReviewForTask(taskId);
+    if (existingReview) {
+      return res.status(400).json({ error: "Review already exists for this task" });
+    }
+    
+    const review = await storage.createReview({
+      taskId,
+      reviewerId: req.userId,
+      revieweeId: task.taskerId,
+      rating,
+      comment: comment || null,
+    });
+    
+    // Update tasker's average rating
+    const { rating: avgRating, count } = await storage.calculateUserRating(task.taskerId);
+    await storage.updateUser(task.taskerId, { rating: avgRating });
+    
+    // Notify tasker
+    const client = await storage.getUser(req.userId);
+    await storage.createNotification({
+      userId: task.taskerId,
+      type: 'review',
+      title: 'تقييم جديد',
+      message: `${client?.name || 'العميل'} قيّمك ${rating} نجوم`,
+      icon: 'star',
+      color: 'warning',
+      actionUrl: `/profile`,
+    });
+    
+    res.json({ review, newRating: avgRating, totalReviews: count });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get reviews for a user
+router.get("/api/users/:id/reviews", async (req, res) => {
+  try {
+    const reviews = await storage.getReviewsForUser(req.params.id);
+    res.json(reviews);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Check if a task has been reviewed
+router.get("/api/tasks/:id/review", async (req, res) => {
+  try {
+    const review = await storage.getReviewForTask(req.params.id);
+    res.json({ hasReview: !!review, review });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

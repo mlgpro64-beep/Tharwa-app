@@ -30,7 +30,7 @@ interface SettingGroup {
 const SettingsScreen = memo(function SettingsScreen() {
   const [, setLocation] = useLocation();
   const { t, i18n } = useTranslation();
-  const { theme, toggleTheme, userRole, switchRole, logout } = useApp();
+  const { theme, toggleTheme, userRole, switchRole, logout, user } = useApp();
   const [showLanguageSheet, setShowLanguageSheet] = useState(false);
   
   const isArabic = i18n.language === 'ar';
@@ -71,6 +71,12 @@ const SettingsScreen = memo(function SettingsScreen() {
     { icon: FileText, label: t('settings.terms'), path: '/terms' },
     { icon: Shield, label: t('settings.privacy_policy'), path: '/privacy' },
   ], [t]);
+
+  const adminItems: SettingItem[] = useMemo(() => 
+    user?.isAdmin ? [
+      { icon: Shield, label: isArabic ? 'لوحة الأدمن' : 'Admin Panel', path: '/admin', iconColor: 'text-amber-500' },
+    ] : []
+  , [user?.isAdmin, isArabic]);
 
   const renderSettingItem = (item: SettingItem, idx: number, total: number) => {
     const Icon = item.icon;
@@ -274,6 +280,21 @@ const SettingsScreen = memo(function SettingsScreen() {
             </div>
             <ChevronRight className="w-5 h-5 text-primary rtl:rotate-180" />
           </motion.button>
+
+          {adminItems.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.28 }}
+            >
+              <h2 className="text-xs font-bold text-amber-500 uppercase tracking-widest mb-3 px-1">
+                {isArabic ? 'الإدارة' : 'Administration'}
+              </h2>
+              <div className="glass rounded-3xl overflow-hidden border border-amber-500/30">
+                {adminItems.map((item, idx) => renderSettingItem(item, idx, adminItems.length))}
+              </div>
+            </motion.div>
+          )}
 
           <motion.div 
             initial={{ opacity: 0, y: 20 }}

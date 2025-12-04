@@ -29,6 +29,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified").notNull().default(false),
   phone: text("phone"),
   avatar: text("avatar"),
   role: userRoleEnum("role").notNull().default("client"),
@@ -318,6 +319,46 @@ export const directServiceRequestsRelations = relations(directServiceRequests, (
   }),
 }));
 
+// OTP verification table
+export const otpCodes = pgTable("otp_codes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  code: text("code").notNull(),
+  type: text("type").notNull().default("registration"), // registration, password_reset, email_change
+  expiresAt: timestamp("expires_at").notNull(),
+  verified: boolean("verified").notNull().default(false),
+  attempts: integer("attempts").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const otpCodesRelations = relations(otpCodes, ({ }) => ({}));
+
+// Reviews table for task ratings
+export const reviews = pgTable("reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  taskId: varchar("task_id").notNull().references(() => tasks.id),
+  reviewerId: varchar("reviewer_id").notNull().references(() => users.id), // Client who leaves review
+  revieweeId: varchar("reviewee_id").notNull().references(() => users.id), // Tasker receiving review
+  rating: integer("rating").notNull(), // 1-5 stars
+  comment: text("comment"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const reviewsRelations = relations(reviews, ({ one }) => ({
+  task: one(tasks, {
+    fields: [reviews.taskId],
+    references: [tasks.id],
+  }),
+  reviewer: one(users, {
+    fields: [reviews.reviewerId],
+    references: [users.id],
+  }),
+  reviewee: one(users, {
+    fields: [reviews.revieweeId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -390,6 +431,18 @@ export const insertDirectServiceRequestSchema = createInsertSchema(directService
   linkedTaskId: true,
 });
 
+export const insertOtpCodeSchema = createInsertSchema(otpCodes).omit({
+  id: true,
+  createdAt: true,
+  verified: true,
+  attempts: true,
+});
+
+export const insertReviewSchema = createInsertSchema(reviews).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -426,6 +479,12 @@ export type UserPhoto = typeof userPhotos.$inferSelect;
 
 export type InsertDirectServiceRequest = z.infer<typeof insertDirectServiceRequestSchema>;
 export type DirectServiceRequest = typeof directServiceRequests.$inferSelect;
+
+export type InsertOtpCode = z.infer<typeof insertOtpCodeSchema>;
+export type OtpCode = typeof otpCodes.$inferSelect;
+
+export type InsertReview = z.infer<typeof insertReviewSchema>;
+export type Review = typeof reviews.$inferSelect;
 
 // Extended types for frontend
 export type TaskWithDetails = Task & {

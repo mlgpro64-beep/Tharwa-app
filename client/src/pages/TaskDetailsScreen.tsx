@@ -46,6 +46,9 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
   
   const [showBidModal, setShowBidModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [selectedRating, setSelectedRating] = useState(0);
+  const [ratingComment, setRatingComment] = useState('');
   const [bidAmount, setBidAmount] = useState('');
   const [bidMessage, setBidMessage] = useState('');
   
@@ -135,6 +138,36 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
     },
     onError: (error: Error) => {
       toast({ title: isArabic ? 'فشل الإرسال' : 'Request failed', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Check if task has been reviewed
+  const { data: reviewData } = useQuery<{ hasReview: boolean; review: any }>({
+    queryKey: ['/api/tasks', id, 'review'],
+    enabled: !!id,
+  });
+
+  // Submit review mutation
+  const submitReviewMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('POST', '/api/reviews', {
+        taskId: id,
+        rating: selectedRating,
+        comment: ratingComment || null,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks', id, 'review'] });
+      setShowRatingModal(false);
+      setSelectedRating(0);
+      setRatingComment('');
+      toast({ 
+        title: isArabic ? 'شكراً لتقييمك' : 'Thank you for rating!', 
+        description: isArabic ? 'تم إرسال تقييمك بنجاح' : 'Your review has been submitted'
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: isArabic ? 'فشل الإرسال' : 'Failed to submit', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -549,6 +582,28 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
             </div>
           </motion.div>
         )}
+
+        {/* Rate Tasker Button for completed tasks */}
+        {isClient && task.status === 'completed' && task.clientId === user?.id && !reviewData?.hasReview && (
+          <motion.div 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed bottom-0 left-0 right-0 p-5 glass-premium border-t-0 rounded-t-[28px] pb-safe"
+          >
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowRatingModal(true)}
+              className="w-full h-14 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-2xl font-bold text-base shadow-xl shadow-amber-500/30 flex items-center justify-center gap-2.5"
+              data-testid="button-rate-tasker"
+            >
+              <Star className="w-5 h-5" />
+              {isArabic ? 'قيّم المنفذ' : 'Rate Tasker'}
+            </motion.button>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       <Modal
@@ -663,6 +718,108 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
           <p className="font-bold text-foreground" data-testid="text-delete-task-title">
             {task.title}
           </p>
+        </div>
+      </Modal>
+
+      {/* Rating Modal */}
+      <Modal
+        isOpen={showRatingModal}
+        onClose={() => setShowRatingModal(false)}
+        title={isArabic ? 'قيّم المنفذ' : 'Rate Tasker'}
+        action={
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => submitReviewMutation.mutate()}
+            disabled={selectedRating === 0 || submitReviewMutation.isPending}
+            className="w-full h-14 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-2xl font-bold shadow-xl shadow-amber-500/30 disabled:opacity-50 flex items-center justify-center gap-2.5"
+            data-testid="button-submit-rating"
+          >
+            {submitReviewMutation.isPending ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                {isArabic ? 'جاري الإرسال...' : 'Submitting...'}
+              </>
+            ) : (
+              <>
+                <Star className="w-5 h-5" />
+                {isArabic ? 'إرسال التقييم' : 'Submit Rating'}
+              </>
+            )}
+          </motion.button>
+        }
+      >
+        <div className="space-y-6">
+          {/* Tasker info */}
+          {task.tasker && (
+            <div className="flex items-center gap-3 p-4 rounded-2xl bg-muted/50">
+              <Avatar className="w-12 h-12">
+                <AvatarImage src={task.tasker.avatar || undefined} />
+                <AvatarFallback className="bg-primary/15 text-primary font-bold">
+                  {task.tasker.name?.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-bold">{task.tasker.name}</p>
+                <p className="text-sm text-muted-foreground">@{task.tasker.username}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Star Rating */}
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground mb-3">
+              {isArabic ? 'كيف كانت تجربتك؟' : 'How was your experience?'}
+            </p>
+            <div className="flex justify-center gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <motion.button
+                  key={star}
+                  whileHover={{ scale: 1.15 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setSelectedRating(star)}
+                  className="p-1"
+                  data-testid={`button-star-${star}`}
+                >
+                  <Star 
+                    className={cn(
+                      "w-10 h-10 transition-colors",
+                      selectedRating >= star 
+                        ? "fill-amber-500 text-amber-500" 
+                        : "text-muted-foreground"
+                    )} 
+                  />
+                </motion.button>
+              ))}
+            </div>
+            {selectedRating > 0 && (
+              <motion.p 
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-sm font-medium text-amber-500 mt-2"
+              >
+                {selectedRating === 5 ? (isArabic ? 'ممتاز!' : 'Excellent!') :
+                 selectedRating === 4 ? (isArabic ? 'جيد جداً' : 'Very Good') :
+                 selectedRating === 3 ? (isArabic ? 'جيد' : 'Good') :
+                 selectedRating === 2 ? (isArabic ? 'مقبول' : 'Fair') :
+                 (isArabic ? 'ضعيف' : 'Poor')}
+              </motion.p>
+            )}
+          </div>
+
+          {/* Comment */}
+          <div>
+            <label className="text-sm text-muted-foreground mb-2 block">
+              {isArabic ? 'تعليق (اختياري)' : 'Comment (optional)'}
+            </label>
+            <textarea
+              value={ratingComment}
+              onChange={(e) => setRatingComment(e.target.value)}
+              placeholder={isArabic ? 'شارك تجربتك مع هذا المنفذ...' : 'Share your experience with this tasker...'}
+              className="w-full h-24 p-4 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none resize-none text-base"
+              data-testid="input-rating-comment"
+            />
+          </div>
         </div>
       </Modal>
     </div>
