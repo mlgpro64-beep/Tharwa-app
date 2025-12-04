@@ -24,7 +24,12 @@ PostgreSQL, accessed via Neon serverless driver, serves as the primary database.
 
 ### Authentication & Authorization
 
-Authentication is username/password-based with `bcrypt` hashing and session management using HTTP-only cookies. Authorization is role-based (client/tasker), with dynamic role switching and middleware for access control. Security measures include strong password hashing, environment variable-configured session secrets, and secure cookie settings.
+Authentication supports multiple methods:
+-   **Password-based**: Traditional username/password with `bcrypt` hashing
+-   **Email OTP**: Passwordless login via email verification codes (Resend integration)
+-   **Phone OTP**: Passwordless login via SMS codes (Infobip integration for Saudi numbers)
+
+Session management uses HTTP-only cookies with `express-session`. Authorization is role-based (client/tasker/admin), with dynamic role switching and middleware for access control. Security measures include strong password hashing, OTP rate limiting, environment variable-configured session secrets, and secure cookie settings.
 
 ### UI/UX Decisions
 
