@@ -114,7 +114,7 @@ router.post("/api/auth/register", async (req, res) => {
     if (role === 'tasker') {
       const validTaskerType = taskerType === 'specialized' ? 'specialized' : 'general';
       userData.taskerType = validTaskerType;
-      userData.verificationStatus = validTaskerType === 'specialized' ? 'pending' : 'approved';
+      userData.verificationStatus = 'pending';
       
       if (validTaskerType === 'specialized' && certificateUrl) {
         if (typeof certificateUrl === 'string' && certificateUrl.startsWith('data:image/')) {
@@ -461,7 +461,7 @@ router.post("/api/auth/register-with-otp", async (req, res) => {
     if (role === 'tasker') {
       const validTaskerType = taskerType === 'specialized' ? 'specialized' : 'general';
       userData.taskerType = validTaskerType;
-      userData.verificationStatus = validTaskerType === 'specialized' ? 'pending' : 'approved';
+      userData.verificationStatus = 'pending';
       
       if (validTaskerType === 'specialized' && certificateUrl) {
         if (typeof certificateUrl === 'string' && certificateUrl.startsWith('data:image/')) {
@@ -499,6 +499,60 @@ router.patch("/api/users/me", async (req, res) => {
     
     const updated = await storage.updateUser(req.userId, req.body);
     res.json(sanitizeUser(updated));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Apply to become a tasker (for existing clients)
+router.post("/api/users/apply-tasker", async (req, res) => {
+  try {
+    if (!req.userId || !req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    const { taskerType, certificateUrl } = req.body;
+    
+    if (!taskerType || !['general', 'specialized'].includes(taskerType)) {
+      return res.status(400).json({ error: "Invalid tasker type" });
+    }
+    
+    // For specialized taskers, require certificate
+    if (taskerType === 'specialized' && !certificateUrl) {
+      return res.status(400).json({ error: "Certificate required for specialized taskers" });
+    }
+    
+    const updateData: any = {
+      taskerType,
+      verificationStatus: 'pending',
+    };
+    
+    if (certificateUrl) {
+      if (typeof certificateUrl === 'string' && certificateUrl.startsWith('data:image/')) {
+        const base64Length = certificateUrl.length * 0.75;
+        const maxSize = 5 * 1024 * 1024;
+        if (base64Length <= maxSize) {
+          updateData.certificateUrl = certificateUrl;
+        }
+      }
+    }
+    
+    const updated = await storage.updateUser(req.userId, updateData);
+    
+    // Create notification - all taskers are pending until admin approval
+    await storage.createNotification({
+      userId: req.userId,
+      type: 'system',
+      title: 'تم استلام طلبك',
+      message: taskerType === 'specialized' 
+        ? 'تم استلام طلبك للانضمام كمنفذ متخصص وسيتم مراجعته قريبًا'
+        : 'تم استلام طلبك للانضمام كمنفذ وسيتم مراجعته قريبًا',
+      icon: 'clock',
+      color: 'warning',
+      actionUrl: '/settings',
+    });
+    
+    res.json({ user: sanitizeUser(updated) });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

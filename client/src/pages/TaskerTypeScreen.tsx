@@ -1,9 +1,13 @@
-import { useState, memo, useCallback } from 'react';
+import { useState, memo, useCallback, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { useMutation } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Briefcase, Award, Check, ChevronLeft, Zap, Clock, FileCheck, Shield } from 'lucide-react';
+import { useApp } from '@/context/AppContext';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { ArrowLeft, Briefcase, Award, Check, ChevronLeft, Zap, Clock, FileCheck, Shield, Upload, Loader2, X } from 'lucide-react';
 
 type TaskerType = 'general' | 'specialized';
 
@@ -174,18 +178,95 @@ const TaskerTypeCard = memo(function TaskerTypeCard({
 
 const TaskerTypeScreen = memo(function TaskerTypeScreen() {
   const [, setLocation] = useLocation();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { user, setUser, isAuthenticated } = useApp();
+  const { toast } = useToast();
+  const isArabic = i18n.language === 'ar';
   const [selectedType, setSelectedType] = useState<TaskerType | null>(null);
+  const [showCertificateUpload, setShowCertificateUpload] = useState(false);
+  const [certificateImage, setCertificateImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const applyTaskerMutation = useMutation({
+    mutationFn: async (data: { taskerType: TaskerType; certificateUrl?: string }) => {
+      const response = await apiRequest('POST', '/api/users/apply-tasker', data);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setUser(data.user);
+      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
+      
+      toast({
+        title: isArabic ? 'تم استلام طلبك' : 'Application Received',
+        description: isArabic ? 'سيتم مراجعة طلبك وإشعارك بالنتيجة' : 'Your application is under review',
+      });
+      setLocation('/settings');
+    },
+    onError: (error: Error) => {
+      toast({
+        title: isArabic ? 'حدث خطأ' : 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: isArabic ? 'الملف كبير جداً' : 'File too large',
+        description: isArabic ? 'يجب أن يكون حجم الملف أقل من 5 ميجابايت' : 'File must be less than 5MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCertificateImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  }, [toast, isArabic]);
 
   const handleContinue = useCallback(() => {
-    if (selectedType) {
+    if (!selectedType) return;
+
+    if (isAuthenticated && user) {
+      if (selectedType === 'specialized') {
+        if (!showCertificateUpload) {
+          setShowCertificateUpload(true);
+          return;
+        }
+        if (!certificateImage) {
+          toast({
+            title: isArabic ? 'مطلوب شهادة' : 'Certificate Required',
+            description: isArabic ? 'يرجى رفع شهادتك المهنية' : 'Please upload your professional certificate',
+            variant: 'destructive',
+          });
+          return;
+        }
+        applyTaskerMutation.mutate({ taskerType: selectedType, certificateUrl: certificateImage });
+      } else {
+        applyTaskerMutation.mutate({ taskerType: selectedType });
+      }
+    } else {
       setLocation(`/register?taskerType=${selectedType}`);
     }
-  }, [selectedType, setLocation]);
+  }, [selectedType, isAuthenticated, user, showCertificateUpload, certificateImage, setLocation, applyTaskerMutation, toast, isArabic]);
 
   const handleBack = useCallback(() => {
-    setLocation('/role');
-  }, [setLocation]);
+    if (showCertificateUpload) {
+      setShowCertificateUpload(false);
+      setCertificateImage(null);
+    } else if (isAuthenticated) {
+      setLocation('/settings');
+    } else {
+      setLocation('/role');
+    }
+  }, [showCertificateUpload, isAuthenticated, setLocation]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-primary/5 pt-safe">
@@ -223,41 +304,123 @@ const TaskerTypeScreen = memo(function TaskerTypeScreen() {
       </motion.div>
 
       <div className="flex-1 flex flex-col px-6 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">
-            {t('taskerType.title')}
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            {t('taskerType.subtitle')}
-          </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="space-y-4 mt-8 flex-1"
-        >
-          {taskerTypes.map((option, index) => (
+        <AnimatePresence mode="wait">
+          {!showCertificateUpload ? (
             <motion.div
-              key={option.id}
+              key="type-selection"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 + index * 0.1 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="flex-1 flex flex-col"
             >
-              <TaskerTypeCard
-                option={option}
-                isSelected={selectedType === option.id}
-                onSelect={() => setSelectedType(option.id)}
-                t={t}
-              />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">
+                  {isAuthenticated 
+                    ? (isArabic ? 'انضم كمنفذ' : 'Join as Tasker')
+                    : t('taskerType.title')
+                  }
+                </h1>
+                <p className="text-muted-foreground text-lg">
+                  {t('taskerType.subtitle')}
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="space-y-4 mt-8 flex-1"
+              >
+                {taskerTypes.map((option, index) => (
+                  <motion.div
+                    key={option.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + index * 0.1 }}
+                  >
+                    <TaskerTypeCard
+                      option={option}
+                      isSelected={selectedType === option.id}
+                      onSelect={() => setSelectedType(option.id)}
+                      t={t}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
             </motion.div>
-          ))}
-        </motion.div>
+          ) : (
+            <motion.div
+              key="certificate-upload"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="flex-1 flex flex-col"
+            >
+              <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">
+                {isArabic ? 'رفع الشهادة' : 'Upload Certificate'}
+              </h1>
+              <p className="text-muted-foreground text-lg mb-8">
+                {isArabic ? 'ارفع شهادتك المهنية للتحقق' : 'Upload your professional certificate for verification'}
+              </p>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+
+              {certificateImage ? (
+                <div className="relative glass rounded-3xl p-4 mb-6">
+                  <img
+                    src={certificateImage}
+                    alt="Certificate"
+                    className="w-full h-64 object-cover rounded-2xl"
+                  />
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      setCertificateImage(null);
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}
+                    className="absolute top-6 right-6 w-10 h-10 rounded-full bg-destructive/90 text-white flex items-center justify-center"
+                  >
+                    <X className="w-5 h-5" />
+                  </motion.button>
+                </div>
+              ) : (
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="glass rounded-3xl p-8 flex flex-col items-center justify-center gap-4 mb-6 border-2 border-dashed border-primary/30"
+                >
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Upload className="w-8 h-8 text-primary" />
+                  </div>
+                  <p className="text-muted-foreground text-center">
+                    {isArabic ? 'اضغط لرفع الشهادة' : 'Click to upload certificate'}
+                  </p>
+                </motion.button>
+              )}
+
+              <div className="glass rounded-2xl p-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <FileCheck className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-muted-foreground text-start">
+                    {isArabic 
+                      ? 'سيتم مراجعة شهادتك من قبل فريقنا خلال 24-48 ساعة'
+                      : 'Your certificate will be reviewed by our team within 24-48 hours'}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -269,17 +432,26 @@ const TaskerTypeScreen = memo(function TaskerTypeScreen() {
             whileHover={{ scale: selectedType ? 1.02 : 1 }}
             whileTap={{ scale: selectedType ? 0.98 : 1 }}
             onClick={handleContinue}
-            disabled={!selectedType}
+            disabled={!selectedType || applyTaskerMutation.isPending}
             className={cn(
               "w-full h-14 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-2",
-              selectedType
+              selectedType && !applyTaskerMutation.isPending
                 ? "gradient-primary text-white shadow-xl shadow-primary/25"
                 : "bg-muted text-muted-foreground cursor-not-allowed"
             )}
             data-testid="button-continue"
           >
-            {t('common.next')}
-            <ChevronLeft className="w-5 h-5 rtl:rotate-180" />
+            {applyTaskerMutation.isPending ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                {showCertificateUpload 
+                  ? (isArabic ? 'إرسال الطلب' : 'Submit Application')
+                  : t('common.next')
+                }
+                <ChevronLeft className="w-5 h-5 rtl:rotate-180" />
+              </>
+            )}
           </motion.button>
         </motion.div>
       </div>

@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { 
   ArrowLeft, User, Lock, Bell, Moon, Sun, ArrowLeftRight, 
   HelpCircle, FileText, Shield, LogOut, ChevronRight, Languages,
-  BadgeCheck, Check
+  BadgeCheck, Check, Briefcase
 } from 'lucide-react';
 
 interface SettingItem {
@@ -255,31 +255,86 @@ const SettingsScreen = memo(function SettingsScreen() {
             </div>
           </motion.div>
 
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleSwitchRole}
-            className="w-full p-4 bg-primary/10 border-2 border-primary/30 rounded-2xl flex items-center justify-between transition-all hover:bg-primary/15"
-            data-testid="button-switch-mode"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-11 h-11 bg-primary/20 rounded-2xl flex items-center justify-center">
-                <ArrowLeftRight className="w-5 h-5 text-primary" />
+          {user?.verificationStatus === 'approved' && (
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleSwitchRole}
+              className="w-full p-4 bg-primary/10 border-2 border-primary/30 rounded-2xl flex items-center justify-between transition-all hover:bg-primary/15"
+              data-testid="button-switch-mode"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-11 h-11 bg-primary/20 rounded-2xl flex items-center justify-center">
+                  <ArrowLeftRight className="w-5 h-5 text-primary" />
+                </div>
+                <div className="text-start">
+                  <span className="font-bold text-foreground block">
+                    {userRole === 'client' ? t('settings.switchToTasker') : t('settings.switchToClient')}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {t('settings.switchModeDesc')}
+                  </span>
+                </div>
               </div>
-              <div className="text-start">
-                <span className="font-bold text-foreground block">
-                  {userRole === 'client' ? t('settings.switchToTasker') : t('settings.switchToClient')}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {t('settings.switchModeDesc')}
-                </span>
+              <ChevronRight className="w-5 h-5 text-primary rtl:rotate-180" />
+            </motion.button>
+          )}
+
+          {!user?.verificationStatus && userRole === 'client' && (
+            <Link href="/tasker-type">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full p-4 bg-accent/10 border-2 border-accent/30 rounded-2xl flex items-center justify-between transition-all hover:bg-accent/15 cursor-pointer"
+                data-testid="button-become-tasker"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 bg-accent/20 rounded-2xl flex items-center justify-center">
+                    <Briefcase className="w-5 h-5 text-accent" />
+                  </div>
+                  <div className="text-start">
+                    <span className="font-bold text-foreground block">
+                      {isArabic ? 'أصبح منفذًا' : 'Become a Tasker'}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {isArabic ? 'قدم للانضمام كمنفذ' : 'Apply to join as a tasker'}
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-accent rtl:rotate-180" />
+              </motion.div>
+            </Link>
+          )}
+
+          {user?.verificationStatus === 'pending' && userRole === 'client' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              className="w-full p-4 bg-warning/10 border-2 border-warning/30 rounded-2xl flex items-center justify-between"
+              data-testid="status-pending-tasker"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-11 h-11 bg-warning/20 rounded-2xl flex items-center justify-center">
+                  <Briefcase className="w-5 h-5 text-warning" />
+                </div>
+                <div className="text-start">
+                  <span className="font-bold text-foreground block">
+                    {isArabic ? 'طلبك قيد المراجعة' : 'Application Under Review'}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {isArabic ? 'سيتم إشعارك عند الموافقة' : 'You will be notified upon approval'}
+                  </span>
+                </div>
               </div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-primary rtl:rotate-180" />
-          </motion.button>
+            </motion.div>
+          )}
 
           {adminItems.length > 0 && (
             <motion.div 

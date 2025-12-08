@@ -40,6 +40,7 @@ const DirectRequestsScreen = lazy(() => import("@/pages/DirectRequestsScreen"));
 const MyDirectRequestsScreen = lazy(() => import("@/pages/MyDirectRequestsScreen"));
 const CategoryBrowserScreen = lazy(() => import("@/pages/CategoryBrowserScreen"));
 const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
+const PendingApprovalScreen = lazy(() => import("@/pages/PendingApprovalScreen"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 const PageLoader = memo(function PageLoader() {
@@ -114,13 +115,14 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes() {
       <Route path="/my-direct-requests" component={MyDirectRequestsScreen} />
       <Route path="/categories" component={CategoryBrowserScreen} />
       <Route path="/admin" component={AdminDashboard} />
+      <Route path="/tasker-type" component={TaskerTypeScreen} />
       <Route component={NotFound} />
     </Switch>
   );
 });
 
 const AppContent = memo(function AppContent() {
-  const { isAuthenticated, isLoading } = useApp();
+  const { isAuthenticated, isLoading, user } = useApp();
   const { isInRiyadh, isLoading: locationLoading, checkLocation } = useLocationHook();
   const [hasCheckedLocation, setHasCheckedLocation] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -146,14 +148,22 @@ const AppContent = memo(function AppContent() {
     }} />;
   }
 
+  const isPendingTasker = isAuthenticated && 
+    user?.role === 'tasker' && 
+    user?.verificationStatus === 'pending';
+
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <Suspense fallback={<PageLoader />}>
         <AnimatePresence mode="wait">
-          {isAuthenticated ? <AuthenticatedRoutes /> : <UnauthenticatedRoutes />}
+          {isAuthenticated ? (
+            isPendingTasker ? <PendingApprovalScreen /> : <AuthenticatedRoutes />
+          ) : (
+            <UnauthenticatedRoutes />
+          )}
         </AnimatePresence>
       </Suspense>
-      {isAuthenticated && <BottomNav />}
+      {isAuthenticated && !isPendingTasker && <BottomNav />}
       <Toaster />
     </div>
   );
