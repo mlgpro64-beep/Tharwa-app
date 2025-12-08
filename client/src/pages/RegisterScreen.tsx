@@ -139,6 +139,8 @@ const RegisterScreen = memo(function RegisterScreen() {
   const [showCertificateStep, setShowCertificateStep] = useState(false);
   const [certificateImage, setCertificateImage] = useState<string | null>(null);
   const [certificateError, setCertificateError] = useState<string | null>(null);
+  const [showOtpStep, setShowOtpStep] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
 
   const getPasswordStrength = useCallback((password: string): { level: number; label: string; color: string } => {
     if (!password) return { level: 0, label: '', color: '' };
@@ -157,6 +159,68 @@ const RegisterScreen = memo(function RegisterScreen() {
   }, [t]);
 
   const passwordStrength = getPasswordStrength(formData.password);
+
+  // Send Phone OTP for registration
+  const sendOtpMutation = useMutation({
+    mutationFn: async (phone: string) => {
+      const response = await apiRequest('POST', '/api/auth/send-phone-otp', { phone, type: 'registration' });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send OTP');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      setShowOtpStep(true);
+      toast({ 
+        title: isRTL ? 'تم إرسال الرمز' : 'Code Sent', 
+        description: isRTL ? 'تحقق من رسائلك SMS' : 'Check your SMS for the verification code'
+      });
+    },
+    onError: (error: Error) => {
+      let errorMessage = error.message;
+      if (error.message.includes('already registered')) {
+        errorMessage = isRTL ? 'رقم الجوال مسجل مسبقاً' : 'Phone number already registered';
+      }
+      toast({ 
+        title: isRTL ? 'خطأ' : 'Error', 
+        description: errorMessage, 
+        variant: 'destructive' 
+      });
+    },
+  });
+
+  // Verify Phone OTP and then register
+  const verifyOtpMutation = useMutation({
+    mutationFn: async (data: { phone: string; otpCode: string }) => {
+      const response = await apiRequest('POST', '/api/auth/verify-phone-otp', data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Invalid OTP');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      // OTP verified, now proceed to registration or certificate step
+      if (isSpecialized && !showCertificateStep) {
+        setShowCertificateStep(true);
+        setShowOtpStep(false);
+      } else {
+        registerMutation.mutate({ ...formData, certificateUrl: certificateImage || undefined });
+      }
+    },
+    onError: (error: Error) => {
+      let errorMessage = error.message;
+      if (error.message.includes('Invalid') || error.message.includes('expired')) {
+        errorMessage = isRTL ? 'رمز التحقق غير صحيح أو منتهي الصلاحية' : 'Invalid or expired verification code';
+      }
+      toast({ 
+        title: isRTL ? 'خطأ' : 'Error', 
+        description: errorMessage, 
+        variant: 'destructive' 
+      });
+    },
+  });
 
   const registerMutation = useMutation({
     mutationFn: async (data: FormData & { certificateUrl?: string }) => {
@@ -244,13 +308,26 @@ const RegisterScreen = memo(function RegisterScreen() {
 
   const handleFormSubmit = useCallback(() => {
     if (validateForm()) {
-      if (isSpecialized && !showCertificateStep) {
-        setShowCertificateStep(true);
-      } else {
-        registerMutation.mutate({ ...formData, certificateUrl: certificateImage || undefined });
-      }
+      // Send OTP first before registration
+      sendOtpMutation.mutate(formData.phone);
     }
-  }, [validateForm, isSpecialized, showCertificateStep, registerMutation, formData, certificateImage]);
+  }, [validateForm, sendOtpMutation, formData.phone]);
+
+  const handleOtpSubmit = useCallback(() => {
+    if (!otpCode.trim() || otpCode.length < 4) {
+      toast({ 
+        title: isRTL ? 'خطأ' : 'Error', 
+        description: isRTL ? 'أدخل رمز التحقق' : 'Enter verification code', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+    verifyOtpMutation.mutate({ phone: formData.phone, otpCode });
+  }, [otpCode, verifyOtpMutation, formData.phone, isRTL, toast]);
+
+  const handleCertificateSubmit = useCallback(() => {
+    registerMutation.mutate({ ...formData, certificateUrl: certificateImage || undefined });
+  }, [registerMutation, formData, certificateImage]);
 
   const handleSkipCertificate = useCallback(() => {
     registerMutation.mutate({ ...formData, certificateUrl: undefined });
@@ -266,12 +343,15 @@ const RegisterScreen = memo(function RegisterScreen() {
   const handleBack = useCallback(() => {
     if (showCertificateStep) {
       setShowCertificateStep(false);
+    } else if (showOtpStep) {
+      setShowOtpStep(false);
+      setOtpCode('');
     } else if (userRole === 'tasker') {
       setLocation('/tasker-type');
     } else {
       setLocation('/role');
     }
-  }, [setLocation, userRole, showCertificateStep]);
+  }, [setLocation, userRole, showCertificateStep, showOtpStep]);
 
   const handleCertificateUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -302,8 +382,8 @@ const RegisterScreen = memo(function RegisterScreen() {
     }
   }, []);
 
-  const currentStep = showCertificateStep ? 2 : 1;
-  const totalSteps = isSpecialized ? 2 : 1;
+  const currentStep = showCertificateStep ? 3 : showOtpStep ? 2 : 1;
+  const totalSteps = isSpecialized ? 3 : 2;
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-primary/5 pt-safe">
@@ -364,7 +444,92 @@ const RegisterScreen = memo(function RegisterScreen() {
 
       <div className="flex-1 flex flex-col px-6 py-6 relative z-10 overflow-y-auto">
         <AnimatePresence mode="wait">
-          {!showCertificateStep ? (
+          {/* OTP Verification Step */}
+          {showOtpStep && !showCertificateStep ? (
+            <motion.div
+              key="otp-step"
+              initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: isRTL ? -20 : 20 }}
+              className="flex-1 flex flex-col"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className={cn("mb-8", isRTL && "text-right")}
+              >
+                <div className="w-20 h-20 rounded-[1.5rem] bg-success/15 flex items-center justify-center mb-6 mx-auto">
+                  <Phone className="w-10 h-10 text-success" />
+                </div>
+                <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2 text-center">
+                  {isRTL ? 'تحقق من رقم الجوال' : 'Verify Phone Number'}
+                </h1>
+                <p className="text-muted-foreground text-lg text-center">
+                  {isRTL 
+                    ? `تم إرسال رمز التحقق إلى ${formData.phone}` 
+                    : `A verification code was sent to ${formData.phone}`}
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="space-y-6 flex-1"
+              >
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder={isRTL ? 'أدخل رمز التحقق' : 'Enter verification code'}
+                    maxLength={6}
+                    autoComplete="one-time-code"
+                    className="w-full h-16 px-5 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-200 text-center text-2xl tracking-[0.5em] font-bold"
+                    data-testid="input-otp-code"
+                  />
+                </div>
+
+                <div className="text-center">
+                  <button 
+                    onClick={() => sendOtpMutation.mutate(formData.phone)}
+                    disabled={sendOtpMutation.isPending}
+                    className="text-sm text-primary font-semibold hover:underline disabled:opacity-50"
+                    data-testid="button-resend-otp"
+                  >
+                    {isRTL ? 'إعادة إرسال الرمز' : 'Resend code'}
+                  </button>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="mt-6 pb-safe"
+              >
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleOtpSubmit}
+                  disabled={verifyOtpMutation.isPending || !otpCode.trim()}
+                  className="w-full h-14 gradient-primary text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/25 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                  data-testid="button-verify-otp"
+                >
+                  {verifyOtpMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      {t('common.loading')}
+                    </>
+                  ) : (
+                    isRTL ? 'تأكيد الرمز' : 'Verify Code'
+                  )}
+                </motion.button>
+              </motion.div>
+            </motion.div>
+          ) : !showCertificateStep ? (
             <motion.div
               key="form-step"
               initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
@@ -486,19 +651,17 @@ const RegisterScreen = memo(function RegisterScreen() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleFormSubmit}
-                  disabled={registerMutation.isPending}
+                  disabled={sendOtpMutation.isPending}
                   className="w-full h-14 gradient-primary text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/25 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                   data-testid="button-create-account"
                 >
-                  {registerMutation.isPending ? (
+                  {sendOtpMutation.isPending ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      {t('auth.creatingAccount')}
+                      {t('common.loading')}
                     </>
-                  ) : isSpecialized ? (
-                    t('common.next')
                   ) : (
-                    t('auth.register')
+                    isRTL ? 'تحقق من رقم الجوال' : 'Verify Phone'
                   )}
                 </motion.button>
 
@@ -633,7 +796,7 @@ const RegisterScreen = memo(function RegisterScreen() {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={handleFormSubmit}
+                  onClick={handleCertificateSubmit}
                   disabled={registerMutation.isPending}
                   className="w-full h-14 gradient-primary text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/25 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                   data-testid="button-submit-certificate"

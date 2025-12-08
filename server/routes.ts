@@ -372,6 +372,38 @@ router.post("/api/auth/send-phone-otp", async (req, res) => {
   }
 });
 
+// Verify phone OTP (for registration)
+router.post("/api/auth/verify-phone-otp", async (req, res) => {
+  try {
+    const { phone, otpCode } = req.body;
+    
+    if (!phone || !otpCode) {
+      return res.status(400).json({ error: "Phone and OTP code are required" });
+    }
+    
+    // Verify OTP (phone stored in email field)
+    const otpRecord = await storage.getValidOtpCode(phone, otpCode, "phone_registration");
+    
+    if (!otpRecord) {
+      const existingOtp = await storage.getPendingOtpByEmail(phone, "phone_registration");
+      if (existingOtp) {
+        await storage.incrementOtpAttempts(existingOtp.id);
+      }
+      return res.status(400).json({ error: "Invalid or expired OTP" });
+    }
+    
+    // Mark OTP as verified
+    await storage.markOtpAsVerified(otpRecord.id);
+    
+    res.json({ 
+      success: true, 
+      message: "Phone verified successfully" 
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Login with phone OTP
 router.post("/api/auth/login-with-phone-otp", async (req, res) => {
   try {
