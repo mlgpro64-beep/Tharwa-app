@@ -1,5 +1,9 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+// Set your Replit URL here for iOS development
+// To find your URL: it's shown in the Webview panel, like: https://your-project.your-username.replit.app
+const REPLIT_URL = process.env.REPLIT_URL || '';
+
 const config: CapacitorConfig = {
   appId: 'com.taskfield.app',
   appName: 'TaskField',
@@ -7,6 +11,9 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     iosScheme: 'https',
+    // For development: uncomment the next line and set your Replit URL
+    // url: 'https://your-project.your-username.replit.app',
+    cleartext: true,
   },
   ios: {
     contentInset: 'automatic',
