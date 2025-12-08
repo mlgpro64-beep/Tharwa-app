@@ -85,32 +85,40 @@ export const BottomNav = memo(function BottomNav() {
                     key={item.path}
                     href={item.path}
                     data-testid="nav-categories-center"
-                    className="flex-1 flex justify-center -mt-8"
+                    className="flex-1 flex justify-center"
                   >
                     <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.92 }}
                       transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                      className="relative"
+                      className={cn(
+                        "relative flex flex-col items-center justify-center gap-1 py-3 px-4 rounded-[22px] transition-all duration-300",
+                        active && "bg-primary/10 dark:bg-primary/20"
+                      )}
                     >
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary via-primary to-accent shadow-lg shadow-primary/40 flex items-center justify-center ring-4 ring-background">
+                      <div className="w-10 h-10 rounded-full bg-white/10 dark:bg-white/5 backdrop-blur-sm border border-white/20 dark:border-white/10 flex items-center justify-center">
                         <Icon 
-                          className="w-7 h-7 text-white"
-                          strokeWidth={2.5}
+                          className={cn(
+                            "w-5 h-5 transition-all duration-300",
+                            active 
+                              ? "text-primary" 
+                              : "text-muted-foreground"
+                          )}
+                          strokeWidth={2}
                         />
                       </div>
-                      <motion.div
-                        className="absolute inset-0 rounded-full bg-white/20"
-                        animate={{ 
-                          scale: [1, 1.2, 1],
-                          opacity: [0.5, 0, 0.5]
+                      <motion.span 
+                        initial={false}
+                        animate={{
+                          opacity: active ? 1 : 0.6,
+                          fontWeight: active ? 700 : 500,
                         }}
-                        transition={{
-                          duration: 2,
-                          repeat: Infinity,
-                          ease: "easeInOut"
-                        }}
-                      />
+                        className={cn(
+                          "text-[10px] tracking-wide transition-colors duration-300",
+                          active ? "text-primary" : "text-muted-foreground"
+                        )}
+                      >
+                        {label}
+                      </motion.span>
                     </motion.button>
                   </Link>
                 );
