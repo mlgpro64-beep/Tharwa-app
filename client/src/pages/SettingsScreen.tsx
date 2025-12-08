@@ -3,6 +3,7 @@ import { Link, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '@/context/AppContext';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { 
   ArrowLeft, User, Lock, Bell, Moon, Sun, ArrowLeftRight, 
@@ -31,6 +32,7 @@ const SettingsScreen = memo(function SettingsScreen() {
   const [, setLocation] = useLocation();
   const { t, i18n } = useTranslation();
   const { theme, toggleTheme, userRole, switchRole, logout, user } = useApp();
+  const { toast } = useToast();
   const [showLanguageSheet, setShowLanguageSheet] = useState(false);
   
   const isArabic = i18n.language === 'ar';
@@ -46,9 +48,16 @@ const SettingsScreen = memo(function SettingsScreen() {
     setShowLanguageSheet(false);
   }, [i18n]);
 
-  const handleSwitchRole = useCallback(() => {
-    switchRole(userRole === 'client' ? 'tasker' : 'client');
-  }, [switchRole, userRole]);
+  const handleSwitchRole = useCallback(async () => {
+    const result = await switchRole(userRole === 'client' ? 'tasker' : 'client');
+    if (!result.success) {
+      toast({
+        title: isArabic ? 'خطأ' : 'Error',
+        description: result.error || (isArabic ? 'فشل في تبديل الدور' : 'Failed to switch role'),
+        variant: 'destructive',
+      });
+    }
+  }, [switchRole, userRole, toast, isArabic]);
 
   const accountItems: SettingItem[] = useMemo(() => [
     { icon: User, label: t('profile.editProfile'), path: '/profile/edit' },

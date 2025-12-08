@@ -29,7 +29,16 @@ Authentication supports multiple methods:
 -   **Email OTP**: Passwordless login via email verification codes (Resend integration)
 -   **Phone OTP**: Passwordless login via SMS codes (Infobip integration for Saudi numbers)
 
-Session management uses HTTP-only cookies with `express-session`. Authorization is role-based (client/tasker/admin), with dynamic role switching and middleware for access control. Security measures include strong password hashing, OTP rate limiting, environment variable-configured session secrets, and secure cookie settings.
+**Token-based authentication** using JWT is used for iOS WKWebView compatibility. Tokens are stored in localStorage and sent via Authorization header.
+
+Authorization is role-based (client/tasker/admin), with dynamic role switching and middleware for access control. Security measures include strong password hashing, OTP rate limiting, environment variable-configured session secrets, and secure cookie settings.
+
+**Tasker Approval Flow**:
+-   **ALL taskers** (general and specialized) require admin approval before accessing the app
+-   Users who register as taskers see a "Pending Approval" screen until approved
+-   Clients can apply to become taskers via Settings; they can continue using client features while pending
+-   Role switch button only appears when `verificationStatus='approved'`
+-   Admin approves taskers via `/api/admin/users/:id/approve` endpoint
 
 ### UI/UX Decisions
 

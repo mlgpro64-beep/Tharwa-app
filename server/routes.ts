@@ -558,6 +558,36 @@ router.post("/api/users/apply-tasker", async (req, res) => {
   }
 });
 
+// Switch role between client and tasker
+router.post("/api/users/switch-role", async (req, res) => {
+  try {
+    if (!req.userId || !req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    const { role } = req.body;
+    
+    if (!role || !['client', 'tasker'].includes(role)) {
+      return res.status(400).json({ error: "Invalid role" });
+    }
+    
+    // If switching to tasker, check that user is approved
+    if (role === 'tasker') {
+      if (!req.user.taskerType) {
+        return res.status(403).json({ error: "You must apply to become a tasker first" });
+      }
+      if (req.user.verificationStatus !== 'approved') {
+        return res.status(403).json({ error: "Your tasker application is still pending approval" });
+      }
+    }
+    
+    const updated = await storage.updateUser(req.userId, { role });
+    res.json({ user: sanitizeUser(updated) });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Tasks routes
 router.get("/api/tasks", async (req, res) => {
   try {

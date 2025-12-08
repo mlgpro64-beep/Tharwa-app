@@ -21,7 +21,7 @@ interface FormData {
 
 const LoginScreen = memo(function LoginScreen() {
   const [, setLocation] = useLocation();
-  const { setUser, switchRole } = useApp();
+  const { setUser, setLocalRole } = useApp();
   const { toast } = useToast();
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
@@ -52,7 +52,7 @@ const LoginScreen = memo(function LoginScreen() {
         setAuthToken(data.token);
       }
       setUser(data.user);
-      switchRole(data.user.role);
+      setLocalRole(data.user.role);
       localStorage.setItem('userId', data.user.id);
       toast({ 
         title: t('auth.welcomeBack'), 
@@ -113,7 +113,7 @@ const LoginScreen = memo(function LoginScreen() {
         setAuthToken(data.token);
       }
       setUser(data.user);
-      switchRole(data.user.role);
+      setLocalRole(data.user.role);
       localStorage.setItem('userId', data.user.id);
       toast({ 
         title: t('auth.welcomeBack'), 
@@ -138,7 +138,7 @@ const LoginScreen = memo(function LoginScreen() {
         setAuthToken(data.token);
       }
       setUser(data.user);
-      switchRole(data.user.role);
+      setLocalRole(data.user.role);
       localStorage.setItem('userId', data.user.id);
       toast({ 
         title: t('auth.welcomeBack'), 

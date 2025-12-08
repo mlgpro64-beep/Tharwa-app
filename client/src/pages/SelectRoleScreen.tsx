@@ -139,20 +139,20 @@ const RoleCard = memo(function RoleCard({
 
 const SelectRoleScreen = memo(function SelectRoleScreen() {
   const [, setLocation] = useLocation();
-  const { switchRole } = useApp();
+  const { setLocalRole } = useApp();
   const { t } = useTranslation();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
 
   const handleContinue = useCallback(() => {
     if (selectedRole) {
-      switchRole(selectedRole);
+      setLocalRole(selectedRole);
       if (selectedRole === 'tasker') {
         setLocation('/tasker-type');
       } else {
         setLocation('/register');
       }
     }
-  }, [selectedRole, switchRole, setLocation]);
+  }, [selectedRole, setLocalRole, setLocation]);
 
   const handleBack = useCallback(() => {
     setLocation('/');

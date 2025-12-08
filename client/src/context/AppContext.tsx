@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import type { User, Task, Transaction, Notification, Bid, TaskWithDetails } from '@shared/schema';
+import { apiRequest } from '@/lib/queryClient';
 
 export type UserRole = 'client' | 'tasker';
 
@@ -12,7 +13,8 @@ interface AppContextType {
   savedTaskIds: string[];
   setUser: (user: User | null) => void;
   toggleTheme: () => void;
-  switchRole: (role: UserRole) => void;
+  switchRole: (role: UserRole) => Promise<{ success: boolean; error?: string }>;
+  setLocalRole: (role: UserRole) => void;
   toggleSavedTask: (taskId: string) => void;
   logout: () => void;
 }
@@ -96,8 +98,26 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   }, []);
 
-  const switchRole = useCallback((role: UserRole) => {
+  const setLocalRole = useCallback((role: UserRole) => {
     setUserRole(role);
+  }, []);
+
+  const switchRole = useCallback(async (role: UserRole): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await apiRequest('POST', '/api/users/switch-role', { role });
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+        setUserRole(role);
+        return { success: true };
+      } else {
+        const errorData = await response.json();
+        return { success: false, error: errorData.error || 'Failed to switch role' };
+      }
+    } catch (error) {
+      console.error('Failed to switch role:', error);
+      return { success: false, error: 'Network error' };
+    }
   }, []);
 
   const toggleSavedTask = useCallback((taskId: string) => {
@@ -123,9 +143,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setUser,
     toggleTheme,
     switchRole,
+    setLocalRole,
     toggleSavedTask,
     logout,
-  }), [user, userRole, theme, isLoading, savedTaskIds, toggleTheme, switchRole, toggleSavedTask, logout]);
+  }), [user, userRole, theme, isLoading, savedTaskIds, toggleTheme, switchRole, setLocalRole, toggleSavedTask, logout]);
 
   return (
     <AppContext.Provider value={contextValue}>
