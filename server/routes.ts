@@ -5,6 +5,7 @@ import type { User } from "@shared/schema";
 import "express-session";
 import { sendOtpEmail } from "./email";
 import { sendOtpSms, isValidSaudiPhone } from "./sms";
+import crypto from "crypto";
 
 let bcrypt: any;
 try {
@@ -14,6 +15,34 @@ try {
     hash: (pass: string) => Promise.resolve(pass),
     compare: (pass: string, hash: string) => Promise.resolve(pass === hash),
   };
+}
+
+// Simple token store for Capacitor iOS auth (tokens map to user IDs)
+const authTokens = new Map<string, { userId: string; expiresAt: number }>();
+
+function generateToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function createAuthToken(userId: string): string {
+  const token = generateToken();
+  const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+  authTokens.set(token, { userId, expiresAt });
+  return token;
+}
+
+function validateAuthToken(token: string): string | null {
+  const data = authTokens.get(token);
+  if (!data) return null;
+  if (Date.now() > data.expiresAt) {
+    authTokens.delete(token);
+    return null;
+  }
+  return data.userId;
+}
+
+function removeAuthToken(token: string): void {
+  authTokens.delete(token);
 }
 
 export const router = Router();
@@ -40,9 +69,20 @@ function sanitizeUser(user: User): Omit<User, 'password'> {
   return safeUser;
 }
 
-// Middleware to get current user
+// Middleware to get current user (supports both session and token auth)
 const getCurrentUser = async (req: Request, res: Response, next: Function) => {
-  const userId = req.session?.userId;
+  let userId = req.session?.userId;
+  
+  // Check for Bearer token (for Capacitor iOS)
+  const authHeader = req.headers.authorization;
+  if (!userId && authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    const tokenUserId = validateAuthToken(token);
+    if (tokenUserId) {
+      userId = tokenUserId;
+    }
+  }
+  
   if (userId) {
     req.user = await storage.getUser(userId);
     req.userId = userId;
@@ -89,8 +129,11 @@ router.post("/api/auth/register", async (req, res) => {
     
     const user = await storage.createUser(userData);
     
+    // Create auth token for Capacitor iOS
+    const token = createAuthToken(user.id);
+    
     req.session!.userId = user.id;
-    res.json({ user: sanitizeUser(user) });
+    res.json({ user: sanitizeUser(user), token });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -110,8 +153,11 @@ router.post("/api/auth/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
     
+    // Create auth token for Capacitor iOS
+    const token = createAuthToken(user.id);
+    
     req.session!.userId = user.id;
-    res.json({ user: sanitizeUser(user) });
+    res.json({ user: sanitizeUser(user), token });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -249,12 +295,16 @@ router.post("/api/auth/login-with-otp", async (req, res) => {
     // Mark OTP as verified
     await storage.markOtpAsVerified(otpRecord.id);
     
+    // Create auth token for Capacitor iOS
+    const token = createAuthToken(user.id);
+    
     // Create session
     req.session!.userId = user.id;
     
     res.json({ 
       success: true, 
       user: sanitizeUser(user),
+      token,
       message: "Logged in successfully" 
     });
   } catch (error: any) {
@@ -351,12 +401,16 @@ router.post("/api/auth/login-with-phone-otp", async (req, res) => {
     // Mark OTP as verified
     await storage.markOtpAsVerified(otpRecord.id);
     
+    // Create auth token for Capacitor iOS
+    const token = createAuthToken(user.id);
+    
     // Create session
     req.session!.userId = user.id;
     
     res.json({ 
       success: true, 
       user: sanitizeUser(user),
+      token,
       message: "Logged in successfully" 
     });
   } catch (error: any) {
@@ -422,8 +476,11 @@ router.post("/api/auth/register-with-otp", async (req, res) => {
     
     const user = await storage.createUser(userData);
     
+    // Create auth token for Capacitor iOS
+    const token = createAuthToken(user.id);
+    
     req.session!.userId = user.id;
-    res.json({ user: sanitizeUser(user) });
+    res.json({ user: sanitizeUser(user), token });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

@@ -1,6 +1,29 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { buildApiUrl } from "./config";
 
+// Auth token storage for Capacitor iOS
+const AUTH_TOKEN_KEY = 'tharwa_auth_token';
+
+export function getAuthToken(): string | null {
+  return localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+export function setAuthToken(token: string): void {
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
+}
+
+export function removeAuthToken(): void {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+}
+
+function getAuthHeaders(): Record<string, string> {
+  const token = getAuthToken();
+  if (token) {
+    return { 'Authorization': `Bearer ${token}` };
+  }
+  return {};
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -14,9 +37,17 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   const fullUrl = buildApiUrl(url);
+  const headers: Record<string, string> = {
+    ...getAuthHeaders(),
+  };
+  
+  if (data) {
+    headers['Content-Type'] = 'application/json';
+  }
+  
   const res = await fetch(fullUrl, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -34,6 +65,7 @@ export const getQueryFn: <T>(options: {
     const url = buildApiUrl(queryKey.join("/") as string);
     const res = await fetch(url, {
       credentials: "include",
+      headers: getAuthHeaders(),
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

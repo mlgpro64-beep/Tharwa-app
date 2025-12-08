@@ -58,13 +58,20 @@ app.use(express.urlencoded({ extended: false }));
 
 // Session middleware
 const MemoryStore = createMemoryStore(session);
+app.set('trust proxy', 1);
 app.use(
   session({
     store: new MemoryStore({ checkPeriod: 86400000 }),
     secret: process.env.SESSION_SECRET || "secret",
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false, httpOnly: true, sameSite: "lax", maxAge: 24 * 60 * 60 * 1000 },
+    proxy: true,
+    cookie: { 
+      secure: true, 
+      httpOnly: true, 
+      sameSite: "none", 
+      maxAge: 24 * 60 * 60 * 1000 
+    },
   })
 );
 

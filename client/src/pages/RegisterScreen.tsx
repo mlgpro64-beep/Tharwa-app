@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '@/context/AppContext';
 import { useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, setAuthToken } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Eye, EyeOff, Loader2, User, Mail, Phone, Lock, Upload, FileCheck, AlertCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -178,6 +178,10 @@ const RegisterScreen = memo(function RegisterScreen() {
       return response.json();
     },
     onSuccess: (data) => {
+      // Store auth token for Capacitor iOS
+      if (data.token) {
+        setAuthToken(data.token);
+      }
       setUser(data.user);
       localStorage.setItem('userId', data.user.id);
       

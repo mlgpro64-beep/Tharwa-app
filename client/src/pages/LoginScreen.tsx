@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '@/context/AppContext';
 import { useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, setAuthToken } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, LogIn, Eye, EyeOff, Loader2, Mail, KeyRound, Smartphone, Phone } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -47,6 +47,10 @@ const LoginScreen = memo(function LoginScreen() {
       return response.json();
     },
     onSuccess: (data) => {
+      // Store auth token for Capacitor iOS
+      if (data.token) {
+        setAuthToken(data.token);
+      }
       setUser(data.user);
       switchRole(data.user.role);
       localStorage.setItem('userId', data.user.id);
@@ -104,6 +108,10 @@ const LoginScreen = memo(function LoginScreen() {
       return response.json();
     },
     onSuccess: (data) => {
+      // Store auth token for Capacitor iOS
+      if (data.token) {
+        setAuthToken(data.token);
+      }
       setUser(data.user);
       switchRole(data.user.role);
       localStorage.setItem('userId', data.user.id);
@@ -125,6 +133,10 @@ const LoginScreen = memo(function LoginScreen() {
       return response.json();
     },
     onSuccess: (data) => {
+      // Store auth token for Capacitor iOS
+      if (data.token) {
+        setAuthToken(data.token);
+      }
       setUser(data.user);
       switchRole(data.user.role);
       localStorage.setItem('userId', data.user.id);
