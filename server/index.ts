@@ -22,12 +22,17 @@ app.use((req, res, next) => {
     'ionic://localhost',
     'http://localhost',
     'http://localhost:5000',
-    'https://localhost'
+    'https://localhost',
+    'https://componentlibrary.mlgpro64.replit.app',
+    'null' // For file:// or capacitor:// origins that show as null
   ];
   
   const origin = req.headers.origin;
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (!origin || origin === 'null') {
+    // Allow requests with no origin (like from Capacitor iOS)
+    res.setHeader('Access-Control-Allow-Origin', '*');
   }
   
   res.setHeader('Access-Control-Allow-Credentials', 'true');
