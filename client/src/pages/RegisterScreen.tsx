@@ -175,10 +175,13 @@ const RegisterScreen = memo(function RegisterScreen() {
       }
       
       const response = await apiRequest('POST', '/api/auth/register', requestData);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Registration failed');
+      }
       return response.json();
     },
     onSuccess: (data) => {
-      // Store auth token for Capacitor iOS
       if (data.token) {
         setAuthToken(data.token);
       }
@@ -199,7 +202,19 @@ const RegisterScreen = memo(function RegisterScreen() {
       setLocation('/home');
     },
     onError: (error: Error) => {
-      toast({ title: t('errors.somethingWentWrong'), description: error.message, variant: 'destructive' });
+      let errorMessage = error.message;
+      if (error.message.includes('email') || error.message.includes('users_email_key')) {
+        errorMessage = isRTL ? 'البريد الإلكتروني مسجل مسبقاً' : 'Email already registered';
+      } else if (error.message.includes('phone') || error.message.includes('users_phone_key')) {
+        errorMessage = isRTL ? 'رقم الجوال مسجل مسبقاً' : 'Phone number already registered';
+      } else if (error.message.includes('username') || error.message.includes('users_username_key')) {
+        errorMessage = isRTL ? 'اسم المستخدم مسجل مسبقاً' : 'Username already registered';
+      }
+      toast({ 
+        title: isRTL ? 'خطأ في التسجيل' : 'Registration Error', 
+        description: errorMessage, 
+        variant: 'destructive' 
+      });
     },
   });
 
