@@ -391,7 +391,7 @@ const RegisterScreen = memo(function RegisterScreen() {
                 
                 <InputField
                   icon={Phone}
-                  label={t('auth.phone')}
+                  label={isRTL ? '05XXXXXXXX' : '05XXXXXXXX'}
                   type="tel"
                   value={formData.phone}
                   onChange={handleChange('phone')}
@@ -400,6 +400,9 @@ const RegisterScreen = memo(function RegisterScreen() {
                   testId="input-phone"
                   dir="ltr"
                 />
+                <p className="text-xs text-muted-foreground text-center -mt-2 mb-2">
+                  {isRTL ? 'رقم جوال سعودي يبدأ بـ 05' : 'Saudi mobile number starting with 05'}
+                </p>
                 
                 <InputField
                   icon={Mail}
