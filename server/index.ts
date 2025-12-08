@@ -23,7 +23,7 @@ app.use((req, res, next) => {
     'http://localhost',
     'http://localhost:5000',
     'https://localhost',
-    'https://componentlibrary.mlgpro64.replit.app',
+    'https://758b6ce0-8b1f-4d3b-91fc-8a652cb0679b-00-1f8q924g3ablw.worf.replit.dev',
     'null' // For file:// or capacitor:// origins that show as null
   ];
   

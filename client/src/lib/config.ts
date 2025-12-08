@@ -10,7 +10,7 @@
 
 // Set this to your Replit URL when testing in Xcode
 // Leave empty ('') to use relative URLs (for web/PWA mode)
-export const REPLIT_API_URL = 'https://componentlibrary.mlgpro64.replit.app';
+export const REPLIT_API_URL = 'https://758b6ce0-8b1f-4d3b-91fc-8a652cb0679b-00-1f8q924g3ablw.worf.replit.dev';
 
 // Detect if running in Capacitor native app
 export const isCapacitor = typeof window !== 'undefined' && 
