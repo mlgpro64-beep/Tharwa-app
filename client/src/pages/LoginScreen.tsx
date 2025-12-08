@@ -34,6 +34,10 @@ const LoginScreen = memo(function LoginScreen() {
   const sendPhoneOtpMutation = useMutation({
     mutationFn: async (phone: string) => {
       const response = await apiRequest('POST', '/api/auth/send-phone-otp', { phone, type: 'login' });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to send OTP');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -44,7 +48,15 @@ const LoginScreen = memo(function LoginScreen() {
       });
     },
     onError: (error: Error) => {
-      toast({ title: t('errors.somethingWentWrong'), description: error.message, variant: 'destructive' });
+      let errorMessage = error.message;
+      if (error.message.includes('No account found')) {
+        errorMessage = isArabic ? 'لا يوجد حساب مسجل بهذا الرقم' : 'No account found with this phone number';
+      }
+      toast({ 
+        title: isArabic ? 'خطأ' : 'Error', 
+        description: errorMessage, 
+        variant: 'destructive' 
+      });
     },
   });
 
@@ -52,6 +64,10 @@ const LoginScreen = memo(function LoginScreen() {
   const phoneOtpLoginMutation = useMutation({
     mutationFn: async (data: { phone: string; otpCode: string }) => {
       const response = await apiRequest('POST', '/api/auth/login-with-phone-otp', data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Login failed');
+      }
       return response.json();
     },
     onSuccess: (data) => {
@@ -68,7 +84,15 @@ const LoginScreen = memo(function LoginScreen() {
       setLocation('/home');
     },
     onError: (error: Error) => {
-      toast({ title: t('errors.somethingWentWrong'), description: error.message, variant: 'destructive' });
+      let errorMessage = error.message;
+      if (error.message.includes('Invalid') || error.message.includes('expired')) {
+        errorMessage = isArabic ? 'رمز التحقق غير صحيح أو منتهي الصلاحية' : 'Invalid or expired verification code';
+      }
+      toast({ 
+        title: isArabic ? 'خطأ' : 'Error', 
+        description: errorMessage, 
+        variant: 'destructive' 
+      });
     },
   });
 
