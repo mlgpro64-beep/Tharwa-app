@@ -5,8 +5,8 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const REPLIT_URL = process.env.REPLIT_URL || '';
 
 const config: CapacitorConfig = {
-  appId: 'com.taskfield.app',
-  appName: 'TaskField',
+  appId: 'com.tharwa.app',
+  appName: 'THARWA',
   webDir: 'dist/public',
   server: {
     androidScheme: 'https',
