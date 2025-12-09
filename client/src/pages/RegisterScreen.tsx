@@ -10,7 +10,8 @@ import { ArrowLeft, Eye, EyeOff, Loader2, User, Mail, Phone, Lock, Upload, FileC
 import { cn } from '@/lib/utils';
 
 interface FormData {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone: string;
   password: string;
@@ -129,7 +130,8 @@ const RegisterScreen = memo(function RegisterScreen() {
   const isSpecialized = userRole === 'tasker' && taskerType === 'specialized';
   
   const [formData, setFormData] = useState<FormData>({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
     password: '',
@@ -226,6 +228,7 @@ const RegisterScreen = memo(function RegisterScreen() {
     mutationFn: async (data: FormData & { certificateUrl?: string }) => {
       const requestData: Record<string, unknown> = {
         ...data,
+        name: `${data.firstName} ${data.lastName}`.trim(),
         username: data.phone,
         role: userRole,
       };
@@ -285,7 +288,8 @@ const RegisterScreen = memo(function RegisterScreen() {
   const validateForm = useCallback(() => {
     const newErrors: Record<string, string> = {};
     
-    if (!formData.name.trim()) newErrors.name = t('errors.required');
+    if (!formData.firstName.trim()) newErrors.firstName = t('errors.required');
+    if (!formData.lastName.trim()) newErrors.lastName = t('errors.required');
     if (!formData.email.trim()) {
       newErrors.email = t('errors.required');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -559,15 +563,30 @@ const RegisterScreen = memo(function RegisterScreen() {
                 transition={{ delay: 0.2 }}
                 className="space-y-4 flex-1"
               >
-                <InputField
-                  icon={User}
-                  label={t('auth.fullName')}
-                  value={formData.name}
-                  onChange={handleChange('name')}
-                  error={errors.name}
-                  autoComplete="name"
-                  testId="input-name"
-                />
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <InputField
+                      icon={User}
+                      label={isRTL ? 'الاسم الأول' : 'First Name'}
+                      value={formData.firstName}
+                      onChange={handleChange('firstName')}
+                      error={errors.firstName}
+                      autoComplete="given-name"
+                      testId="input-first-name"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <InputField
+                      icon={User}
+                      label={isRTL ? 'اسم العائلة' : 'Last Name'}
+                      value={formData.lastName}
+                      onChange={handleChange('lastName')}
+                      error={errors.lastName}
+                      autoComplete="family-name"
+                      testId="input-last-name"
+                    />
+                  </div>
+                </div>
                 
                 <InputField
                   icon={Phone}
