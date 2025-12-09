@@ -2,7 +2,7 @@ import { db } from "./db";
 import { 
   users, tasks, bids, transactions, messages, notifications, savedTasks,
   professionalRoles, userProfessionalRoles, taskerAvailability, userPhotos,
-  directServiceRequests, otpCodes, reviews,
+  directServiceRequests, otpCodes, reviews, pushSubscriptions,
   insertUserSchema, insertTaskSchema, insertBidSchema, insertTransactionSchema,
   insertMessageSchema, insertNotificationSchema
 } from "@shared/schema";
@@ -11,7 +11,7 @@ import type {
   User, Task, Bid, Transaction, Message, Notification, SavedTask,
   ProfessionalRole, UserProfessionalRole, TaskerAvailability, UserPhoto,
   DirectServiceRequest, InsertDirectServiceRequest, OtpCode, InsertOtpCode,
-  Review, InsertReview,
+  Review, InsertReview, PushSubscription, InsertPushSubscription,
   InsertUser, InsertTask, InsertBid, InsertTransaction, InsertMessage, InsertNotification,
   InsertProfessionalRole, InsertUserProfessionalRole, InsertTaskerAvailability, InsertUserPhoto
 } from "@shared/schema";
@@ -113,6 +113,11 @@ export interface IStorage {
   getReviewsForUser(userId: string): Promise<Review[]>;
   getReviewForTask(taskId: string): Promise<Review | undefined>;
   calculateUserRating(userId: string): Promise<{ rating: string; count: number }>;
+  
+  // Push Subscriptions
+  savePushSubscription(data: InsertPushSubscription): Promise<PushSubscription>;
+  deletePushSubscription(userId: string): Promise<void>;
+  getPushSubscription(userId: string): Promise<PushSubscription | undefined>;
 }
 
 export const storage: IStorage = {
@@ -636,5 +641,24 @@ export const storage: IStorage = {
       rating: result[0]?.avgRating || "0.00",
       count: result[0]?.totalCount || 0
     };
+  },
+  
+  // Push Subscriptions
+  async savePushSubscription(data: InsertPushSubscription) {
+    // Upsert: delete existing subscription for this user and create new one
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, data.userId));
+    const result = await db.insert(pushSubscriptions).values(data).returning();
+    return result[0];
+  },
+  
+  async deletePushSubscription(userId: string) {
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+  },
+  
+  async getPushSubscription(userId: string) {
+    const result = await db.select().from(pushSubscriptions)
+      .where(eq(pushSubscriptions.userId, userId))
+      .limit(1);
+    return result[0];
   },
 };

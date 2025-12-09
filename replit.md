@@ -27,7 +27,7 @@ PostgreSQL, accessed via Neon serverless driver, serves as the primary database.
 Authentication supports multiple methods:
 -   **Password-based**: Traditional username/password with `bcrypt` hashing
 -   **Email OTP**: Passwordless login via email verification codes (Resend integration)
--   **Phone OTP**: Passwordless login via SMS codes (Infobip integration for Saudi numbers)
+-   **Phone OTP**: Passwordless login via SMS codes (Authentica integration for Saudi numbers 05XXXXXXXX)
 
 **Token-based authentication** using JWT is used for iOS WKWebView compatibility. Tokens are stored in localStorage and sent via Authorization header.
 
@@ -59,6 +59,11 @@ The application prioritizes an iOS-native feel with a premium glassmorphism aest
 -   **Direct Service Request Feature**: Clients can directly request services from tasker profiles, initiating a workflow of pending, accepted, or rejected requests, which can lead to auto-assigned tasks.
 -   **iOS PWA Setup**: Optimized for iOS devices with manifest.json, service worker for offline caching, branded icons, splash screens, and iOS-specific CSS.
 -   **Capacitor iOS Integration**: Configured for App Store deployment with all required app icons (20px-1024px), splash screens, and native plugins (SplashScreen, StatusBar, Keyboard, Haptics).
+-   **Push Notifications**: Web push via VAPID keys and native push via Capacitor plugin. Subscriptions stored in `push_subscriptions` table.
+-   **Tasker Level System**: Experience points and level progression (bronze → silver → gold → platinum → diamond) with reduced commission rates for higher levels.
+-   **Enhanced Rating System**: Detailed ratings for quality, speed, and communication in addition to overall rating.
+-   **Biometric Authentication**: Face ID / Touch ID support via Capacitor for iOS native app.
+-   **GPS Geolocation**: Automatic location detection with Riyadh boundary validation.
 
 ## External Dependencies
 

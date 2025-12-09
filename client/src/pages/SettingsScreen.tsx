@@ -1,14 +1,16 @@
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '@/context/AppContext';
 import { useToast } from '@/hooks/use-toast';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useBiometricAuth } from '@/hooks/useBiometricAuth';
 import { cn } from '@/lib/utils';
 import { 
   ArrowLeft, User, Lock, Bell, Moon, Sun, ArrowLeftRight, 
   HelpCircle, FileText, Shield, LogOut, ChevronRight, Languages,
-  BadgeCheck, Check, Briefcase
+  BadgeCheck, Check, Briefcase, BellRing, Fingerprint
 } from 'lucide-react';
 
 interface SettingItem {
@@ -35,8 +37,31 @@ const SettingsScreen = memo(function SettingsScreen() {
   const { toast } = useToast();
   const [showLanguageSheet, setShowLanguageSheet] = useState(false);
   
+  const { isSupported: pushSupported, isSubscribed, subscribe, unsubscribe, isLoading: pushLoading } = usePushNotifications();
+  const { isSupported: biometricSupported, isEnabled: biometricEnabled, enable: enableBiometric, disable: disableBiometric, checkAvailability, isLoading: biometricLoading } = useBiometricAuth();
+  
+  useEffect(() => {
+    checkAvailability();
+  }, [checkAvailability]);
+  
   const isArabic = i18n.language === 'ar';
   const currentLanguage = isArabic ? t('settings.arabic') : t('settings.english');
+  
+  const handlePushToggle = useCallback(async () => {
+    if (isSubscribed) {
+      await unsubscribe();
+    } else {
+      await subscribe();
+    }
+  }, [isSubscribed, subscribe, unsubscribe]);
+  
+  const handleBiometricToggle = useCallback(async () => {
+    if (biometricEnabled) {
+      await disableBiometric();
+    } else {
+      await enableBiometric();
+    }
+  }, [biometricEnabled, enableBiometric, disableBiometric]);
 
   const handleLogout = useCallback(() => {
     logout();
@@ -62,9 +87,22 @@ const SettingsScreen = memo(function SettingsScreen() {
   const accountItems: SettingItem[] = useMemo(() => [
     { icon: User, label: t('profile.editProfile'), path: '/profile/edit' },
     { icon: Lock, label: t('settings.changePassword'), action: () => {} },
-    { icon: Bell, label: t('settings.notifications'), action: () => {} },
+    ...(pushSupported ? [{
+      icon: BellRing,
+      label: isArabic ? 'الإشعارات الفورية' : 'Push Notifications',
+      toggle: true,
+      value: isSubscribed,
+      action: handlePushToggle,
+    }] : []),
+    ...(biometricSupported ? [{
+      icon: Fingerprint,
+      label: isArabic ? 'تسجيل الدخول بالبصمة' : 'Face ID / Touch ID',
+      toggle: true,
+      value: biometricEnabled,
+      action: handleBiometricToggle,
+    }] : []),
     ...(userRole === 'tasker' ? [{ icon: BadgeCheck, label: t('settings.verifyIdentity'), path: '/verify', iconColor: 'text-accent' }] : []),
-  ], [t, userRole]);
+  ], [t, userRole, pushSupported, isSubscribed, handlePushToggle, biometricSupported, biometricEnabled, handleBiometricToggle, isArabic]);
 
   const preferencesItems: SettingItem[] = useMemo(() => [
     { 

@@ -22,6 +22,9 @@ export const availabilityStatusEnum = pgEnum("availability_status", ["available"
 export const taskerTypeEnum = pgEnum("tasker_type", ["general", "specialized"]);
 export const taskerVerificationStatusEnum = pgEnum("tasker_verification_status", ["pending", "approved", "rejected"]);
 
+// Tasker level enum for level system
+export const taskerLevelEnum = pgEnum("tasker_level", ["bronze", "silver", "gold", "platinum", "diamond"]);
+
 // Users table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -43,6 +46,13 @@ export const users = pgTable("users", {
   certificateUrl: text("certificate_url"),
   specializationCategory: text("specialization_category"),
   isAdmin: boolean("is_admin").notNull().default(false),
+  // Level system fields
+  taskerLevel: taskerLevelEnum("tasker_level").default("bronze"),
+  experiencePoints: integer("experience_points").notNull().default(0),
+  // Biometric auth preference
+  biometricEnabled: boolean("biometric_enabled").notNull().default(false),
+  // Push notification token
+  pushToken: text("push_token"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -58,6 +68,10 @@ export const tasks = pgTable("tasks", {
   longitude: decimal("longitude", { precision: 10, scale: 7 }),
   date: text("date").notNull(),
   time: text("time").notNull(),
+  // Task scheduling fields
+  isScheduled: boolean("is_scheduled").notNull().default(false),
+  scheduledDateTime: timestamp("scheduled_date_time"),
+  reminderSent: boolean("reminder_sent").notNull().default(false),
   status: taskStatusEnum("status").notNull().default("open"),
   clientId: varchar("client_id").notNull().references(() => users.id),
   taskerId: varchar("tasker_id").references(() => users.id),
@@ -154,11 +168,16 @@ export const taskerAvailability = pgTable("tasker_availability", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// User portfolio photos
+// Media type enum for portfolio
+export const mediaTypeEnum = pgEnum("media_type", ["image", "video"]);
+
+// User portfolio media (photos and videos)
 export const userPhotos = pgTable("user_photos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
   url: text("url").notNull(),
+  thumbnailUrl: text("thumbnail_url"), // Video thumbnail
+  mediaType: mediaTypeEnum("media_type").notNull().default("image"),
   caption: text("caption"),
   displayOrder: integer("display_order").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -319,6 +338,24 @@ export const directServiceRequestsRelations = relations(directServiceRequests, (
   }),
 }));
 
+// Push notification subscriptions
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  deviceType: text("device_type"), // ios, android, web
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
+  user: one(users, {
+    fields: [pushSubscriptions.userId],
+    references: [users.id],
+  }),
+}));
+
 // OTP verification table
 export const otpCodes = pgTable("otp_codes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -333,13 +370,17 @@ export const otpCodes = pgTable("otp_codes", {
 
 export const otpCodesRelations = relations(otpCodes, ({ }) => ({}));
 
-// Reviews table for task ratings
+// Reviews table for task ratings with detailed ratings
 export const reviews = pgTable("reviews", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   taskId: varchar("task_id").notNull().references(() => tasks.id),
   reviewerId: varchar("reviewer_id").notNull().references(() => users.id), // Client who leaves review
   revieweeId: varchar("reviewee_id").notNull().references(() => users.id), // Tasker receiving review
-  rating: integer("rating").notNull(), // 1-5 stars
+  rating: integer("rating").notNull(), // 1-5 stars overall
+  // Detailed ratings (1-5 each)
+  qualityRating: integer("quality_rating"), // جودة العمل
+  speedRating: integer("speed_rating"), // سرعة الإنجاز
+  communicationRating: integer("communication_rating"), // التواصل
   comment: text("comment"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -485,6 +526,13 @@ export type OtpCode = typeof otpCodes.$inferSelect;
 
 export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type Review = typeof reviews.$inferSelect;
+
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 
 // Extended types for frontend
 export type TaskWithDetails = Task & {

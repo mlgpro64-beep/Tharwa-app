@@ -5,6 +5,8 @@ import type { User } from "@shared/schema";
 import "express-session";
 import { sendOtpEmail } from "./email";
 import { sendOtpSms, isValidSaudiPhone } from "./sms";
+import { getVapidPublicKey, sendPushNotification } from "./push";
+import { calculateLevel, calculateProgress, POINT_VALUES, getLevelInfo } from "./levels";
 import crypto from "crypto";
 
 let bcrypt: any;
@@ -695,6 +697,24 @@ router.get("/api/tasks/:id", async (req, res) => {
 // Daily task limit for clients: 5 tasks per day
 const DAILY_TASK_LIMIT = 5;
 
+// Riyadh city boundaries for location validation
+const RIYADH_BOUNDS = {
+  north: 25.1,
+  south: 24.3,
+  east: 47.1,
+  west: 46.4,
+};
+
+function isLocationInRiyadh(latitude?: number, longitude?: number): boolean {
+  if (latitude === undefined || longitude === undefined) return true; // Skip validation if no coords
+  return (
+    latitude >= RIYADH_BOUNDS.south &&
+    latitude <= RIYADH_BOUNDS.north &&
+    longitude >= RIYADH_BOUNDS.west &&
+    longitude <= RIYADH_BOUNDS.east
+  );
+}
+
 router.get("/api/tasks/my/today-count", async (req, res) => {
   try {
     if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
@@ -719,6 +739,36 @@ router.post("/api/tasks", async (req, res) => {
         limit: DAILY_TASK_LIMIT,
         count: todayCount
       });
+    }
+    
+    // Validate location is within Riyadh
+    const { latitude, longitude } = req.body;
+    if (latitude !== undefined && longitude !== undefined) {
+      const lat = typeof latitude === 'string' ? parseFloat(latitude) : Number(latitude);
+      const lng = typeof longitude === 'string' ? parseFloat(longitude) : Number(longitude);
+      
+      // Validate they are valid numbers
+      if (isNaN(lat) || isNaN(lng)) {
+        return res.status(400).json({ 
+          error: "Invalid coordinates",
+          message: "إحداثيات الموقع غير صحيحة",
+        });
+      }
+      
+      // Validate they are in valid ranges
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        return res.status(400).json({ 
+          error: "Invalid coordinates",
+          message: "إحداثيات الموقع غير صحيحة",
+        });
+      }
+      
+      if (!isLocationInRiyadh(lat, lng)) {
+        return res.status(400).json({ 
+          error: "Location outside Riyadh",
+          message: "الخدمة متاحة حالياً في الرياض فقط",
+        });
+      }
     }
     
     const data = { ...req.body, clientId: req.userId };
@@ -757,6 +807,36 @@ router.patch("/api/tasks/:id", async (req, res) => {
     const task = await storage.getTask(req.params.id);
     if (!task) return res.status(404).json({ error: "Task not found" });
     if (task.clientId !== req.userId) return res.status(403).json({ error: "Not authorized" });
+    
+    // Validate location is within Riyadh if updating coordinates
+    const { latitude, longitude } = req.body;
+    if (latitude !== undefined && longitude !== undefined) {
+      const lat = typeof latitude === 'string' ? parseFloat(latitude) : Number(latitude);
+      const lng = typeof longitude === 'string' ? parseFloat(longitude) : Number(longitude);
+      
+      // Validate they are valid numbers
+      if (isNaN(lat) || isNaN(lng)) {
+        return res.status(400).json({ 
+          error: "Invalid coordinates",
+          message: "إحداثيات الموقع غير صحيحة",
+        });
+      }
+      
+      // Validate they are in valid ranges
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        return res.status(400).json({ 
+          error: "Invalid coordinates",
+          message: "إحداثيات الموقع غير صحيحة",
+        });
+      }
+      
+      if (!isLocationInRiyadh(lat, lng)) {
+        return res.status(400).json({ 
+          error: "Location outside Riyadh",
+          message: "الخدمة متاحة حالياً في الرياض فقط",
+        });
+      }
+    }
     
     const updated = await storage.updateTask(req.params.id, req.body);
     res.json(updated);
@@ -2036,6 +2116,208 @@ router.get("/api/tasks/:id/review", async (req, res) => {
   try {
     const review = await storage.getReviewForTask(req.params.id);
     res.json({ hasReview: !!review, review });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============= PUSH NOTIFICATIONS =============
+
+// Get VAPID public key
+router.get("/api/push/vapid-key", (req, res) => {
+  res.json({ publicKey: getVapidPublicKey() });
+});
+
+// Subscribe to push notifications
+router.post("/api/push/subscribe", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const { endpoint, p256dh, auth, deviceType } = req.body;
+    
+    if (!endpoint || typeof endpoint !== 'string') {
+      return res.status(400).json({ error: "Endpoint is required" });
+    }
+    
+    if (!deviceType || typeof deviceType !== 'string') {
+      return res.status(400).json({ error: "Device type is required" });
+    }
+    
+    // Validate device type
+    const validDeviceTypes = ['web', 'ios', 'android'];
+    if (!validDeviceTypes.includes(deviceType)) {
+      return res.status(400).json({ error: "Invalid device type" });
+    }
+    
+    // For web subscriptions, require valid p256dh and auth keys
+    if (deviceType === 'web') {
+      if (!p256dh || typeof p256dh !== 'string' || p256dh === '' || p256dh === 'native' || p256dh.length < 20) {
+        return res.status(400).json({ error: "Valid p256dh key is required for web subscriptions" });
+      }
+      if (!auth || typeof auth !== 'string' || auth === '' || auth === 'native' || auth.length < 10) {
+        return res.status(400).json({ error: "Valid auth key is required for web subscriptions" });
+      }
+      // Web push endpoints must be HTTPS URLs
+      if (!endpoint.startsWith('https://')) {
+        return res.status(400).json({ error: "Invalid web push endpoint" });
+      }
+    }
+    
+    // For native platforms (ios/android), endpoint should contain native prefix
+    if ((deviceType === 'ios' || deviceType === 'android')) {
+      // Native tokens can be plain tokens or prefixed - accept either
+      console.log(`[Push] Native subscription: ${deviceType}, endpoint length: ${endpoint.length}`);
+    }
+    
+    // Save subscription to database
+    await storage.savePushSubscription({
+      userId: req.userId,
+      endpoint,
+      p256dh: deviceType === 'web' ? p256dh : 'native',
+      auth: deviceType === 'web' ? auth : 'native',
+      deviceType,
+    });
+    
+    // Update user's push token for native apps
+    if (deviceType === 'ios' || deviceType === 'android') {
+      await storage.updateUser(req.userId, { pushToken: endpoint });
+    }
+    
+    console.log(`[Push] Subscription saved for user ${req.userId}, type: ${deviceType}`);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[Push] Subscribe error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Unsubscribe from push notifications
+router.post("/api/push/unsubscribe", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    await storage.deletePushSubscription(req.userId);
+    await storage.updateUser(req.userId, { pushToken: null });
+    
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============= LEVEL SYSTEM =============
+
+// Get user level info
+router.get("/api/users/:id/level", async (req, res) => {
+  try {
+    const user = await storage.getUser(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    
+    const progress = calculateProgress(user.experiencePoints || 0);
+    
+    res.json({
+      level: user.taskerLevel || 'bronze',
+      experiencePoints: user.experiencePoints || 0,
+      ...progress,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============= ENHANCED REVIEWS =============
+
+// Create review with detailed ratings
+router.post("/api/tasks/:id/review-detailed", async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    const taskId = req.params.id;
+    const { rating, qualityRating, speedRating, communicationRating, comment } = req.body;
+    
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: "Rating must be between 1 and 5" });
+    }
+    
+    const task = await storage.getTask(taskId);
+    if (!task) return res.status(404).json({ error: "Task not found" });
+    
+    if (task.clientId !== req.userId) {
+      return res.status(403).json({ error: "Only the client can review the tasker" });
+    }
+    
+    if (task.status !== 'completed') {
+      return res.status(400).json({ error: "Task must be completed before reviewing" });
+    }
+    
+    if (!task.taskerId) {
+      return res.status(400).json({ error: "Task has no assigned tasker" });
+    }
+    
+    const existingReview = await storage.getReviewForTask(taskId);
+    if (existingReview) {
+      return res.status(400).json({ error: "Review already exists for this task" });
+    }
+    
+    const review = await storage.createReview({
+      taskId,
+      reviewerId: req.userId,
+      revieweeId: task.taskerId,
+      rating,
+      qualityRating: qualityRating || null,
+      speedRating: speedRating || null,
+      communicationRating: communicationRating || null,
+      comment: comment || null,
+    });
+    
+    // Update tasker's rating
+    const { rating: avgRating, count } = await storage.calculateUserRating(task.taskerId);
+    await storage.updateUser(task.taskerId, { rating: avgRating });
+    
+    // Award experience points based on rating
+    const tasker = await storage.getUser(task.taskerId);
+    if (tasker) {
+      let pointsEarned = POINT_VALUES.taskCompleted;
+      if (rating === 5) pointsEarned += POINT_VALUES.fiveStarRating;
+      else if (rating === 4) pointsEarned += POINT_VALUES.fourStarRating;
+      else if (rating === 3) pointsEarned += POINT_VALUES.threeStarRating;
+      
+      const newPoints = (tasker.experiencePoints || 0) + pointsEarned;
+      const newLevel = calculateLevel(newPoints);
+      
+      await storage.updateUser(task.taskerId, {
+        experiencePoints: newPoints,
+        taskerLevel: newLevel,
+      });
+      
+      // Notify tasker of level up if applicable
+      if (newLevel !== tasker.taskerLevel) {
+        const levelInfo = getLevelInfo(newLevel);
+        await storage.createNotification({
+          userId: task.taskerId,
+          type: 'system',
+          title: 'ترقية المستوى! 🎉',
+          message: `مبروك! وصلت إلى المستوى ${levelInfo.nameAr}`,
+          icon: 'trophy',
+          color: 'success',
+          actionUrl: '/profile',
+        });
+      }
+    }
+    
+    // Notify tasker
+    const client = await storage.getUser(req.userId);
+    await storage.createNotification({
+      userId: task.taskerId,
+      type: 'review',
+      title: 'تقييم جديد',
+      message: `${client?.name || 'العميل'} قيّمك ${rating} نجوم`,
+      icon: 'star',
+      color: 'warning',
+      actionUrl: '/profile',
+    });
+    
+    res.json({ review, newRating: avgRating, totalReviews: count });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

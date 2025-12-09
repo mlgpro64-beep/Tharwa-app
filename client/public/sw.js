@@ -27,6 +27,56 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Push notification event handlers
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+  
+  try {
+    const payload = event.data.json();
+    
+    const options = {
+      body: payload.body || '',
+      icon: payload.icon || '/favicon.png',
+      badge: payload.badge || '/favicon.png',
+      data: payload.data || {},
+      actions: payload.actions || [],
+      tag: payload.tag || 'tharwa-notification',
+      renotify: true,
+      requireInteraction: payload.requireInteraction || false,
+    };
+    
+    event.waitUntil(
+      self.registration.showNotification(payload.title || 'ذروة', options)
+    );
+  } catch (e) {
+    console.error('[SW] Push parse error:', e);
+  }
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  
+  const data = event.notification.data || {};
+  const url = data.url || data.actionUrl || '/';
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.focus();
+          if (url !== '/') {
+            client.navigate(url);
+          }
+          return;
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(url);
+      }
+    })
+  );
+});
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   
