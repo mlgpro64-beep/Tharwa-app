@@ -95,11 +95,26 @@ router.use(getCurrentUser);
 // Auth routes
 router.post("/api/auth/register", async (req, res) => {
   try {
-    const { username, email, password, name, role, taskerType, certificateUrl } = req.body;
+    const { username, email, password, name, role, taskerType, certificateUrl, phone } = req.body;
     
+    // Check if phone number is already registered (username = phone)
+    const existingPhone = await storage.getUserByPhone(username);
+    if (existingPhone) {
+      return res.status(400).json({ error: "رقم الجوال مسجل مسبقاً" });
+    }
+    
+    // Also check by username
     const existingUser = await storage.getUserByUsername(username);
     if (existingUser) {
-      return res.status(400).json({ error: "Username already taken" });
+      return res.status(400).json({ error: "رقم الجوال مسجل مسبقاً" });
+    }
+    
+    // Check if email is already registered
+    if (email) {
+      const existingEmail = await storage.getUserByEmail(email);
+      if (existingEmail) {
+        return res.status(400).json({ error: "البريد الإلكتروني مسجل مسبقاً" });
+      }
     }
     
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -108,6 +123,7 @@ router.post("/api/auth/register", async (req, res) => {
       email,
       password: hashedPassword,
       name,
+      phone: phone || username, // Store phone number
       role: role || "client",
     };
     
