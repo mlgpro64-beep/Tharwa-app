@@ -17,6 +17,9 @@ const ChatScreen = memo(function ChatScreen() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptRef = useRef(0);
+  const [wsConnected, setWsConnected] = useState(false);
   const isAuthenticated = !!localStorage.getItem('userId');
 
   const { data: currentUser } = useQuery<User>({
@@ -35,32 +38,72 @@ const ChatScreen = memo(function ChatScreen() {
     enabled: isAuthenticated && !!taskId,
   });
 
+  // WebSocket connection with auto-reconnect
   useEffect(() => {
     if (!taskId) return;
-
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws?taskId=${taskId}`;
     
-    try {
-      wsRef.current = new WebSocket(wsUrl);
+    const MAX_RECONNECT_ATTEMPTS = 5;
+    const BASE_DELAY = 1000; // 1 second
+    
+    const connectWebSocket = () => {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws?taskId=${taskId}`;
       
-      wsRef.current.onmessage = (event) => {
-        try {
-          const { type, data } = JSON.parse(event.data);
-          if (type === 'message') {
-            setDisplayMessages(prev => [...prev, data]);
+      try {
+        wsRef.current = new WebSocket(wsUrl);
+        
+        wsRef.current.onopen = () => {
+          console.log('[WS] Connected');
+          setWsConnected(true);
+          reconnectAttemptRef.current = 0; // Reset attempts on successful connection
+        };
+        
+        wsRef.current.onmessage = (event) => {
+          try {
+            const { type, data } = JSON.parse(event.data);
+            if (type === 'message') {
+              setDisplayMessages(prev => [...prev, data]);
+            }
+          } catch (error) {
+            console.error('[WS] Failed to parse message', error);
           }
-        } catch (error) {
-          console.error('Failed to parse WebSocket message', error);
-        }
-      };
-    } catch (error) {
-      console.error('WebSocket connection failed, falling back to polling', error);
-    }
+        };
+        
+        wsRef.current.onclose = (event) => {
+          console.log('[WS] Disconnected', event.code, event.reason);
+          setWsConnected(false);
+          
+          // Don't reconnect if it was a clean close or max attempts reached
+          if (event.code !== 1000 && reconnectAttemptRef.current < MAX_RECONNECT_ATTEMPTS) {
+            // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+            const delay = BASE_DELAY * Math.pow(2, reconnectAttemptRef.current);
+            console.log(`[WS] Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current + 1})`);
+            
+            reconnectTimeoutRef.current = setTimeout(() => {
+              reconnectAttemptRef.current++;
+              connectWebSocket();
+            }, delay);
+          }
+        };
+        
+        wsRef.current.onerror = (error) => {
+          console.error('[WS] Error:', error);
+        };
+        
+      } catch (error) {
+        console.error('[WS] Connection failed, falling back to polling', error);
+      }
+    };
+    
+    connectWebSocket();
 
     return () => {
+      // Clear any pending reconnect
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
       if (wsRef.current) {
-        wsRef.current.close();
+        wsRef.current.close(1000); // Clean close
       }
     };
   }, [taskId]);

@@ -24,9 +24,32 @@ function getAuthHeaders(): Record<string, string> {
   return {};
 }
 
+// Custom error class for rate limiting
+export class RateLimitError extends Error {
+  retryAfter: number;
+  
+  constructor(message: string, retryAfter: number) {
+    super(message);
+    this.name = 'RateLimitError';
+    this.retryAfter = retryAfter;
+  }
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
+    
+    // Handle rate limiting specifically
+    if (res.status === 429) {
+      try {
+        const json = JSON.parse(text);
+        throw new RateLimitError(json.error || 'تم تجاوز الحد الأقصى للطلبات', json.retryAfter || 60);
+      } catch (e) {
+        if (e instanceof RateLimitError) throw e;
+        throw new RateLimitError('تم تجاوز الحد الأقصى للطلبات. حاول مرة أخرى لاحقاً', 60);
+      }
+    }
+    
     throw new Error(`${res.status}: ${text}`);
   }
 }

@@ -9,6 +9,80 @@ import { getVapidPublicKey, sendPushNotification } from "./push";
 import { calculateLevel, calculateProgress, POINT_VALUES, getLevelInfo } from "./levels";
 import crypto from "crypto";
 
+// ============================================
+// Rate Limiting System
+// ============================================
+interface RateLimitEntry {
+  count: number;
+  resetTime: number;
+}
+
+const rateLimitStore = new Map<string, RateLimitEntry>();
+
+// Clean up expired entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitStore.entries()) {
+    if (now > entry.resetTime) {
+      rateLimitStore.delete(key);
+    }
+  }
+}, 5 * 60 * 1000);
+
+function checkRateLimit(
+  key: string, 
+  maxRequests: number, 
+  windowMs: number
+): { allowed: boolean; remaining: number; resetIn: number } {
+  const now = Date.now();
+  const entry = rateLimitStore.get(key);
+  
+  if (!entry || now > entry.resetTime) {
+    rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
+    return { allowed: true, remaining: maxRequests - 1, resetIn: windowMs };
+  }
+  
+  if (entry.count >= maxRequests) {
+    return { 
+      allowed: false, 
+      remaining: 0, 
+      resetIn: entry.resetTime - now 
+    };
+  }
+  
+  entry.count++;
+  return { 
+    allowed: true, 
+    remaining: maxRequests - entry.count, 
+    resetIn: entry.resetTime - now 
+  };
+}
+
+// Rate limit middleware factory
+function rateLimit(maxRequests: number, windowMs: number, keyFn: (req: Request) => string) {
+  return (req: Request, res: Response, next: Function) => {
+    const key = keyFn(req);
+    const result = checkRateLimit(key, maxRequests, windowMs);
+    
+    res.setHeader('X-RateLimit-Remaining', result.remaining.toString());
+    res.setHeader('X-RateLimit-Reset', Math.ceil(result.resetIn / 1000).toString());
+    
+    if (!result.allowed) {
+      const waitSeconds = Math.ceil(result.resetIn / 1000);
+      return res.status(429).json({ 
+        error: `تم تجاوز الحد الأقصى للطلبات. حاول مرة أخرى بعد ${waitSeconds} ثانية`,
+        retryAfter: waitSeconds
+      });
+    }
+    
+    next();
+  };
+}
+
+// Rate limit configs
+const otpRateLimit = rateLimit(3, 5 * 60 * 1000, (req) => `otp:${req.body.phone || req.body.email || req.ip}`);
+const loginRateLimit = rateLimit(5, 15 * 60 * 1000, (req) => `login:${req.body.phone || req.body.email || req.body.username || req.ip}`);
+
 let bcrypt: any;
 try {
   bcrypt = require("bcryptjs");
@@ -157,7 +231,7 @@ router.post("/api/auth/register", async (req, res) => {
   }
 });
 
-router.post("/api/auth/login", async (req, res) => {
+router.post("/api/auth/login", loginRateLimit, async (req, res) => {
   try {
     const { username, password } = req.body;
     
@@ -194,7 +268,7 @@ function generateOTP(): string {
 }
 
 // Send OTP via email
-router.post("/api/auth/send-otp", async (req, res) => {
+router.post("/api/auth/send-otp", otpRateLimit, async (req, res) => {
   try {
     const { email, type = "registration" } = req.body;
     
@@ -248,7 +322,7 @@ router.post("/api/auth/send-otp", async (req, res) => {
 });
 
 // Verify OTP
-router.post("/api/auth/verify-otp", async (req, res) => {
+router.post("/api/auth/verify-otp", otpRateLimit, async (req, res) => {
   try {
     const { email, code, type = "registration" } = req.body;
     
@@ -284,7 +358,7 @@ router.post("/api/auth/verify-otp", async (req, res) => {
 });
 
 // Login with OTP (passwordless)
-router.post("/api/auth/login-with-otp", async (req, res) => {
+router.post("/api/auth/login-with-otp", loginRateLimit, async (req, res) => {
   try {
     const { email, otpCode } = req.body;
     
@@ -331,7 +405,7 @@ router.post("/api/auth/login-with-otp", async (req, res) => {
 });
 
 // Send OTP via SMS (phone)
-router.post("/api/auth/send-phone-otp", async (req, res) => {
+router.post("/api/auth/send-phone-otp", otpRateLimit, async (req, res) => {
   try {
     const { phone, type = "login" } = req.body;
     
@@ -391,7 +465,7 @@ router.post("/api/auth/send-phone-otp", async (req, res) => {
 });
 
 // Verify phone OTP (for registration)
-router.post("/api/auth/verify-phone-otp", async (req, res) => {
+router.post("/api/auth/verify-phone-otp", otpRateLimit, async (req, res) => {
   try {
     const { phone, otpCode } = req.body;
     
@@ -423,7 +497,7 @@ router.post("/api/auth/verify-phone-otp", async (req, res) => {
 });
 
 // Login with phone OTP
-router.post("/api/auth/login-with-phone-otp", async (req, res) => {
+router.post("/api/auth/login-with-phone-otp", loginRateLimit, async (req, res) => {
   try {
     const { phone, otpCode } = req.body;
     
@@ -729,6 +803,39 @@ router.get("/api/tasks/my/today-count", async (req, res) => {
 router.post("/api/tasks", async (req, res) => {
   try {
     if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    
+    // Validate required fields
+    const { title, description, budget, category } = req.body;
+    
+    if (!title || typeof title !== 'string' || title.trim().length < 3) {
+      return res.status(400).json({ 
+        error: "Invalid title",
+        message: "عنوان المهمة يجب أن يكون 3 أحرف على الأقل",
+      });
+    }
+    
+    if (!description || typeof description !== 'string' || description.trim().length < 10) {
+      return res.status(400).json({ 
+        error: "Invalid description",
+        message: "وصف المهمة يجب أن يكون 10 أحرف على الأقل",
+      });
+    }
+    
+    // Validate budget (must be positive number, min 10 SAR)
+    const budgetNum = typeof budget === 'string' ? parseFloat(budget) : Number(budget);
+    if (isNaN(budgetNum) || budgetNum < 10 || budgetNum > 100000) {
+      return res.status(400).json({ 
+        error: "Invalid budget",
+        message: "الميزانية يجب أن تكون بين 10 و 100,000 ريال",
+      });
+    }
+    
+    if (!category || typeof category !== 'string') {
+      return res.status(400).json({ 
+        error: "Invalid category",
+        message: "يجب اختيار تصنيف للمهمة",
+      });
+    }
     
     // Check daily task limit for clients
     const todayCount = await storage.getTasksCreatedToday(String(req.userId));
