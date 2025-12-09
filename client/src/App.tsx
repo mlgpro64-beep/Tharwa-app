@@ -75,12 +75,12 @@ const PageLoader = memo(function PageLoader() {
 const UnauthenticatedRoutes = memo(function UnauthenticatedRoutes() {
   return (
     <Switch>
-      <Route path="/" component={WelcomeScreen} />
+      <Route path="/" component={LoginScreen} />
       <Route path="/role" component={SelectRoleScreen} />
       <Route path="/tasker-type" component={TaskerTypeScreen} />
       <Route path="/register" component={RegisterScreen} />
       <Route path="/login" component={LoginScreen} />
-      <Route component={WelcomeScreen} />
+      <Route component={LoginScreen} />
     </Switch>
   );
 });
