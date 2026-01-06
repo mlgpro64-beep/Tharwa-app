@@ -1,16 +1,12 @@
-// API Configuration for Capacitor iOS app
+// API Configuration
 // 
-// When running in Xcode simulator, the app needs to connect to your Replit backend.
-// Replace the URL below with your actual Replit URL.
+// When running in production, the app connects to Railway backend.
+// Set VITE_API_URL environment variable in Railway Dashboard.
 // 
-// To find your URL:
-// 1. Open your Replit project
-// 2. Look at the Webview panel URL or click "Open in new tab"
-// 3. Copy the URL (e.g., https://your-project.your-username.replit.app)
+// For local development, leave empty to use relative URLs.
 
-// Set this to your Replit URL when testing in Xcode
-// Leave empty ('') to use relative URLs (for web/PWA mode)
-export const REPLIT_API_URL = 'https://758b6ce0-8b1f-4d3b-91fc-8a652cb0679b-00-1f8q924g3ablw.worf.replit.dev';
+// Get API URL from environment variable (set in Railway) or use relative URLs
+export const API_URL = import.meta.env.VITE_API_URL || '';
 
 // Detect if running in Capacitor native app
 export const isCapacitor = typeof window !== 'undefined' && 
@@ -18,19 +14,19 @@ export const isCapacitor = typeof window !== 'undefined' &&
 
 // Get the base URL for API calls
 export function getApiBaseUrl(): string {
-  // If a Replit URL is configured, use it
-  if (REPLIT_API_URL) {
-    return REPLIT_API_URL;
+  // If an API URL is configured (from environment variable), use it
+  if (API_URL) {
+    return API_URL;
   }
   
   // In Capacitor, we need an absolute URL
   if (isCapacitor) {
-    // Default to empty - user must set REPLIT_API_URL
-    console.warn('Running in Capacitor but no REPLIT_API_URL configured. API calls may fail.');
+    console.warn('Running in Capacitor but no API_URL configured. API calls may fail.');
+    console.warn('Set VITE_API_URL environment variable in Railway Dashboard.');
     return '';
   }
   
-  // In browser/PWA, use relative URLs
+  // In browser/PWA, use relative URLs (same domain)
   return '';
 }
 

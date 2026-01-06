@@ -32,28 +32,53 @@ declare module "http" {
   }
 }
 
-// CORS middleware for Capacitor iOS app
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+// CORS middleware
 app.use((req, res, next) => {
-  const allowedOrigins = [
-    'capacitor://localhost',
-    'ionic://localhost',
-    'http://localhost',
-    'http://localhost:5000',
-    'http://localhost:5173',
-    'https://localhost',
-    'https://758b6ce0-8b1f-4d3b-91fc-8a652cb0679b-00-1f8q924g3ablw.worf.replit.dev',
-    'null' // For file:// or capacitor:// origins that show as null
-  ];
-  
   const origin = req.headers.origin;
+  
+  // Get allowed origins from environment or use defaults
+  const productionDomain = process.env.RAILWAY_PUBLIC_DOMAIN || process.env.PUBLIC_DOMAIN;
+  const allowedOrigins: string[] = [];
+  
+  // In production, allow the Railway domain
+  if (productionDomain && !isDevelopment) {
+    allowedOrigins.push(`https://${productionDomain}`);
+    allowedOrigins.push(`http://${productionDomain}`);
+  }
+  
+  // In development, allow localhost origins
+  if (isDevelopment) {
+    allowedOrigins.push(
+      'capacitor://localhost',
+      'ionic://localhost',
+      'http://localhost',
+      'http://localhost:5000',
+      'http://localhost:5173',
+      'https://localhost'
+    );
+  }
+  
+  // Always allow null origin (for Capacitor iOS/file://)
+  allowedOrigins.push('null');
+  
   // #region agent log
-  try { fs.appendFileSync(logPath, JSON.stringify({location:'server/index.ts:36',message:'CORS check',data:{origin,isAllowed:allowedOrigins.includes(origin||''),path:req.path},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n'); } catch {}
+  try { fs.appendFileSync(logPath, JSON.stringify({location:'server/index.ts:36',message:'CORS check',data:{origin,isAllowed:allowedOrigins.includes(origin||''),productionDomain,isDevelopment},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n'); } catch {}
   // #endregion
+  
+  // Set CORS headers
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   } else if (!origin || origin === 'null') {
     // Allow requests with no origin (like from Capacitor iOS)
     res.setHeader('Access-Control-Allow-Origin', '*');
+  } else if (productionDomain && origin?.includes(productionDomain)) {
+    // Allow subdomains or variations of production domain
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (origin && origin.includes('tharwwa.com')) {
+    // Explicitly allow tharwwa.com
+    res.setHeader('Access-Control-Allow-Origin', origin);
   }
   
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -80,7 +105,6 @@ app.use(express.urlencoded({ extended: false }));
 // Session middleware
 const MemoryStore = createMemoryStore(session);
 app.set('trust proxy', 1);
-const isDevelopment = process.env.NODE_ENV === 'development';
 // #region agent log
 try { fs.appendFileSync(logPath, JSON.stringify({location:'server/index.ts:67',message:'Session config',data:{isDevelopment,secure:!isDevelopment},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n'); } catch {}
 // #endregion
