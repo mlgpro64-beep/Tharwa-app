@@ -3,19 +3,52 @@ import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '@/context/AppContext';
-import { Clock, RefreshCw, LogOut, CheckCircle } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Clock, RefreshCw, LogOut, CheckCircle, Zap } from 'lucide-react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 import type { User } from '@shared/schema';
 
 const PendingApprovalScreen = memo(function PendingApprovalScreen() {
   const [, setLocation] = useLocation();
   const { t, i18n } = useTranslation();
   const { user, setUser, logout } = useApp();
+  const { toast } = useToast();
   const isArabic = i18n.language === 'ar';
+  const isDevelopment = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
 
   const { data: currentUser, refetch } = useQuery<User>({
     queryKey: ['/api/users/me'],
     refetchInterval: 10000,
+  });
+
+  const autoApproveMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/users/auto-approve');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to approve');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setUser(data.user);
+      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
+      toast({
+        title: isArabic ? 'تم الاعتماد بنجاح!' : 'Approved successfully!',
+        description: isArabic ? 'تم اعتماد حسابك كمنفذ' : 'Your account has been approved as a tasker',
+      });
+      setTimeout(() => {
+        setLocation('/home');
+      }, 1000);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: isArabic ? 'خطأ' : 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
   });
 
   useEffect(() => {
@@ -34,6 +67,10 @@ const PendingApprovalScreen = memo(function PendingApprovalScreen() {
 
   const handleRefresh = () => {
     refetch();
+  };
+
+  const handleAutoApprove = () => {
+    autoApproveMutation.mutate();
   };
 
   return (
@@ -97,6 +134,21 @@ const PendingApprovalScreen = memo(function PendingApprovalScreen() {
             </div>
           </div>
         </div>
+
+        {isDevelopment && (
+          <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleAutoApprove}
+            disabled={autoApproveMutation.isPending}
+            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-primary to-accent text-white flex items-center justify-center gap-2 font-bold shadow-lg shadow-primary/30 disabled:opacity-50"
+            data-testid="button-auto-approve"
+          >
+            <Zap className="w-5 h-5" />
+            <span>{isArabic ? 'اعتماد تلقائي (تطوير)' : 'Auto Approve (Dev)'}</span>
+          </motion.button>
+        )}
 
         <div className="flex gap-3">
           <motion.button

@@ -11,7 +11,13 @@ const viteLogger = createLogger();
 export async function setupVite(server: Server, app: Express) {
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server, path: "/vite-hmr" },
+    hmr: { 
+      server, 
+      path: "/vite-hmr",
+      protocol: 'ws',
+      host: 'localhost',
+      port: 5000,
+    },
     allowedHosts: true as const,
   };
 
@@ -48,6 +54,8 @@ export async function setupVite(server: Server, app: Express) {
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
+      // Add ngrok skip browser warning header
+      res.setHeader('ngrok-skip-browser-warning', 'true');
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {

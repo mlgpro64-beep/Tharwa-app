@@ -6,12 +6,11 @@ import { useApp } from '@/context/AppContext';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest, setAuthToken } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, LogIn, Loader2, Smartphone, Phone } from 'lucide-react';
+import { ArrowLeft, LogIn, Loader2, Phone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FormData {
   phone: string;
-  otpCode: string;
 }
 
 const LoginScreen = memo(function LoginScreen() {
@@ -22,10 +21,8 @@ const LoginScreen = memo(function LoginScreen() {
   const isRTL = i18n.language === 'ar';
   const isArabic = i18n.language === 'ar';
   
-  const [otpSent, setOtpSent] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     phone: '',
-    otpCode: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -41,7 +38,8 @@ const LoginScreen = memo(function LoginScreen() {
       return response.json();
     },
     onSuccess: () => {
-      setOtpSent(true);
+      // Navigate to OTP verification page
+      setLocation(`/verify-otp?phone=${encodeURIComponent(formData.phone)}`);
       toast({ 
         title: isArabic ? 'تم إرسال الرمز' : 'Code Sent', 
         description: isArabic ? 'تحقق من رسائلك SMS' : 'Check your SMS for the verification code'
@@ -60,41 +58,6 @@ const LoginScreen = memo(function LoginScreen() {
     },
   });
 
-  // Phone OTP login mutation
-  const phoneOtpLoginMutation = useMutation({
-    mutationFn: async (data: { phone: string; otpCode: string }) => {
-      const response = await apiRequest('POST', '/api/auth/login-with-phone-otp', data);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Login failed');
-      }
-      return response.json();
-    },
-    onSuccess: (data) => {
-      if (data.token) {
-        setAuthToken(data.token);
-      }
-      setUser(data.user);
-      setLocalRole(data.user.role);
-      localStorage.setItem('userId', data.user.id);
-      toast({ 
-        title: t('auth.welcomeBack'), 
-        description: t('auth.welcomeBackName', { name: data.user.name })
-      });
-      setLocation('/home');
-    },
-    onError: (error: Error) => {
-      let errorMessage = error.message;
-      if (error.message.includes('Invalid') || error.message.includes('expired')) {
-        errorMessage = isArabic ? 'رمز التحقق غير صحيح أو منتهي الصلاحية' : 'Invalid or expired verification code';
-      }
-      toast({ 
-        title: isArabic ? 'خطأ' : 'Error', 
-        description: errorMessage, 
-        variant: 'destructive' 
-      });
-    },
-  });
 
   const validatePhoneForm = useCallback(() => {
     const newErrors: Record<string, string> = {};
@@ -107,22 +70,14 @@ const LoginScreen = memo(function LoginScreen() {
         newErrors.phone = isArabic ? 'رقم جوال سعودي غير صالح' : 'Invalid Saudi phone number';
       }
     }
-    if (otpSent && !formData.otpCode.trim()) {
-      newErrors.otpCode = t('errors.required');
-    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [formData, otpSent, t, isArabic]);
+  }, [formData, t, isArabic]);
 
   const handleSubmit = useCallback(() => {
     if (!validatePhoneForm()) return;
-    
-    if (!otpSent) {
-      sendPhoneOtpMutation.mutate(formData.phone);
-    } else {
-      phoneOtpLoginMutation.mutate({ phone: formData.phone, otpCode: formData.otpCode });
-    }
-  }, [validatePhoneForm, otpSent, sendPhoneOtpMutation, phoneOtpLoginMutation, formData]);
+    sendPhoneOtpMutation.mutate(formData.phone);
+  }, [validatePhoneForm, sendPhoneOtpMutation, formData]);
 
   const handleChange = useCallback((field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [field]: e.target.value }));
@@ -132,15 +87,10 @@ const LoginScreen = memo(function LoginScreen() {
   }, [errors]);
 
   const handleBack = useCallback(() => {
-    if (otpSent) {
-      setOtpSent(false);
-      setFormData(prev => ({ ...prev, otpCode: '' }));
-    } else {
-      setLocation('/');
-    }
-  }, [setLocation, otpSent]);
+    setLocation('/');
+  }, [setLocation]);
 
-  const isPending = sendPhoneOtpMutation.isPending || phoneOtpLoginMutation.isPending;
+  const isPending = sendPhoneOtpMutation.isPending;
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-primary/5 pt-safe">
@@ -214,13 +164,11 @@ const LoginScreen = memo(function LoginScreen() {
               onBlur={() => setFocusedField(null)}
               placeholder="05XXXXXXXX"
               autoComplete="tel"
-              disabled={otpSent}
               dir="ltr"
               className={cn(
                 "w-full h-16 ps-14 pe-5 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-200",
                 errors.phone && "border-destructive",
-                focusedField === 'phone' && "ring-2 ring-primary/30",
-                otpSent && "opacity-60"
+                focusedField === 'phone' && "ring-2 ring-primary/30"
               )}
               data-testid="input-phone"
             />
@@ -242,71 +190,6 @@ const LoginScreen = memo(function LoginScreen() {
             {isArabic ? 'أدخل رقم جوال سعودي (يبدأ بـ 05)' : 'Enter Saudi mobile number (starts with 05)'}
           </p>
 
-          {/* OTP Input - Shows after code is sent */}
-          <AnimatePresence>
-            {otpSent && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-4"
-              >
-                <div className="text-center py-4">
-                  <div className="w-16 h-16 rounded-2xl bg-success/15 flex items-center justify-center mx-auto mb-3">
-                    <Smartphone className="w-8 h-8 text-success" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {isArabic 
-                      ? `تم إرسال رمز التحقق إلى ${formData.phone}` 
-                      : `A verification code was sent to ${formData.phone}`}
-                  </p>
-                </div>
-
-                <div className="relative">
-                  <motion.input
-                    type="text"
-                    inputMode="numeric"
-                    value={formData.otpCode}
-                    onChange={handleChange('otpCode')}
-                    onFocus={() => setFocusedField('otpCode')}
-                    onBlur={() => setFocusedField(null)}
-                    placeholder={isArabic ? 'أدخل رمز التحقق' : 'Enter verification code'}
-                    maxLength={6}
-                    autoComplete="one-time-code"
-                    className={cn(
-                      "w-full h-16 px-5 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-200 text-center text-2xl tracking-[0.5em] font-bold",
-                      errors.otpCode && "border-destructive",
-                      focusedField === 'otpCode' && "ring-2 ring-primary/30"
-                    )}
-                    data-testid="input-otp-code"
-                  />
-                  <AnimatePresence>
-                    {errors.otpCode && (
-                      <motion.p
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        className="mt-2 text-xs text-destructive font-medium text-center"
-                      >
-                        {errors.otpCode}
-                      </motion.p>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                <div className="text-center">
-                  <button 
-                    onClick={() => sendPhoneOtpMutation.mutate(formData.phone)}
-                    disabled={sendPhoneOtpMutation.isPending}
-                    className="text-sm text-primary font-semibold hover:underline disabled:opacity-50"
-                    data-testid="button-resend-code"
-                  >
-                    {isArabic ? 'إعادة إرسال الرمز' : 'Resend code'}
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </motion.div>
 
         <motion.div
@@ -328,10 +211,8 @@ const LoginScreen = memo(function LoginScreen() {
                 <Loader2 className="w-5 h-5 animate-spin" />
                 {t('common.loading')}
               </>
-            ) : !otpSent ? (
-              isArabic ? 'إرسال رمز التحقق' : 'Send Code'
             ) : (
-              t('auth.login')
+              isArabic ? 'إرسال رمز التحقق' : 'Send Code'
             )}
           </motion.button>
 

@@ -2,16 +2,16 @@ import { db } from "./db";
 import { 
   users, tasks, bids, transactions, messages, notifications, savedTasks,
   professionalRoles, userProfessionalRoles, taskerAvailability, userPhotos,
-  directServiceRequests, otpCodes, reviews, pushSubscriptions,
+  directServiceRequests, otpCodes, reviews, pushSubscriptions, payments,
   insertUserSchema, insertTaskSchema, insertBidSchema, insertTransactionSchema,
-  insertMessageSchema, insertNotificationSchema
+  insertMessageSchema, insertNotificationSchema, insertPaymentSchema
 } from "@shared/schema";
-import { eq, and, or, desc, like, sql, asc, lt, gt, avg, count } from "drizzle-orm";
+import { eq, and, or, desc, like, ilike, sql, asc, lt, gt, avg, count } from "drizzle-orm";
 import type { 
   User, Task, Bid, Transaction, Message, Notification, SavedTask,
   ProfessionalRole, UserProfessionalRole, TaskerAvailability, UserPhoto,
   DirectServiceRequest, InsertDirectServiceRequest, OtpCode, InsertOtpCode,
-  Review, InsertReview, PushSubscription, InsertPushSubscription,
+  Review, InsertReview, PushSubscription, InsertPushSubscription, Payment, InsertPayment,
   InsertUser, InsertTask, InsertBid, InsertTransaction, InsertMessage, InsertNotification,
   InsertProfessionalRole, InsertUserProfessionalRole, InsertTaskerAvailability, InsertUserPhoto
 } from "@shared/schema";
@@ -24,7 +24,7 @@ export interface IStorage {
   getUserByPhone(phone: string): Promise<User | undefined>;
   createUser(data: InsertUser): Promise<User>;
   updateUser(id: string, data: Partial<InsertUser> & { balance?: string; completedTasks?: number; rating?: string }): Promise<User>;
-  searchTaskers(filters?: { category?: string; verified?: boolean; search?: string }): Promise<User[]>;
+  searchTaskers(filters?: { category?: string; verified?: boolean; search?: string; interactedOnly?: boolean; currentUserId?: string }): Promise<User[]>;
   getTaskersByCategory(category: string): Promise<User[]>;
   
   // Tasks
@@ -118,6 +118,13 @@ export interface IStorage {
   savePushSubscription(data: InsertPushSubscription): Promise<PushSubscription>;
   deletePushSubscription(userId: string): Promise<void>;
   getPushSubscription(userId: string): Promise<PushSubscription | undefined>;
+  
+  // Payments (Paylink)
+  createPayment(data: InsertPayment): Promise<Payment>;
+  getPayment(id: string): Promise<Payment | undefined>;
+  getPaymentByPaylinkInvoiceId(invoiceId: string): Promise<Payment | undefined>;
+  getPaymentsForUser(userId: string): Promise<Payment[]>;
+  updatePayment(id: string, data: Partial<Payment>): Promise<Payment>;
 }
 
 export const storage: IStorage = {
@@ -167,7 +174,7 @@ export const storage: IStorage = {
     return result[0];
   },
 
-  async searchTaskers(filters?: { category?: string; verified?: boolean; search?: string }) {
+  async searchTaskers(filters?: { category?: string; verified?: boolean; search?: string; interactedOnly?: boolean; currentUserId?: string }) {
     const conditions = [eq(users.role, 'tasker')];
     
     if (filters?.verified) {
@@ -175,12 +182,74 @@ export const storage: IStorage = {
     }
     
     if (filters?.search) {
+      // Use ILIKE for case-insensitive search in PostgreSQL (searches name, bio, AND username)
+      const searchPattern = `%${filters.search}%`;
       conditions.push(
         or(
-          like(users.name, `%${filters.search}%`),
-          like(users.bio, `%${filters.search}%`)
+          ilike(users.name, searchPattern),
+          ilike(users.bio, searchPattern),
+          ilike(users.username, searchPattern)
         ) as any
       );
+    }
+    
+    // Filter by interacted users only if requested
+    let interactedUserIds: string[] = [];
+    if (filters?.interactedOnly && filters?.currentUserId) {
+      // Get users the current user has interacted with:
+      // 1. Users they've messaged (from messages table)
+      // 2. Users they've sent direct service requests to
+      // 3. Users they've worked with on tasks (as client or tasker)
+      
+      // Get users the current user has interacted with:
+      // 1. Users they've messaged (from messages table)
+      // 2. Users they've sent direct service requests to
+      // 3. Users they've worked with on tasks (as client or tasker)
+      
+      const [sentMessages, receivedMessages, directRequests, clientTasks, taskerTasks] = await Promise.all([
+        // Messages sent by current user
+        db.select({ userId: messages.receiverId })
+          .from(messages)
+          .where(eq(messages.senderId, filters.currentUserId)),
+        
+        // Messages received by current user
+        db.select({ userId: messages.senderId })
+          .from(messages)
+          .where(eq(messages.receiverId, filters.currentUserId)),
+        
+        // Direct service requests: get taskers the client has requested from
+        db.select({ userId: directServiceRequests.taskerId })
+          .from(directServiceRequests)
+          .where(eq(directServiceRequests.clientId, filters.currentUserId)),
+        
+        // Tasks where current user is client - get taskers
+        db.select({ userId: tasks.taskerId })
+          .from(tasks)
+          .where(and(
+            eq(tasks.clientId, filters.currentUserId),
+            sql`${tasks.taskerId} IS NOT NULL`
+          )),
+        
+        // Tasks where current user is tasker - get clients
+        db.select({ userId: tasks.clientId })
+          .from(tasks)
+          .where(eq(tasks.taskerId, filters.currentUserId))
+      ]);
+      
+      // Combine all interaction user IDs
+      const allInteractedIds = new Set<string>();
+      sentMessages.forEach((m: { userId: string | null }) => m.userId && allInteractedIds.add(m.userId));
+      receivedMessages.forEach((m: { userId: string | null }) => m.userId && allInteractedIds.add(m.userId));
+      directRequests.forEach((d: { userId: string | null }) => d.userId && allInteractedIds.add(d.userId));
+      clientTasks.forEach((t: { userId: string | null }) => t.userId && allInteractedIds.add(t.userId));
+      taskerTasks.forEach((t: { userId: string | null }) => t.userId && allInteractedIds.add(t.userId));
+      
+      interactedUserIds = Array.from(allInteractedIds);
+      
+      if (interactedUserIds.length === 0) {
+        // No interactions found, return empty result
+        return [];
+      }
     }
     
     let query = db.select().from(users).where(and(...conditions));
@@ -194,14 +263,31 @@ export const storage: IStorage = {
       
       const userIds = taskersWithRole.map(t => t.userId);
       if (userIds.length > 0) {
-        return db.select().from(users)
-          .where(and(...conditions, sql`${users.id} IN (${sql.join(userIds.map(id => sql`${id}`), sql`, `)})`))
+        let finalUserIds = userIds;
+        
+        // Apply interacted filter if requested
+        if (filters?.interactedOnly && interactedUserIds.length > 0) {
+          finalUserIds = userIds.filter(id => interactedUserIds.includes(id));
+          if (finalUserIds.length === 0) {
+            return [];
+          }
+        }
+        
+        const result = await db.select().from(users)
+          .where(and(...conditions, sql`${users.id} IN (${sql.join(finalUserIds.map(id => sql`${id}`), sql`, `)})`))
           .orderBy(desc(users.rating), desc(users.completedTasks));
+        return result;
       }
       return [];
     }
     
-    return db.select().from(users).where(and(...conditions)).orderBy(desc(users.rating), desc(users.completedTasks));
+    // Apply interacted filter if requested (without category)
+    if (filters?.interactedOnly && interactedUserIds.length > 0) {
+      conditions.push(sql`${users.id} IN (${sql.join(interactedUserIds.map(id => sql`${id}`), sql`, `)})` as any);
+    }
+    
+    const result = await db.select().from(users).where(and(...conditions)).orderBy(desc(users.rating), desc(users.completedTasks));
+    return result;
   },
 
   async getTaskersByCategory(category: string) {
@@ -659,6 +745,43 @@ export const storage: IStorage = {
     const result = await db.select().from(pushSubscriptions)
       .where(eq(pushSubscriptions.userId, userId))
       .limit(1);
+    return result[0];
+  },
+  
+  // Payments (Paylink)
+  async createPayment(data: InsertPayment) {
+    const result = await db.insert(payments).values(data).returning();
+    return result[0];
+  },
+  
+  async getPayment(id: string) {
+    const result = await db.select().from(payments).where(eq(payments.id, id)).limit(1);
+    return result[0];
+  },
+  
+  async getPaymentByPaylinkInvoiceId(invoiceId: string) {
+    const result = await db.select().from(payments)
+      .where(eq(payments.paylinkInvoiceId, invoiceId))
+      .limit(1);
+    return result[0];
+  },
+  
+  async getPaymentsForUser(userId: string) {
+    const result = await db.select().from(payments)
+      .where(eq(payments.userId, userId))
+      .orderBy(desc(payments.createdAt));
+    return result;
+  },
+  
+  async updatePayment(id: string, data: Partial<Payment>) {
+    const updateData = {
+      ...data,
+      updatedAt: new Date(),
+    };
+    const result = await db.update(payments)
+      .set(updateData)
+      .where(eq(payments.id, id))
+      .returning();
     return result[0];
   },
 };

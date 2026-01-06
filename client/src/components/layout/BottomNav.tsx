@@ -20,6 +20,7 @@ export const BottomNav = memo(function BottomNav() {
 
   const isActive = useCallback((path: string) => {
     if (path === '/home') return location === '/home' || location === '/';
+    if (path === '/post-task/1') return location === '/post-task/1' || location.startsWith('/post-task/1');
     return location === path || location.startsWith(path + '/');
   }, [location]);
 
@@ -34,7 +35,7 @@ export const BottomNav = memo(function BottomNav() {
       : [
           { icon: Home, labelKey: 'nav.home', path: '/home' },
           { icon: List, labelKey: 'tasks.myTasks', path: '/my-tasks' },
-          { icon: Plus, labelKey: 'nav.categories', path: '/categories', isCenter: true },
+          { icon: Plus, labelKey: 'nav.categories', path: '/post-task/1', isCenter: true },
           { icon: Search, labelKey: 'searchTaskers.title', path: '/search-taskers' },
           { icon: User, labelKey: 'nav.profile', path: '/profile' },
         ],
@@ -45,6 +46,7 @@ export const BottomNav = memo(function BottomNav() {
     '/',
     '/welcome',
     '/role',
+    '/tasker-type',
     '/register',
     '/login',
     '/settings',
@@ -69,128 +71,55 @@ export const BottomNav = memo(function BottomNav() {
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      className="fixed bottom-0 left-0 right-0 z-50"
+      className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none"
     >
-      <div className="mx-4 mb-4 pb-safe">
-        <div className="glass-premium rounded-[28px] px-2 py-2 max-w-md mx-auto">
-          <div className="flex justify-between items-center">
+      <div className="mx-4 mb-8 pb-safe flex justify-center">
+        {/* Glass Effect Navigation Bar */}
+        <div className="relative flex items-center bg-white/80 dark:bg-black/20 backdrop-blur-xl rounded-full p-1.5 border border-gray-200 dark:border-white/10 shadow-lg dark:shadow-2xl pointer-events-auto max-w-fit mx-auto">
+          <div className="flex items-center gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
               const label = t(item.labelKey);
-              
-              if (item.isCenter) {
-                return (
-                  <Link
-                    key={item.path}
-                    href={item.path}
-                    data-testid="nav-categories-center"
-                    className="flex-1 flex justify-center"
-                  >
-                    <motion.button
-                      whileTap={{ scale: 0.92 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                      className={cn(
-                        "relative flex flex-col items-center justify-center gap-1 py-3 px-4 rounded-[22px] transition-all duration-300",
-                        active && "bg-primary/10 dark:bg-primary/20"
-                      )}
-                    >
-                      <div className="w-10 h-10 rounded-full bg-white/10 dark:bg-white/5 backdrop-blur-sm border border-white/20 dark:border-white/10 flex items-center justify-center">
-                        <Icon 
-                          className={cn(
-                            "w-5 h-5 transition-all duration-300",
-                            active 
-                              ? "text-primary" 
-                              : "text-muted-foreground"
-                          )}
-                          strokeWidth={2}
-                        />
-                      </div>
-                      <motion.span 
-                        initial={false}
-                        animate={{
-                          opacity: active ? 1 : 0.6,
-                          fontWeight: active ? 700 : 500,
-                        }}
-                        className={cn(
-                          "text-[10px] tracking-wide transition-colors duration-300",
-                          active ? "text-primary" : "text-muted-foreground"
-                        )}
-                      >
-                        {label}
-                      </motion.span>
-                    </motion.button>
-                  </Link>
-                );
-              }
               
               return (
                 <Link
                   key={item.path}
                   href={item.path}
                   data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
-                  className="flex-1"
                 >
                   <motion.button
-                    whileTap={{ scale: 0.92 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                    whileTap={{ scale: 0.9 }}
                     className={cn(
-                      "relative w-full flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-[22px] transition-all duration-300",
-                      active && "bg-primary/10 dark:bg-primary/20"
+                      "relative flex items-center gap-2 px-4 py-2.5 rounded-full transition-colors duration-300 outline-none",
+                      active ? "text-primary dark:text-white" : "text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white/90"
                     )}
                   >
-                    <AnimatePresence mode="wait">
-                      {active && (
-                        <motion.div
-                          layoutId="activeNavPill"
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.8 }}
-                          transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                          className="absolute inset-0 rounded-[22px] bg-gradient-to-r from-primary/15 to-accent/10 dark:from-primary/25 dark:to-accent/15"
-                        />
-                      )}
-                    </AnimatePresence>
-                    
-                    <motion.div
-                      animate={{ 
-                        scale: active ? 1 : 0.95,
-                        y: active ? -2 : 0
-                      }}
-                      transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                      className="relative"
-                    >
-                      <Icon 
-                        className={cn(
-                          "w-[22px] h-[22px] transition-all duration-300",
-                          active 
-                            ? "text-primary drop-shadow-[0_0_8px_rgba(59,91,255,0.4)]" 
-                            : "text-muted-foreground"
-                        )}
-                        strokeWidth={active ? 2.5 : 2}
+                    {active && (
+                      <motion.div
+                        layoutId="nav-active-pill"
+                        className="absolute inset-0 bg-black/5 dark:bg-white/20 backdrop-blur-md rounded-full border border-black/5 dark:border-white/30 shadow-sm dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2)]"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                       />
-                      {active && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary"
-                        />
-                      )}
-                    </motion.div>
+                    )}
                     
-                    <motion.span 
-                      initial={false}
-                      animate={{
-                        opacity: active ? 1 : 0.6,
-                        fontWeight: active ? 700 : 500,
-                      }}
+                    <Icon 
                       className={cn(
-                        "text-[10px] tracking-wide transition-colors duration-300",
-                        active ? "text-primary" : "text-muted-foreground"
-                      )}
-                    >
-                      {label}
-                    </motion.span>
+                        "w-5 h-5 relative z-10 transition-transform duration-300",
+                        active && "scale-110"
+                      )} 
+                      strokeWidth={active ? 2.5 : 2}
+                    />
+                    
+                    {active && (
+                      <motion.span 
+                        initial={{ opacity: 0, x: -5 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="text-xs font-bold relative z-10 whitespace-nowrap"
+                      >
+                        {label}
+                      </motion.span>
+                    )}
                   </motion.button>
                 </Link>
               );

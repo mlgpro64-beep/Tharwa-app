@@ -1,4 +1,4 @@
-import { Suspense, lazy, memo, useState, useEffect } from "react";
+import React, { Suspense, lazy, memo, useState, useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider, useApp } from "@/context/AppContext";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useLocation as useLocationHook } from "@/hooks/useLocation";
@@ -16,6 +17,7 @@ const SelectRoleScreen = lazy(() => import("@/pages/SelectRoleScreen"));
 const TaskerTypeScreen = lazy(() => import("@/pages/TaskerTypeScreen"));
 const RegisterScreen = lazy(() => import("@/pages/RegisterScreen"));
 const LoginScreen = lazy(() => import("@/pages/LoginScreen"));
+const VerifyOTPScreen = lazy(() => import("@/pages/VerifyOTPScreen"));
 const HomeScreen = lazy(() => import("@/pages/HomeScreen"));
 const TasksFeedScreen = lazy(() => import("@/pages/TasksFeedScreen"));
 const MyTasksScreen = lazy(() => import("@/pages/MyTasksScreen"));
@@ -35,7 +37,6 @@ const HelpScreen = lazy(() => import("@/pages/HelpScreen"));
 const PrivacyPolicyScreen = lazy(() => import("@/pages/PrivacyPolicyScreen"));
 const TermsScreen = lazy(() => import("@/pages/TermsScreen"));
 const VerifyIdentityScreen = lazy(() => import("@/pages/VerifyIdentityScreen"));
-const PaymentScreen = lazy(() => import("@/pages/PaymentScreen"));
 const DirectRequestsScreen = lazy(() => import("@/pages/DirectRequestsScreen"));
 const MyDirectRequestsScreen = lazy(() => import("@/pages/MyDirectRequestsScreen"));
 const CategoryBrowserScreen = lazy(() => import("@/pages/CategoryBrowserScreen"));
@@ -45,7 +46,7 @@ const NotFound = lazy(() => import("@/pages/not-found"));
 
 const PageLoader = memo(function PageLoader() {
   const { t } = useTranslation();
-  
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -80,6 +81,7 @@ const UnauthenticatedRoutes = memo(function UnauthenticatedRoutes() {
       <Route path="/tasker-type" component={TaskerTypeScreen} />
       <Route path="/register" component={RegisterScreen} />
       <Route path="/login" component={LoginScreen} />
+      <Route path="/verify-otp" component={VerifyOTPScreen} />
       <Route component={LoginScreen} />
     </Switch>
   );
@@ -93,14 +95,13 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes() {
       <Route path="/tasks-feed" component={TasksFeedScreen} />
       <Route path="/my-tasks" component={MyTasksScreen} />
       <Route path="/task/:id" component={TaskDetailsScreen} />
-      <Route path="/task/:id/payment" component={PaymentScreen} />
       <Route path="/post-task/:step" component={PostTaskScreen} />
       <Route path="/task/:id/edit" component={PostTaskScreen} />
       <Route path="/wallet" component={WalletScreen} />
       <Route path="/search-taskers" component={SearchTaskersScreen} />
-      <Route path="/profile" component={ProfileScreen} />
-      <Route path="/profile/:userId" component={ProfileScreen} />
       <Route path="/profile/edit" component={EditProfileScreen} />
+      <Route path="/profile/:userId" component={ProfileScreen} />
+      <Route path="/profile" component={ProfileScreen} />
       <Route path="/chat/:taskId" component={ChatScreen} />
       <Route path="/messages" component={ConversationsScreen} />
       <Route path="/notifications" component={NotificationScreen} />
@@ -148,8 +149,8 @@ const AppContent = memo(function AppContent() {
     }} />;
   }
 
-  const isPendingTasker = isAuthenticated && 
-    user?.role === 'tasker' && 
+  const isPendingTasker = isAuthenticated &&
+    user?.role === 'tasker' &&
     user?.verificationStatus === 'pending';
 
   return (
@@ -171,13 +172,15 @@ const AppContent = memo(function AppContent() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AppProvider>
-          <AppContent />
-        </AppProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <AppProvider>
+            <AppContent />
+          </AppProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

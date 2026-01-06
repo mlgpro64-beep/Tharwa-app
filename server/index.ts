@@ -1,5 +1,22 @@
+import 'dotenv/config';
+import fs from 'fs';
+import path from 'path';
+const logPath = path.join(process.cwd(), '.cursor', 'debug.log');
+// #region agent log
+try { 
+  const logDir = path.dirname(logPath);
+  if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+  fs.appendFileSync(logPath, JSON.stringify({location:'server/index.ts:7',message:'Server index.ts loading',data:{hasDatabaseUrl:!!process.env.DATABASE_URL,nodeEnv:process.env.NODE_ENV},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})+'\n'); 
+} catch {}
+// #endregion
 import express, { type Request, Response, NextFunction } from "express";
+// #region agent log
+try { fs.appendFileSync(logPath, JSON.stringify({location:'server/index.ts:8',message:'About to import routes',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})+'\n'); } catch {}
+// #endregion
 import { router } from "./routes";
+// #region agent log
+try { fs.appendFileSync(logPath, JSON.stringify({location:'server/index.ts:10',message:'Routes imported successfully',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})+'\n'); } catch {}
+// #endregion
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import session from "express-session";
@@ -22,12 +39,16 @@ app.use((req, res, next) => {
     'ionic://localhost',
     'http://localhost',
     'http://localhost:5000',
+    'http://localhost:5173',
     'https://localhost',
     'https://758b6ce0-8b1f-4d3b-91fc-8a652cb0679b-00-1f8q924g3ablw.worf.replit.dev',
     'null' // For file:// or capacitor:// origins that show as null
   ];
   
   const origin = req.headers.origin;
+  // #region agent log
+  try { fs.appendFileSync(logPath, JSON.stringify({location:'server/index.ts:36',message:'CORS check',data:{origin,isAllowed:allowedOrigins.includes(origin||''),path:req.path},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n'); } catch {}
+  // #endregion
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   } else if (!origin || origin === 'null') {
@@ -59,6 +80,10 @@ app.use(express.urlencoded({ extended: false }));
 // Session middleware
 const MemoryStore = createMemoryStore(session);
 app.set('trust proxy', 1);
+const isDevelopment = process.env.NODE_ENV === 'development';
+// #region agent log
+try { fs.appendFileSync(logPath, JSON.stringify({location:'server/index.ts:67',message:'Session config',data:{isDevelopment,secure:!isDevelopment},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n'); } catch {}
+// #endregion
 app.use(
   session({
     store: new MemoryStore({ checkPeriod: 86400000 }),
@@ -67,9 +92,9 @@ app.use(
     saveUninitialized: false,
     proxy: true,
     cookie: { 
-      secure: true, 
+      secure: !isDevelopment, 
       httpOnly: true, 
-      sameSite: "none", 
+      sameSite: isDevelopment ? "lax" : "none", 
       maxAge: 24 * 60 * 60 * 1000 
     },
   })
@@ -186,14 +211,17 @@ httpServer.on("upgrade", (req, socket, head) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
+  const host = process.platform === 'win32' ? 'localhost' : '0.0.0.0';
   httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
+    port,
+    host,
     () => {
-      log(`serving on port ${port}`);
+      log(`serving on http://${host}:${port}`);
+      if (process.env.NODE_ENV === 'development') {
+        log('🔓 Rate limiting DISABLED in development mode');
+      } else {
+        log('🔒 Rate limiting ENABLED in production mode');
+      }
     },
   );
 })();

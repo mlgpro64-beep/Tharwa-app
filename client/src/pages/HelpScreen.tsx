@@ -61,9 +61,9 @@ const HelpScreen = memo(function HelpScreen() {
     {
       icon: Mail,
       title: t('help.contact.email'),
-      subtitle: 'support@tharwa.app',
+      subtitle: 'support@tharwwa.com',
       color: 'bg-primary/15 text-primary',
-      action: () => window.location.href = 'mailto:support@tharwa.app'
+      action: () => window.location.href = 'mailto:support@tharwwa.com'
     },
     {
       icon: Phone,

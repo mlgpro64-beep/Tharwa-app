@@ -2,16 +2,30 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#f4f5f9" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0a0d1a" media="(prefers-color-scheme: dark)" />
-    <meta name="description" content="ذروة - سوق مجتمعي للمهام اليومية. احصل على المساعدة أو اكسب المال من خلال إكمال المهام في منطقتك." />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
     
-    <!-- iOS PWA Meta Tags -->
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="ثروة - منصة الخدمات في الرياض. ربط العملاء بمنفذي الخدمات المحترفين | Tharwa - Professional Services Platform in Riyadh" />
+    <meta name="keywords" content="خدمات, الرياض, منفذين, مهام, عروض, سعودية, services, tasks, taskers, riyadh, saudi arabia" />
+    <meta name="author" content="Tharwa" />
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Tharwa - ثروة | منصة الخدمات في الرياض" />
+    <meta property="og:description" content="منصة لربط العملاء بمنفذي الخدمات المحترفين في الرياض" />
+    <meta property="og:site_name" content="Tharwa" />
+    <meta property="og:locale" content="ar_SA" />
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Tharwa - ثروة" />
+    <meta name="twitter:description" content="منصة الخدمات في الرياض" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#4F46E5" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="ذروة" />
-    <meta name="apple-touch-fullscreen" content="yes" />
     <meta name="format-detection" content="telephone=no" />
     <meta name="format-detection" content="date=no" />
     <meta name="format-detection" content="address=no" />
@@ -93,6 +107,30 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
+      // Skip ngrok browser warning - add header to all requests
+      if (window.location.hostname.includes('ngrok')) {
+        // Intercept fetch requests
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
+          if (args[1]) {
+            args[1].headers = args[1].headers || {};
+            args[1].headers['ngrok-skip-browser-warning'] = 'true';
+          } else {
+            args[1] = { headers: { 'ngrok-skip-browser-warning': 'true' } };
+          }
+          return originalFetch.apply(this, args);
+        };
+        
+        // Intercept XMLHttpRequest
+        const originalOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(...args) {
+          this.addEventListener('loadstart', function() {
+            this.setRequestHeader('ngrok-skip-browser-warning', 'true');
+          });
+          return originalOpen.apply(this, args);
+        };
+      }
+      
       // Register Service Worker
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {

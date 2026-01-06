@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import type { User, Task, Transaction, Notification, Bid, TaskWithDetails } from '@shared/schema';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, removeAuthToken } from '@/lib/queryClient';
+import { supabase } from '@/lib/supabase';
 
 export type UserRole = 'client' | 'tasker';
 
@@ -63,7 +64,54 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch('/api/users/me', { credentials: 'include' });
+        // Check Supabase Auth session first
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (session && !sessionError) {
+          // User is authenticated via Supabase Auth
+          // Fetch user data from our API using Supabase token
+          const res = await fetch('/api/users/me', {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`
+            }
+          });
+          
+          if (res.ok) {
+            const userData = await res.json();
+            setUser(userData);
+            if (userData.role) {
+              setUserRole(userData.role as UserRole);
+            }
+          }
+        } else {
+          // Fallback to Express session (backward compatibility)
+          const res = await fetch('/api/users/me', { credentials: 'include' });
+          if (res.ok) {
+            const userData = await res.json();
+            setUser(userData);
+            if (userData.role) {
+              setUserRole(userData.role as UserRole);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[Auth] Error checking authentication:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkAuth();
+    
+    // Listen for Supabase Auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        // User signed in via Supabase Auth
+        const res = await fetch('/api/users/me', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
         if (res.ok) {
           const userData = await res.json();
           setUser(userData);
@@ -71,12 +119,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             setUserRole(userData.role as UserRole);
           }
         }
-      } catch {
-      } finally {
-        setIsLoading(false);
+      } else if (event === 'SIGNED_OUT') {
+        // User signed out
+        setUser(null);
+        setUserRole('client');
       }
+    });
+    
+    return () => {
+      subscription.unsubscribe();
     };
-    checkAuth();
   }, []);
 
   useEffect(() => {
@@ -128,9 +180,28 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     );
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    // Sign out from Supabase Auth
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('[Auth] Error signing out from Supabase:', error);
+    }
+    
+    // Clear Express session (backward compatibility)
     setUser(null);
     localStorage.removeItem('userId');
+    removeAuthToken();
+    
+    // Call logout endpoint to clear server session
+    try {
+      await fetch('/api/auth/logout', { 
+        method: 'POST',
+        credentials: 'include' 
+      });
+    } catch (error) {
+      // Ignore logout errors
+    }
   }, []);
 
   const contextValue = useMemo(() => ({

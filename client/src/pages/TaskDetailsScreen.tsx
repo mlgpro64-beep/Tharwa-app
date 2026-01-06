@@ -10,11 +10,13 @@ import { Skeleton, LoadingSpinner } from '@/components/ui/animated';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { 
-  ArrowLeft, Heart, Edit3, MapPin, Clock, DollarSign, 
+import { formatCurrency } from '@/lib/currency';
+import {
+  ArrowLeft, Heart, Edit3, MapPin, Clock, Wallet,
   MessageCircle, Star, AlertCircle, Loader2, Send, Calendar, Sparkles, Trash2, CheckCircle
 } from 'lucide-react';
 import TaskLocationMap from '@/components/TaskLocationMap';
+import { ActiveTaskPanel } from '@/components/ActiveTaskPanel';
 import type { TaskWithDetails, BidWithTasker } from '@shared/schema';
 import { getCategoryInfo, TASK_CATEGORIES_WITH_SUBS } from '@shared/schema';
 import { useTranslation } from 'react-i18next';
@@ -29,8 +31,8 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 16 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
     transition: { type: "spring", stiffness: 300, damping: 24 }
   }
@@ -43,7 +45,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
   const { toast } = useToast();
   const { i18n } = useTranslation();
   const isArabic = i18n.language === 'ar';
-  
+
   const [showBidModal, setShowBidModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -51,29 +53,45 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
   const [ratingComment, setRatingComment] = useState('');
   const [bidAmount, setBidAmount] = useState('');
   const [bidMessage, setBidMessage] = useState('');
-  
+
   const handleBidAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setBidAmount(e.target.value);
   }, []);
-  
+
   const handleBidMessageChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setBidMessage(e.target.value);
   }, []);
-  
+
   const handleCloseBidModal = useCallback(() => {
     setShowBidModal(false);
   }, []);
-  
+
   const handleCloseDeleteModal = useCallback(() => {
     setShowDeleteModal(false);
   }, []);
 
-  const { data: task, isLoading } = useQuery<TaskWithDetails>({
+  const { data: task, isLoading, error } = useQuery<TaskWithDetails>({
     queryKey: ['/api/tasks', id],
+    enabled: !!id,
+    retry: (failureCount, error) => {
+      // Don't retry on 404 (task not found) or 401 (unauthorized)
+      if (error instanceof Error) {
+        if (error.message.includes('404') || error.message.includes('not found')) {
+          return false;
+        }
+        if (error.message.includes('401') || error.message.includes('Authentication')) {
+          return false;
+        }
+      }
+      // Retry up to 2 times for other errors
+      return failureCount < 2;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
   });
 
   const { data: bids } = useQuery<BidWithTasker[]>({
     queryKey: ['/api/tasks', id, 'bids'],
+    enabled: !!id,
   });
 
   const placeBidMutation = useMutation({
@@ -131,8 +149,8 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks', id] });
-      toast({ 
-        title: isArabic ? 'تم إرسال الطلب' : 'Request sent', 
+      toast({
+        title: isArabic ? 'تم إرسال الطلب' : 'Request sent',
         description: isArabic ? 'تم إرسال طلب إتمام المهمة للعميل' : 'Completion request sent to client'
       });
     },
@@ -161,8 +179,8 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
       setShowRatingModal(false);
       setSelectedRating(0);
       setRatingComment('');
-      toast({ 
-        title: isArabic ? 'شكراً لتقييمك' : 'Thank you for rating!', 
+      toast({
+        title: isArabic ? 'شكراً لتقييمك' : 'Thank you for rating!',
         description: isArabic ? 'تم إرسال تقييمك بنجاح' : 'Your review has been submitted'
       });
     },
@@ -174,16 +192,15 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
   const isSaved = useMemo(() => id ? savedTaskIds.includes(id) : false, [id, savedTaskIds]);
   const isClient = userRole === 'client';
   const isTasker = userRole === 'tasker';
+  const isTaskOwner = useMemo(() => task && user && task.clientId === user.id, [task, user]);
 
-  const formatCurrency = useCallback((amount: number | string) => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+  const formatTaskCurrency = useCallback((amount: number | string | null | undefined) => {
+    return formatCurrency(amount, {
+      locale: isArabic ? 'ar' : 'en',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(num);
-  }, []);
+    });
+  }, [isArabic]);
 
   const getStatusConfig = useCallback((status: string) => {
     switch (status) {
@@ -223,7 +240,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
     );
   }
 
-  if (!task) {
+  if (error) {
     return (
       <div className="min-h-screen gradient-mesh pt-safe flex items-center justify-center px-5">
         <motion.div
@@ -234,15 +251,64 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
           <div className="w-16 h-16 rounded-2xl bg-destructive/15 flex items-center justify-center mx-auto mb-5">
             <AlertCircle className="w-8 h-8 text-destructive" />
           </div>
-          <h3 className="text-xl font-bold text-foreground mb-2">Task not found</h3>
-          <p className="text-muted-foreground mb-6 text-sm">This task may have been removed</p>
+          <h3 className="text-xl font-bold text-foreground mb-2">
+            {isArabic ? 'خطأ في جلب البيانات' : 'Error loading task'}
+          </h3>
+          <p className="text-muted-foreground mb-6 text-sm">
+            {isArabic ? 'حدث خطأ أثناء جلب معلومات المهمة' : 'An error occurred while loading task information'}
+          </p>
+          {error instanceof Error && (
+            <p className="text-xs text-muted-foreground/70 mb-4 font-mono break-words">
+              {error.message}
+            </p>
+          )}
+          <div className="flex gap-3">
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => window.history.back()}
+              className="flex-1 glass px-6 py-3 rounded-2xl font-bold"
+            >
+              {isArabic ? 'رجوع' : 'Go back'}
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/tasks', id] })}
+              className="flex-1 gradient-primary text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-primary/25"
+            >
+              {isArabic ? 'إعادة المحاولة' : 'Retry'}
+            </motion.button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (!task && !isLoading) {
+    return (
+      <div className="min-h-screen gradient-mesh pt-safe flex items-center justify-center px-5">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center glass-premium rounded-3xl p-8"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-destructive/15 flex items-center justify-center mx-auto mb-5">
+            <AlertCircle className="w-8 h-8 text-destructive" />
+          </div>
+          <h3 className="text-xl font-bold text-foreground mb-2">
+            {isArabic ? 'المهمة غير موجودة' : 'Task not found'}
+          </h3>
+          <p className="text-muted-foreground mb-6 text-sm">
+            {isArabic ? 'قد تكون هذه المهمة قد تم حذفها' : 'This task may have been removed'}
+          </p>
           <Link href="/home">
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               className="gradient-primary text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-primary/25"
             >
-              Go back home
+              {isArabic ? 'العودة للرئيسية' : 'Go back home'}
             </motion.button>
           </Link>
         </motion.div>
@@ -250,6 +316,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
     );
   }
 
+  if (!task) return null; // Satisfy TypeScript
   const statusConfig = getStatusConfig(task.status);
 
   return (
@@ -269,17 +336,17 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
         />
       </div>
 
-      <motion.div 
+      <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
         className="relative z-10 px-5 py-5"
       >
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="flex items-center justify-between mb-6"
         >
-          <motion.button 
+          <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.92 }}
             onClick={handleBack}
@@ -288,7 +355,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
           >
             <ArrowLeft className="w-5 h-5 text-foreground/80" />
           </motion.button>
-          
+
           <div className="flex items-center gap-2.5">
             {isTasker && (
               <motion.button
@@ -307,7 +374,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
             {isClient && task.status === 'open' && (
               <>
                 <Link href={`/task/${id}/edit`}>
-                  <motion.button 
+                  <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.92 }}
                     className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
@@ -335,12 +402,12 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
             const catInfo = getCategoryInfo(task.category);
             let categoryDisplay: string;
             let categoryColor: string;
-            
+
             if (catInfo?.subcategory) {
               categoryDisplay = isArabic ? catInfo.subcategory.nameAr : catInfo.subcategory.nameEn;
               categoryColor = TASK_CATEGORIES_WITH_SUBS[catInfo.mainCategory]?.colorHex || '#6B7280';
             } else if (catInfo) {
-              categoryDisplay = isArabic 
+              categoryDisplay = isArabic
                 ? TASK_CATEGORIES_WITH_SUBS[catInfo.mainCategory]?.nameAr || task.category
                 : TASK_CATEGORIES_WITH_SUBS[catInfo.mainCategory]?.nameEn || task.category;
               categoryColor = TASK_CATEGORIES_WITH_SUBS[catInfo.mainCategory]?.colorHex || '#6B7280';
@@ -348,10 +415,10 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
               categoryDisplay = task.category;
               categoryColor = '#6B7280';
             }
-            
+
             return (
               <div className="flex items-center gap-2 mb-3">
-                <span 
+                <span
                   className="px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider"
                   style={{
                     backgroundColor: `${categoryColor}20`,
@@ -371,11 +438,15 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
           })()}
 
           <h1 className="text-2xl font-extrabold text-foreground mb-3 leading-tight tracking-tight">
-            {task.title}
+            {task.title && task.title.trim()
+              ? task.title
+              : (isArabic ? 'بدون عنوان' : 'No title')}
           </h1>
 
           <p className="text-muted-foreground leading-relaxed mb-6">
-            {task.description}
+            {task.description && task.description.trim()
+              ? task.description
+              : (isArabic ? 'لا يوجد وصف متاح' : 'No description available')}
           </p>
         </motion.div>
 
@@ -384,42 +455,91 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center mb-2.5">
               <MapPin className="w-4 h-4 text-primary" />
             </div>
-            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">Location</p>
-            <p className="font-bold text-foreground text-sm truncate">{task.location}</p>
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">
+              {isArabic ? 'الموقع' : 'Location'}
+            </p>
+            <p className="font-bold text-foreground text-sm truncate">
+              {task.location && task.location.trim()
+                ? task.location
+                : (isArabic ? 'غير متاح' : 'Not available')}
+            </p>
           </div>
           <div className="glass rounded-[20px] p-4">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent/15 to-accent/5 flex items-center justify-center mb-2.5">
               <Calendar className="w-4 h-4 text-accent" />
             </div>
-            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">When</p>
-            <p className="font-bold text-foreground text-sm">{task.date}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{task.time}</p>
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">
+              {isArabic ? 'متى' : 'When'}
+            </p>
+            <p className="font-bold text-foreground text-sm">
+              {task.date && task.date.trim()
+                ? task.date
+                : (isArabic ? 'غير محدد' : 'Not set')}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {task.time && task.time.trim()
+                ? task.time
+                : (isArabic ? 'غير محدد' : 'Not set')}
+            </p>
           </div>
         </motion.div>
 
-        <motion.div variants={itemVariants} className="mb-5">
-          <TaskLocationMap 
-            latitude={task.latitude}
-            longitude={task.longitude}
-            location={task.location}
-          />
-        </motion.div>
+        {/* Show ActiveTaskPanel for tasker when task is assigned or in_progress */}
+        {isTasker && (task.status === 'assigned' || task.status === 'in_progress') && task.taskerId === user?.id ? (
+          <motion.div variants={itemVariants} className="mb-5">
+            <ActiveTaskPanel
+              task={{
+                id: task.id,
+                title: task.title,
+                description: task.description,
+                location: task.location,
+                latitude: task.latitude,
+                longitude: task.longitude,
+                budget: task.budget,
+                date: task.date,
+                time: task.time,
+                status: task.status,
+                client: task.client ? {
+                  id: task.client.id,
+                  name: task.client.name,
+                  phone: task.client.phone || undefined,
+                  avatar: task.client.avatar || undefined,
+                  rating: task.client.rating,
+                } : undefined,
+              }}
+              onRequestCompletion={() => requestCompletionMutation.mutate()}
+              isRequestingCompletion={requestCompletionMutation.isPending}
+            />
+          </motion.div>
+        ) : (
+          <motion.div variants={itemVariants} className="mb-5">
+            <TaskLocationMap
+              latitude={task.latitude}
+              longitude={task.longitude}
+              location={task.location}
+            />
+          </motion.div>
+        )}
 
         <motion.div variants={itemVariants} className="relative overflow-hidden rounded-[24px] mb-5">
           <div className="absolute inset-0 glass-premium" />
           <div className="absolute inset-0 gradient-border" />
-          
+
           <div className="relative p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Budget</p>
-                <p className="text-3xl font-extrabold gradient-text-primary">{formatCurrency(task.budget)}</p>
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">
+                  {isArabic ? 'الميزانية' : 'Budget'}
+                </p>
+                <p className="text-3xl font-extrabold gradient-text-primary">
+                  {formatTaskCurrency(task.budget)}
+                </p>
               </div>
-              <motion.div 
+              <motion.div
                 whileHover={{ rotate: 5 }}
                 className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center shadow-lg shadow-primary/30"
               >
-                <DollarSign className="w-7 h-7 text-white" />
+                <Wallet className="w-7 h-7 text-white" />
               </motion.div>
             </div>
           </div>
@@ -443,7 +563,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
                 </div>
               </div>
               <Link href={`/chat/${task.id}`}>
-                <motion.button 
+                <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.92 }}
                   className="w-11 h-11 flex items-center justify-center rounded-xl gradient-primary text-white shadow-md shadow-primary/25"
@@ -456,7 +576,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
           </motion.div>
         )}
 
-        {isClient && bids && bids.length > 0 && (
+        {isTaskOwner && bids && bids.length > 0 && (
           <motion.div variants={itemVariants} className="mb-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-foreground">
@@ -474,7 +594,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 + index * 0.05 }}
                 >
-                  <OfferCard 
+                  <OfferCard
                     offer={bid}
                     onAccept={(bidId) => acceptBidMutation.mutate(bidId)}
                     showActions={task.status === 'open'}
@@ -488,7 +608,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
 
       <AnimatePresence>
         {isTasker && task.status === 'open' && (
-          <motion.div 
+          <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
@@ -509,7 +629,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
         )}
 
         {isTasker && task.status === 'assigned' && task.taskerId === user?.id && (
-          <motion.div 
+          <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
@@ -539,30 +659,9 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
           </motion.div>
         )}
 
-        {isClient && task.status === 'in_progress' && task.clientId === user?.id && (
-          <motion.div 
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed bottom-0 left-0 right-0 p-5 glass-premium border-t-0 rounded-t-[28px] pb-safe"
-          >
-            <Link href={`/task/${id}/payment`}>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full h-14 bg-gradient-to-r from-success to-success/80 text-white rounded-2xl font-bold text-base shadow-xl shadow-success/30 flex items-center justify-center gap-2.5"
-                data-testid="button-complete-payment"
-              >
-                <DollarSign className="w-5 h-5" />
-                {isArabic ? 'إتمام الدفع' : 'Complete Payment'}
-              </motion.button>
-            </Link>
-          </motion.div>
-        )}
 
         {isTasker && task.status === 'in_progress' && task.taskerId === user?.id && (
-          <motion.div 
+          <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
@@ -585,7 +684,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
 
         {/* Rate Tasker Button for completed tasks */}
         {isClient && task.status === 'completed' && task.clientId === user?.id && !reviewData?.hasReview && (
-          <motion.div 
+          <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
@@ -636,7 +735,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
         <div className="space-y-4">
           <div className="relative">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
-              <DollarSign className="w-5 h-5" />
+              <Wallet className="w-5 h-5" />
             </div>
             <input
               type="number"
@@ -662,7 +761,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
           />
           <div className="text-center py-2">
             <p className="text-sm text-muted-foreground">
-              Client's budget: <span className="font-bold text-primary">{formatCurrency(task.budget)}</span>
+              Client's budget: <span className="font-bold text-primary">{formatTaskCurrency(task.budget)}</span>
             </p>
           </div>
         </div>
@@ -711,7 +810,7 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
             <AlertCircle className="w-8 h-8 text-destructive" />
           </div>
           <p className="text-muted-foreground mb-2" data-testid="text-delete-confirmation">
-            {isArabic 
+            {isArabic
               ? 'هل أنت متأكد من حذف هذه المهمة؟ لا يمكن التراجع عن هذا الإجراء.'
               : 'Are you sure you want to delete this task? This action cannot be undone.'}
           </p>
@@ -781,28 +880,28 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
                   className="p-1"
                   data-testid={`button-star-${star}`}
                 >
-                  <Star 
+                  <Star
                     className={cn(
                       "w-10 h-10 transition-colors",
-                      selectedRating >= star 
-                        ? "fill-amber-500 text-amber-500" 
+                      selectedRating >= star
+                        ? "fill-amber-500 text-amber-500"
                         : "text-muted-foreground"
-                    )} 
+                    )}
                   />
                 </motion.button>
               ))}
             </div>
             {selectedRating > 0 && (
-              <motion.p 
+              <motion.p
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="text-sm font-medium text-amber-500 mt-2"
               >
                 {selectedRating === 5 ? (isArabic ? 'ممتاز!' : 'Excellent!') :
-                 selectedRating === 4 ? (isArabic ? 'جيد جداً' : 'Very Good') :
-                 selectedRating === 3 ? (isArabic ? 'جيد' : 'Good') :
-                 selectedRating === 2 ? (isArabic ? 'مقبول' : 'Fair') :
-                 (isArabic ? 'ضعيف' : 'Poor')}
+                  selectedRating === 4 ? (isArabic ? 'جيد جداً' : 'Very Good') :
+                    selectedRating === 3 ? (isArabic ? 'جيد' : 'Good') :
+                      selectedRating === 2 ? (isArabic ? 'مقبول' : 'Fair') :
+                        (isArabic ? 'ضعيف' : 'Poor')}
               </motion.p>
             )}
           </div>

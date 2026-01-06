@@ -13,10 +13,17 @@ interface LocationState {
 const TESTING_KEY = 'tharwa_dev_mode';
 
 const RIYADH_BOUNDS = {
-  minLat: 24.4,
+  minLat: 24.3,
   maxLat: 25.1,
-  minLon: 46.3,
+  minLon: 46.4,
   maxLon: 47.1,
+};
+
+const AL_KHARJ_BOUNDS = {
+  minLat: 24.05,
+  maxLat: 24.25,
+  minLon: 47.3,
+  maxLon: 47.6,
 };
 
 const isWithinRiyadh = (lat: number, lon: number): boolean => {
@@ -26,6 +33,19 @@ const isWithinRiyadh = (lat: number, lon: number): boolean => {
     lon >= RIYADH_BOUNDS.minLon &&
     lon <= RIYADH_BOUNDS.maxLon
   );
+};
+
+const isWithinAlKharj = (lat: number, lon: number): boolean => {
+  return (
+    lat >= AL_KHARJ_BOUNDS.minLat &&
+    lat <= AL_KHARJ_BOUNDS.maxLat &&
+    lon >= AL_KHARJ_BOUNDS.minLon &&
+    lon <= AL_KHARJ_BOUNDS.maxLon
+  );
+};
+
+const isWithinSupportedCity = (lat: number, lon: number): boolean => {
+  return isWithinRiyadh(lat, lon) || isWithinAlKharj(lat, lon);
 };
 
 const checkTestMode = (): boolean => {
@@ -73,7 +93,7 @@ export function useLocation(): LocationState {
         setLatitude(lat);
         setLongitude(lon);
         
-        const inRiyadh = isWithinRiyadh(lat, lon);
+        const inRiyadh = isWithinSupportedCity(lat, lon);
         setIsInRiyadh(inRiyadh);
         localStorage.setItem('isInRiyadh', String(inRiyadh));
         localStorage.setItem('userLatitude', String(lat));

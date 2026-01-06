@@ -1,81 +1,52 @@
-import Stripe from 'stripe';
+// Stripe client wrapper for payment processing
+// This is dynamically imported only when payment features are used
 
-let connectionSettings: any;
+let stripe: any = null;
 
-async function getCredentials() {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY
-    ? 'repl ' + process.env.REPL_IDENTITY
-    : process.env.WEB_REPL_RENEWAL
-      ? 'depl ' + process.env.WEB_REPL_RENEWAL
-      : null;
-
-  if (!xReplitToken) {
-    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
-  }
-
-  const connectorName = 'stripe';
-  const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
-  const targetEnvironment = isProduction ? 'production' : 'development';
-
-  const url = new URL(`https://${hostname}/api/v2/connection`);
-  url.searchParams.set('include_secrets', 'true');
-  url.searchParams.set('connector_names', connectorName);
-  url.searchParams.set('environment', targetEnvironment);
-
-  const response = await fetch(url.toString(), {
-    headers: {
-      'Accept': 'application/json',
-      'X_REPLIT_TOKEN': xReplitToken
+/**
+ * Get Stripe publishable key for client-side initialization
+ */
+export function getStripePublishableKey(): string {
+    const key = process.env.STRIPE_PUBLISHABLE_KEY;
+    if (!key) {
+        throw new Error('STRIPE_PUBLISHABLE_KEY is not configured');
     }
-  });
-
-  const data = await response.json();
-  
-  connectionSettings = data.items?.[0];
-
-  if (!connectionSettings || (!connectionSettings.settings.publishable || !connectionSettings.settings.secret)) {
-    throw new Error(`Stripe ${targetEnvironment} connection not found`);
-  }
-
-  return {
-    publishableKey: connectionSettings.settings.publishable,
-    secretKey: connectionSettings.settings.secret,
-  };
+    return key;
 }
 
+/**
+ * Get uncachable Stripe instance (creates new instance each time)
+ * This ensures we don't cache sensitive API keys
+ */
 export async function getUncachableStripeClient() {
-  const { secretKey } = await getCredentials();
+    // Lazy-load Stripe SDK
+    let Stripe: any;
+    try {
+        // @ts-ignore - Stripe is an optional dependency for payment features
+        Stripe = (await import('stripe')).default;
+    } catch (error) {
+        console.error('Stripe SDK not installed. Run: npm install stripe');
+        throw new Error('Stripe SDK is required for payment processing');
+    }
 
-  return new Stripe(secretKey, {
-    apiVersion: '2025-08-27.basil',
-  });
-}
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
-export async function getStripePublishableKey() {
-  const { publishableKey } = await getCredentials();
-  return publishableKey;
-}
+    if (!stripeSecretKey) {
+        throw new Error('STRIPE_SECRET_KEY is not configured');
+    }
 
-export async function getStripeSecretKey() {
-  const { secretKey } = await getCredentials();
-  return secretKey;
-}
-
-let stripeSync: any = null;
-
-export async function getStripeSync() {
-  if (!stripeSync) {
-    const { StripeSync } = await import('stripe-replit-sync');
-    const secretKey = await getStripeSecretKey();
-
-    stripeSync = new StripeSync({
-      poolConfig: {
-        connectionString: process.env.DATABASE_URL!,
-        max: 2,
-      },
-      stripeSecretKey: secretKey,
+    return new Stripe(stripeSecretKey, {
+        apiVersion: '2024-12-18.acacia' as any,
+        typescript: true,
     });
-  }
-  return stripeSync;
+}
+
+/**
+ * Get cached Stripe instance (reuses same instance)
+ */
+export async function getStripeClient() {
+    if (!stripe) {
+        stripe = await getUncachableStripeClient();
+    }
+    return stripe;
 }

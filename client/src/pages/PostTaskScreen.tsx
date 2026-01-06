@@ -1,6 +1,7 @@
 import { useState, useEffect, memo, useCallback } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { FloatingInput } from '@/components/FloatingInput';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { DateTimePicker } from '@/components/DateTimePicker';
@@ -27,6 +28,7 @@ const PostTaskScreen = memo(function PostTaskScreen() {
   const { step } = useParams<{ step: string }>();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t, i18n } = useTranslation();
   
   const currentStep = parseInt(step || '1');
   const isEditMode = window.location.pathname.includes('/edit');
@@ -88,7 +90,7 @@ const PostTaskScreen = memo(function PostTaskScreen() {
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=16&addressdetails=1`,
         {
           headers: {
-            'Accept-Language': 'en',
+            'Accept-Language': i18n.language === 'ar' ? 'ar' : 'en',
           },
         }
       );
@@ -113,16 +115,16 @@ const PostTaskScreen = memo(function PostTaskScreen() {
         return address.state;
       }
       
-      return data.display_name?.split(',').slice(0, 2).join(',').trim() || 'Unknown location';
+      return data.display_name?.split(',').slice(0, 2).join(',').trim() || t('tasks.location');
     } catch (error) {
       console.error('Reverse geocoding error:', error);
-      return 'Location found';
+      return t('tasks.location');
     }
-  }, []);
+  }, [t, i18n]);
 
   const getCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setLocationError('Geolocation is not supported by your browser');
+      setLocationError(t('tasks.postTaskSteps.geolocationNotSupported'));
       setLocationStatus('error');
       return;
     }
@@ -148,16 +150,16 @@ const PostTaskScreen = memo(function PostTaskScreen() {
         }
       },
       (error) => {
-        let errorMessage = 'Unable to get your location';
+        let errorMessage = t('tasks.postTaskSteps.unableToGetLocation');
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = 'Location permission denied. Please enable it in your browser settings.';
+            errorMessage = t('tasks.postTaskSteps.locationPermissionDenied');
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Location information is unavailable.';
+            errorMessage = t('tasks.postTaskSteps.locationUnavailable');
             break;
           case error.TIMEOUT:
-            errorMessage = 'Location request timed out.';
+            errorMessage = t('tasks.postTaskSteps.locationTimeout');
             break;
         }
         setLocationError(errorMessage);
@@ -169,7 +171,7 @@ const PostTaskScreen = memo(function PostTaskScreen() {
         maximumAge: 60000,
       }
     );
-  }, [errors.location, reverseGeocode]);
+  }, [errors.location, reverseGeocode, t]);
 
   const createTaskMutation = useMutation({
     mutationFn: async (data: TaskFormData) => {
@@ -190,13 +192,13 @@ const PostTaskScreen = memo(function PostTaskScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
       toast({ 
-        title: isEditMode ? 'Task updated!' : 'Task posted!', 
-        description: isEditMode ? 'Your changes have been saved' : 'Your task is now live' 
+        title: isEditMode ? t('tasks.taskUpdated') : t('tasks.taskPosted'), 
+        description: isEditMode ? t('tasks.taskUpdated') : t('tasks.taskPosted')
       });
       setLocation('/my-tasks');
     },
     onError: (error: Error) => {
-      toast({ title: 'Failed to save task', description: error.message, variant: 'destructive' });
+      toast({ title: t('errors.somethingWentWrong'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -204,20 +206,20 @@ const PostTaskScreen = memo(function PostTaskScreen() {
     const newErrors: Record<string, string> = {};
     
     if (stepNum === 1) {
-      if (!formData.category) newErrors.category = 'Please select a category';
+      if (!formData.category) newErrors.category = t('errors.required');
     } else if (stepNum === 2) {
-      if (!formData.title.trim()) newErrors.title = 'Title is required';
-      if (!formData.description.trim()) newErrors.description = 'Description is required';
+      if (!formData.title.trim()) newErrors.title = t('errors.required');
+      if (!formData.description.trim()) newErrors.description = t('errors.required');
     } else if (stepNum === 3) {
-      if (!formData.budget) newErrors.budget = 'Budget is required';
-      if (!formData.location.trim()) newErrors.location = 'Location is required';
-      if (!formData.date) newErrors.date = 'Date is required';
-      if (!formData.time) newErrors.time = 'Time is required';
+      if (!formData.budget) newErrors.budget = t('errors.required');
+      if (!formData.location.trim()) newErrors.location = t('errors.required');
+      if (!formData.date) newErrors.date = t('errors.required');
+      if (!formData.time) newErrors.time = t('errors.required');
     }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [formData]);
+  }, [formData, t]);
 
   const handleNext = useCallback(() => {
     if (validateStep(currentStep)) {
@@ -235,7 +237,7 @@ const PostTaskScreen = memo(function PostTaskScreen() {
       const queryParams = categoryFromUrl ? `?category=${categoryFromUrl}` : '';
       setLocation(`/post-task/${currentStep - 1}${queryParams}`);
     } else {
-      setLocation('/categories');
+      setLocation('/home');
     }
   }, [currentStep, setLocation, categoryFromUrl]);
 
@@ -247,12 +249,18 @@ const PostTaskScreen = memo(function PostTaskScreen() {
   }, [errors]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 pt-safe pb-8">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pt-safe pb-8">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.3 }}
-          className="absolute -top-20 -left-20 w-80 h-80 bg-primary/15 rounded-full blur-3xl"
+          animate={{ opacity: 0.4 }}
+          className="absolute -top-20 -left-20 w-96 h-96 bg-primary/20 rounded-full blur-3xl"
+        />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.2 }}
+          transition={{ delay: 0.3 }}
+          className="absolute top-1/2 -right-20 w-80 h-80 bg-primary/15 rounded-full blur-3xl"
         />
       </div>
 
@@ -260,32 +268,35 @@ const PostTaskScreen = memo(function PostTaskScreen() {
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between py-4"
+          transition={{ duration: 0.3 }}
+          className="flex items-center justify-between py-5"
         >
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleBack}
-            className="w-11 h-11 flex items-center justify-center rounded-2xl glass"
+            className="w-12 h-12 flex items-center justify-center rounded-2xl glass shadow-sm hover:shadow-md transition-all duration-300 hover:bg-primary/10"
             data-testid="button-back"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 text-foreground" />
           </motion.button>
-          <div className="flex gap-2">
+          <div className="flex gap-2.5 items-center">
             {[1, 2, 3].map((s) => (
               <motion.div 
                 key={s}
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
-                transition={{ delay: s * 0.1 }}
+                transition={{ delay: s * 0.1, duration: 0.3 }}
                 className={cn(
-                  "w-10 h-1.5 rounded-full transition-colors",
-                  s <= currentStep ? "bg-primary" : "bg-muted"
+                  "h-2 rounded-full transition-all duration-300",
+                  s <= currentStep 
+                    ? "bg-primary w-12 shadow-lg shadow-primary/30" 
+                    : "bg-muted/50 w-8"
                 )}
               />
             ))}
           </div>
-          <div className="w-11"></div>
+          <div className="w-12"></div>
         </motion.div>
 
         <div className="flex-1 flex flex-col py-8">
@@ -296,13 +307,14 @@ const PostTaskScreen = memo(function PostTaskScreen() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
                 className="flex-1 flex flex-col"
               >
-                <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">
-                  What do you need help with?
+                <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-3 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
+                  {t('tasks.postTaskSteps.step1Title')}
                 </h1>
-                <p className="text-muted-foreground text-lg mb-8">
-                  Select a category for your task
+                <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
+                  {t('tasks.postTaskSteps.step1Description')}
                 </p>
                 <CategoryPicker
                   selected={formData.category}
@@ -330,30 +342,31 @@ const PostTaskScreen = memo(function PostTaskScreen() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
                 className="flex-1 flex flex-col"
               >
-                <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">
-                  Describe your task
+                <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-3 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
+                  {t('tasks.postTaskSteps.step2Title')}
                 </h1>
-                <p className="text-muted-foreground text-lg mb-8">
-                  Be specific so taskers understand what you need
+                <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
+                  {t('tasks.postTaskSteps.step2Description')}
                 </p>
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <FloatingInput
-                    label="Task Title"
+                    label={t('tasks.postTaskSteps.taskTitle')}
                     value={formData.title}
                     onChange={(e) => updateField('title', e.target.value)}
                     error={errors.title}
-                    placeholder="e.g., Help me move furniture"
+                    placeholder={t('tasks.postTaskSteps.taskTitlePlaceholder')}
                   />
                   <div className="relative">
                     <textarea
                       value={formData.description}
                       onChange={(e) => updateField('description', e.target.value)}
-                      placeholder="Describe your task in detail..."
+                      placeholder={t('tasks.postTaskSteps.taskDescriptionPlaceholder')}
                       className={cn(
-                        "w-full h-40 p-5 rounded-2xl glass-input transition-all placeholder:text-muted-foreground font-medium text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30",
-                        errors.description && "border-destructive"
+                        "w-full h-44 p-5 rounded-2xl glass-input transition-all duration-300 placeholder:text-muted-foreground/60 font-medium text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 focus:shadow-lg focus:shadow-primary/10",
+                        errors.description && "ring-2 ring-destructive/50 border-destructive/50"
                       )}
                       data-testid="textarea-description"
                     />
@@ -381,37 +394,40 @@ const PostTaskScreen = memo(function PostTaskScreen() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
                 className="flex-1 flex flex-col"
               >
-                <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">
-                  Task details
+                <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-3 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
+                  {t('tasks.postTaskSteps.step3Title')}
                 </h1>
-                <p className="text-muted-foreground text-lg mb-8">
-                  Set your budget, location, and schedule
+                <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
+                  {t('tasks.postTaskSteps.step3Description')}
                 </p>
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <FloatingInput
-                    label="Budget ($)"
+                    label={t('tasks.postTaskSteps.budget')}
                     type="number"
                     value={formData.budget}
                     onChange={(e) => updateField('budget', e.target.value)}
                     error={errors.budget}
-                    placeholder="0"
+                    placeholder={t('tasks.postTaskSteps.budgetPlaceholder')}
                   />
                   <motion.button
                     whileTap={{ scale: 0.98 }}
+                    whileHover={{ scale: 1.01 }}
                     onClick={getCurrentLocation}
                     disabled={locationStatus === 'loading'}
                     className={cn(
-                      "w-full h-16 px-5 rounded-2xl glass text-left transition-all flex items-center gap-4",
-                      locationStatus === 'success' && "ring-2 ring-green-500/30",
-                      errors.location && "ring-2 ring-destructive/50"
+                      "w-full h-18 px-5 rounded-2xl glass text-left transition-all duration-300 flex items-center gap-4 shadow-sm hover:shadow-md",
+                      locationStatus === 'success' && "ring-2 ring-green-500/40 shadow-green-500/10",
+                      errors.location && "ring-2 ring-destructive/50 shadow-destructive/10",
+                      locationStatus === 'loading' && "opacity-75"
                     )}
                     data-testid="button-get-location"
                   >
                     <div className={cn(
-                      "w-11 h-11 rounded-xl flex items-center justify-center transition-colors",
-                      locationStatus === 'success' ? "bg-green-500/15" : "bg-primary/15"
+                      "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300",
+                      locationStatus === 'success' ? "bg-green-500/20 shadow-lg shadow-green-500/20" : "bg-primary/15"
                     )}>
                       {locationStatus === 'loading' ? (
                         <Loader2 className="w-5 h-5 text-primary animate-spin" />
@@ -422,16 +438,18 @@ const PostTaskScreen = memo(function PostTaskScreen() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className="text-[10px] font-bold text-primary uppercase tracking-widest block">Location</span>
+                      <span className="text-[10px] font-bold text-primary uppercase tracking-widest block mb-0.5">
+                        {t('tasks.postTaskSteps.location')}
+                      </span>
                       <span className={cn(
-                        "font-medium block truncate",
+                        "font-medium block truncate text-sm",
                         locationStatus === 'success' ? "text-foreground" : "text-muted-foreground"
                       )}>
                         {locationStatus === 'loading' 
-                          ? 'Getting location...' 
+                          ? t('tasks.postTaskSteps.gettingLocation')
                           : locationStatus === 'success' 
                             ? formData.location 
-                            : 'Tap to use current location'}
+                            : t('tasks.postTaskSteps.tapToUseLocation')}
                       </span>
                     </div>
                   </motion.button>
@@ -451,32 +469,38 @@ const PostTaskScreen = memo(function PostTaskScreen() {
                   <div className="grid grid-cols-2 gap-4">
                     <motion.button
                       whileTap={{ scale: 0.98 }}
+                      whileHover={{ scale: 1.01 }}
                       onClick={() => setShowDatePicker(true)}
                       className={cn(
-                        "h-16 px-4 rounded-2xl glass text-left transition-all",
-                        formData.date && "ring-2 ring-primary/30",
-                        errors.date && "ring-2 ring-destructive/50"
+                        "h-18 px-4 rounded-2xl glass text-left transition-all duration-300 shadow-sm hover:shadow-md",
+                        formData.date && "ring-2 ring-primary/40 shadow-primary/10",
+                        errors.date && "ring-2 ring-destructive/50 shadow-destructive/10"
                       )}
                       data-testid="button-select-date"
                     >
-                      <span className="text-[10px] font-bold text-primary uppercase tracking-widest block">Date</span>
-                      <span className={cn("font-medium", formData.date ? "text-foreground" : "text-muted-foreground")}>
-                        {formData.date || "Select date"}
+                      <span className="text-[10px] font-bold text-primary uppercase tracking-widest block mb-0.5">
+                        {t('tasks.postTaskSteps.date')}
+                      </span>
+                      <span className={cn("font-medium text-sm", formData.date ? "text-foreground" : "text-muted-foreground")}>
+                        {formData.date || t('tasks.postTaskSteps.selectDate')}
                       </span>
                     </motion.button>
                     <motion.button
                       whileTap={{ scale: 0.98 }}
+                      whileHover={{ scale: 1.01 }}
                       onClick={() => setShowTimePicker(true)}
                       className={cn(
-                        "h-16 px-4 rounded-2xl glass text-left transition-all",
-                        formData.time && "ring-2 ring-primary/30",
-                        errors.time && "ring-2 ring-destructive/50"
+                        "h-18 px-4 rounded-2xl glass text-left transition-all duration-300 shadow-sm hover:shadow-md",
+                        formData.time && "ring-2 ring-primary/40 shadow-primary/10",
+                        errors.time && "ring-2 ring-destructive/50 shadow-destructive/10"
                       )}
                       data-testid="button-select-time"
                     >
-                      <span className="text-[10px] font-bold text-primary uppercase tracking-widest block">Time</span>
-                      <span className={cn("font-medium", formData.time ? "text-foreground" : "text-muted-foreground")}>
-                        {formData.time || "Select time"}
+                      <span className="text-[10px] font-bold text-primary uppercase tracking-widest block mb-0.5">
+                        {t('tasks.postTaskSteps.time')}
+                      </span>
+                      <span className={cn("font-medium text-sm", formData.time ? "text-foreground" : "text-muted-foreground")}>
+                        {formData.time || t('tasks.postTaskSteps.selectTime')}
                       </span>
                     </motion.button>
                   </div>
@@ -489,7 +513,7 @@ const PostTaskScreen = memo(function PostTaskScreen() {
                         className="text-destructive text-sm font-bold flex items-center gap-1.5"
                       >
                         <AlertCircle className="w-4 h-4" />
-                        Please select date and time
+                        {t('tasks.postTaskSteps.selectDateAndTime')}
                       </motion.p>
                     )}
                   </AnimatePresence>
@@ -505,22 +529,22 @@ const PostTaskScreen = memo(function PostTaskScreen() {
             className="mt-auto pt-6"
           >
             <motion.button
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleNext}
               disabled={createTaskMutation.isPending}
-              className="w-full h-14 gradient-primary text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/25 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+              className="w-full h-14 gradient-primary text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary/30 transition-all duration-300 disabled:opacity-60 flex items-center justify-center gap-2 hover:shadow-2xl hover:shadow-primary/40"
               data-testid="button-next"
             >
               {createTaskMutation.isPending ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  {isEditMode ? 'Saving...' : 'Posting...'}
+                  {isEditMode ? t('tasks.postTaskSteps.saving') : t('tasks.postTaskSteps.posting')}
                 </>
               ) : currentStep === 3 ? (
-                isEditMode ? 'Save Changes' : 'Post Task'
+                isEditMode ? t('tasks.postTaskSteps.saveChanges') : t('tasks.postTaskSteps.postTask')
               ) : (
-                'Continue'
+                t('tasks.postTaskSteps.continue')
               )}
             </motion.button>
           </motion.div>
@@ -532,7 +556,7 @@ const PostTaskScreen = memo(function PostTaskScreen() {
         onClose={() => setShowDatePicker(false)}
         onSelect={(value) => updateField('date', value)}
         mode="date"
-        title="Select Date"
+        title={t('tasks.postTaskSteps.selectDateTitle')}
       />
 
       <DateTimePicker
@@ -540,7 +564,7 @@ const PostTaskScreen = memo(function PostTaskScreen() {
         onClose={() => setShowTimePicker(false)}
         onSelect={(value) => updateField('time', value)}
         mode="time"
-        title="Select Time"
+        title={t('tasks.postTaskSteps.selectTimeTitle')}
       />
     </div>
   );

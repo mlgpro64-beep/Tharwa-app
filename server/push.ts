@@ -7,7 +7,7 @@ const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || 'BEl62iUYgUivxIkv69yViEui
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || 'UUxI4O8-FbRouADVXc-hK3ltw1rMesmH_4dR1tG6rqc';
 
 webpush.setVapidDetails(
-  'mailto:support@tharwa.app',
+  'mailto:support@tharwwa.com',
   vapidPublicKey,
   vapidPrivateKey
 );

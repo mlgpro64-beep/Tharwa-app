@@ -1,8 +1,9 @@
 import { memo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/currency';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, Briefcase, Clock, Check, X, DollarSign } from 'lucide-react';
+import { Star, Briefcase, Clock, Check, X, Wallet } from 'lucide-react';
 import type { BidWithTasker } from '@shared/schema';
 
 interface OfferCardProps {
@@ -12,21 +13,12 @@ interface OfferCardProps {
   showActions?: boolean;
 }
 
-export const OfferCard = memo(function OfferCard({ 
-  offer, 
-  onAccept, 
-  onReject, 
-  showActions = true 
+export const OfferCard = memo(function OfferCard({
+  offer,
+  onAccept,
+  onReject,
+  showActions = true
 }: OfferCardProps) {
-  const formatCurrency = useCallback((amount: number | string) => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(num);
-  }, []);
 
   const getInitials = useCallback((name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -38,10 +30,10 @@ export const OfferCard = memo(function OfferCard({
       accepted: { bg: 'bg-success/15 text-success border-success/20', icon: Check, label: 'Accepted' },
       rejected: { bg: 'bg-destructive/15 text-destructive border-destructive/20', icon: X, label: 'Rejected' },
     };
-    
+
     const style = styles[status as keyof typeof styles];
     if (!style) return null;
-    
+
     const Icon = style.icon;
     return (
       <span className={cn(
@@ -59,7 +51,7 @@ export const OfferCard = memo(function OfferCard({
   const taskerJobs = offer.tasker?.completedTasks || 0;
 
   return (
-    <motion.div 
+    <motion.div
       whileTap={{ scale: 0.98 }}
       className="glass rounded-3xl p-5 transition-all hover:shadow-lg"
       data-testid={`offer-card-${offer.id}`}
@@ -77,7 +69,7 @@ export const OfferCard = memo(function OfferCard({
             <h4 className="font-bold text-foreground text-lg truncate">{taskerName}</h4>
             {getStatusBadge(offer.status)}
           </div>
-          
+
           <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
             <div className="flex items-center gap-1.5">
               <Star className="w-4 h-4 fill-warning text-warning" />
@@ -99,9 +91,9 @@ export const OfferCard = memo(function OfferCard({
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 bg-primary/10 px-4 py-2 rounded-xl">
-              <DollarSign className="w-5 h-5 text-primary" />
+              <Wallet className="w-5 h-5 text-primary" />
               <span className="text-xl font-extrabold text-primary">
-                {formatCurrency(offer.amount).replace('$', '')}
+                {formatCurrency(offer.amount, { locale: 'en' })}
               </span>
             </div>
 

@@ -269,14 +269,25 @@ const RegisterScreen = memo(function RegisterScreen() {
       setLocation('/home');
     },
     onError: (error: Error) => {
+      // Suppress Supabase Auth errors completely - they're not relevant for registration
+      if (error.message.includes('Tenant') || error.message.includes('not found') && error.message.includes('Tenant')) {
+        console.log('[Auth] Supabase Auth error suppressed during registration');
+        return; // Don't show error toast for Supabase Auth errors
+      }
+      
       let errorMessage = error.message;
+      
+      // Handle other errors
       if (error.message.includes('email') || error.message.includes('users_email_key')) {
         errorMessage = isRTL ? 'البريد الإلكتروني مسجل مسبقاً' : 'Email already registered';
       } else if (error.message.includes('phone') || error.message.includes('users_phone_key')) {
         errorMessage = isRTL ? 'رقم الجوال مسجل مسبقاً' : 'Phone number already registered';
       } else if (error.message.includes('username') || error.message.includes('users_username_key')) {
         errorMessage = isRTL ? 'اسم المستخدم مسجل مسبقاً' : 'Username already registered';
+      } else if (error.message.includes('500') || error.message.includes('Internal Server Error')) {
+        errorMessage = isRTL ? 'خطأ في الخادم. يرجى المحاولة مرة أخرى' : 'Server error. Please try again';
       }
+      
       toast({ 
         title: isRTL ? 'خطأ في التسجيل' : 'Registration Error', 
         description: errorMessage, 

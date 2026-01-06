@@ -9,8 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { PROFESSIONAL_CATEGORIES, type ProfessionalCategoryId } from '@shared/schema';
-import { 
-  Search, SearchX, X, Filter, Star, CheckCircle, 
+import {
+  Search, SearchX, X, Filter, Star, CheckCircle,
   ArrowLeft, Shield, ChevronRight, Users, Award
 } from 'lucide-react';
 import type { User, ProfessionalRole, UserProfessionalRole } from '@shared/schema';
@@ -29,23 +29,23 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 16 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
     transition: { type: "spring", stiffness: 300, damping: 24 }
   }
 };
 
-const TaskerCard = memo(function TaskerCard({ 
-  tasker, 
-  index 
-}: { 
-  tasker: TaskerWithRoles; 
+const TaskerCard = memo(function TaskerCard({
+  tasker,
+  index
+}: {
+  tasker: TaskerWithRoles;
   index: number;
 }) {
   const { i18n } = useTranslation();
   const isArabic = i18n.language === 'ar';
-  
+
   const getInitials = useCallback((name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   }, []);
@@ -53,10 +53,10 @@ const TaskerCard = memo(function TaskerCard({
   const isVerified = tasker.verificationStatus === 'approved';
   const rating = tasker.rating ? parseFloat(String(tasker.rating)).toFixed(1) : '0.0';
   const completedTasks = tasker.completedTasks || 0;
-  const bioPreview = tasker.bio 
-    ? tasker.bio.length > 80 
-      ? `${tasker.bio.slice(0, 80)}...` 
-      : tasker.bio 
+  const bioPreview = tasker.bio
+    ? tasker.bio.length > 80
+      ? `${tasker.bio.slice(0, 80)}...`
+      : tasker.bio
     : null;
 
   return (
@@ -89,14 +89,14 @@ const TaskerCard = memo(function TaskerCard({
               </motion.div>
             )}
           </div>
-          
+
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <h3 className="font-bold text-foreground text-lg truncate" data-testid={`text-tasker-name-${tasker.id}`}>
                 {tasker.name}
               </h3>
             </div>
-            
+
             <div className="flex items-center gap-3 mb-2.5">
               <div className="flex items-center gap-1">
                 <Star className="w-4 h-4 text-warning fill-warning" />
@@ -111,24 +111,24 @@ const TaskerCard = memo(function TaskerCard({
                 </span>
               </div>
             </div>
-            
+
             {tasker.professionalRoles && tasker.professionalRoles.length > 0 && (
               <div className="mb-2.5" data-testid={`list-tasker-badges-${tasker.id}`}>
-                <ProfessionalBadgeList 
-                  roles={tasker.professionalRoles} 
-                  size="sm" 
-                  maxDisplay={2} 
+                <ProfessionalBadgeList
+                  roles={tasker.professionalRoles}
+                  size="sm"
+                  maxDisplay={2}
                 />
               </div>
             )}
-            
+
             {bioPreview && (
               <p className="text-sm text-muted-foreground line-clamp-2" data-testid={`text-tasker-bio-${tasker.id}`}>
                 {bioPreview}
               </p>
             )}
           </div>
-          
+
           <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 mt-1 rtl:rotate-180" />
         </div>
       </motion.div>
@@ -166,18 +166,14 @@ const SearchTaskersScreen = memo(function SearchTaskersScreen() {
   const [, setLocation] = useLocation();
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language === 'ar';
-  
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
     if (searchQuery) params.set('search', searchQuery);
-    if (selectedCategory) params.set('category', selectedCategory);
-    if (verifiedOnly) params.set('verified', 'true');
     return params.toString();
-  }, [searchQuery, selectedCategory, verifiedOnly]);
+  }, [searchQuery]);
 
   const { data: taskers, isLoading } = useQuery<TaskerWithRoles[]>({
     queryKey: ['/api/taskers/search', queryParams],
@@ -188,18 +184,12 @@ const SearchTaskersScreen = memo(function SearchTaskersScreen() {
     },
   });
 
-  const handleCategorySelect = useCallback((category: string | null) => {
-    setSelectedCategory(category);
-  }, []);
-
   const handleClearSearch = useCallback(() => {
     setSearchQuery('');
   }, []);
 
   const handleClearFilters = useCallback(() => {
     setSearchQuery('');
-    setSelectedCategory(null);
-    setVerifiedOnly(false);
   }, []);
 
   const taskerCount = taskers?.length || 0;
@@ -221,7 +211,7 @@ const SearchTaskersScreen = memo(function SearchTaskersScreen() {
         />
       </div>
 
-      <motion.div 
+      <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -252,105 +242,32 @@ const SearchTaskersScreen = memo(function SearchTaskersScreen() {
 
         <motion.div
           variants={itemVariants}
-          className="relative mb-5"
+          className="relative mb-8"
         >
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground rtl:right-4 rtl:left-auto" />
-          <input
-            type="search"
-            placeholder={t('taskers.searchPlaceholder', 'Search by name or skill...')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-13 ps-12 pe-12 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all text-base"
-            data-testid="input-search-taskers"
-          />
-          <AnimatePresence>
-            {searchQuery && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                onClick={handleClearSearch}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full bg-muted/80 hover:bg-muted transition-colors rtl:left-4 rtl:right-auto"
-                data-testid="button-clear-search"
-              >
-                <X className="w-3.5 h-3.5 text-muted-foreground" />
-              </motion.button>
-            )}
-          </AnimatePresence>
-        </motion.div>
-
-        <motion.div
-          variants={itemVariants}
-          className="glass rounded-2xl p-4 mb-5"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-success" />
-              <span className="text-sm font-semibold text-foreground">
-                {t('taskers.verifiedOnly', 'Verified only')}
-              </span>
-            </div>
-            <Switch
-              checked={verifiedOnly}
-              onCheckedChange={setVerifiedOnly}
-              data-testid="toggle-verified-only"
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/60 rtl:right-4 rtl:left-auto" />
+            <input
+              type="search"
+              placeholder={t('taskers.searchPlaceholder', 'Search by name or skill...')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-14 ps-12 pe-12 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-base font-medium shadow-sm"
+              data-testid="input-search-taskers"
             />
-          </div>
-        </motion.div>
-
-        <motion.div
-          variants={itemVariants}
-          className="mb-6"
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <Filter className="w-4 h-4 text-muted-foreground" />
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              {t('taskers.specialty', 'Specialty')}
-            </span>
-          </div>
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-5 px-5">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleCategorySelect(null)}
-              data-testid="button-category-all"
-              className={cn(
-                "px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-200",
-                selectedCategory === null
-                  ? "gradient-primary text-white shadow-lg shadow-primary/25"
-                  : "glass text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {t('common.all', 'All')}
-            </motion.button>
-            {(Object.entries(PROFESSIONAL_CATEGORIES) as [ProfessionalCategoryId, typeof PROFESSIONAL_CATEGORIES[ProfessionalCategoryId]][]).map(([categoryId, category]) => {
-              const displayName = isArabic ? category.nameAr : category.nameEn;
-              const colorHex = category.colorHex || '#6B7280';
-              
-              return (
+            <AnimatePresence>
+              {searchQuery && (
                 <motion.button
-                  key={categoryId}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleCategorySelect(categoryId)}
-                  data-testid={`button-category-${categoryId}`}
-                  className={cn(
-                    "px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-200",
-                    selectedCategory === categoryId
-                      ? "text-white shadow-lg"
-                      : "glass text-muted-foreground hover:text-foreground"
-                  )}
-                  style={{
-                    background: selectedCategory === categoryId 
-                      ? `linear-gradient(135deg, ${colorHex} 0%, ${colorHex}CC 100%)`
-                      : undefined,
-                    boxShadow: selectedCategory === categoryId 
-                      ? `0 8px 20px -8px ${colorHex}60`
-                      : undefined,
-                  }}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  onClick={handleClearSearch}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-muted/90 hover:bg-muted transition-all rtl:left-4 rtl:right-auto"
+                  data-testid="button-clear-search"
                 >
-                  {displayName}
+                  <X className="w-4 h-4 text-muted-foreground" />
                 </motion.button>
-              );
-            })}
+              )}
+            </AnimatePresence>
           </div>
         </motion.div>
       </motion.div>
@@ -392,7 +309,7 @@ const SearchTaskersScreen = memo(function SearchTaskersScreen() {
                 title={t('taskers.empty.title', 'No taskers found')}
                 description={t('taskers.empty.description', 'Try adjusting your filters or search terms')}
                 action={
-                  (searchQuery || selectedCategory || verifiedOnly) && (
+                  searchQuery && (
                     <motion.button
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.97 }}

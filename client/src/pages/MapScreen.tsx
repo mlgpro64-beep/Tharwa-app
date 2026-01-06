@@ -3,9 +3,11 @@ import { Link, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/currency';
 import { LoadingSpinner } from '@/components/ui/animated';
-import { ArrowLeft, Search, List, MapPin, Clock, X, DollarSign } from 'lucide-react';
+import { ArrowLeft, Search, List, MapPin, Clock, X, Wallet } from 'lucide-react';
 import type { TaskWithDetails } from '@shared/schema';
+import { getMapStyle, createTileLayerConfig, createMarkerIcon } from '@/lib/mapConfig';
 
 declare global {
   interface Window {
@@ -27,16 +29,18 @@ const MapScreen = memo(function MapScreen() {
     if (!mapRef.current || !window.L) return;
 
     const defaultCenter: [number, number] = [40.7128, -74.0060];
-    
+
+    // Detect dark mode
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    const mapStyle = getMapStyle(undefined, isDarkMode);
+    const tileConfig = createTileLayerConfig(mapStyle);
+
     if (!mapInstanceRef.current) {
       mapInstanceRef.current = window.L.map(mapRef.current, {
         zoomControl: false,
-      }).setView(defaultCenter, 13);
+      }).setView(defaultCenter, 15);
 
-      window.L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '',
-        maxZoom: 19,
-      }).addTo(mapInstanceRef.current);
+      window.L.tileLayer(tileConfig.url, tileConfig.options).addTo(mapInstanceRef.current);
 
       window.L.control.zoom({
         position: 'bottomright'
@@ -63,13 +67,19 @@ const MapScreen = memo(function MapScreen() {
     tasks.forEach((task) => {
       const lat = task.latitude ? parseFloat(String(task.latitude)) : 40.7128 + (Math.random() - 0.5) * 0.05;
       const lng = task.longitude ? parseFloat(String(task.longitude)) : -74.0060 + (Math.random() - 0.5) * 0.05;
-      
-      const customIcon = window.L.divIcon({
-        className: 'custom-marker',
-        html: `<div class="custom-marker-pin"></div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
-      });
+
+      // Use enhanced marker icon from mapConfig
+      const customIcon = createMarkerIcon(
+        window.L,
+        {
+          size: 24,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
+          className: 'custom-marker',
+        },
+        false, // No pulse for task markers
+        'primary'
+      );
 
       const marker = window.L.marker([lat, lng], { icon: customIcon })
         .addTo(mapInstanceRef.current);
@@ -80,24 +90,15 @@ const MapScreen = memo(function MapScreen() {
     });
   }, [tasks]);
 
-  const formatCurrency = useCallback((amount: number | string) => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(num);
-  }, []);
 
   return (
     <div className="min-h-screen relative bg-background">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="absolute top-0 left-0 right-0 z-20 p-4 pt-safe flex items-center gap-4"
       >
-        <motion.button 
+        <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => window.history.back()}
@@ -106,7 +107,7 @@ const MapScreen = memo(function MapScreen() {
         >
           <ArrowLeft className="w-5 h-5" />
         </motion.button>
-        
+
         <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -118,9 +119,9 @@ const MapScreen = memo(function MapScreen() {
             />
           </div>
         </div>
-        
+
         <Link href="/tasks-feed">
-          <motion.button 
+          <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="w-11 h-11 flex items-center justify-center rounded-2xl glass shadow-lg"
@@ -156,7 +157,7 @@ const MapScreen = memo(function MapScreen() {
 
       <AnimatePresence>
         {selectedTask && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
@@ -164,7 +165,7 @@ const MapScreen = memo(function MapScreen() {
             className="absolute bottom-0 left-0 right-0 z-20 p-4 pb-safe"
           >
             <Link href={`/task/${selectedTask.id}`}>
-              <motion.div 
+              <motion.div
                 whileTap={{ scale: 0.98 }}
                 className="glass-premium p-5 rounded-3xl shadow-2xl cursor-pointer"
                 data-testid={`task-preview-${selectedTask.id}`}
@@ -176,7 +177,7 @@ const MapScreen = memo(function MapScreen() {
                     </span>
                     <h3 className="text-lg font-bold text-foreground">{selectedTask.title}</h3>
                   </div>
-                  <motion.button 
+                  <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedTask(null); }}
@@ -198,9 +199,9 @@ const MapScreen = memo(function MapScreen() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 bg-primary/15 px-3 py-1.5 rounded-xl">
-                    <DollarSign className="w-4 h-4 text-primary" />
+                    <Wallet className="w-4 h-4 text-primary" />
                     <span className="font-extrabold text-lg text-primary">
-                      {formatCurrency(selectedTask.budget).replace('$', '')}
+                      {formatCurrency(selectedTask.budget, { locale: 'en' })}
                     </span>
                   </div>
                 </div>

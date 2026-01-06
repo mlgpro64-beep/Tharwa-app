@@ -16,7 +16,8 @@ export const professionalCategoryEnum = pgEnum("professional_category", [
   "teaching_education", 
   "art", 
   "construction", 
-  "special"
+  "special",
+  "car_care"
 ]);
 export const availabilityStatusEnum = pgEnum("availability_status", ["available", "busy"]);
 export const taskerTypeEnum = pgEnum("tasker_type", ["general", "specialized"]);
@@ -400,6 +401,31 @@ export const reviewsRelations = relations(reviews, ({ one }) => ({
   }),
 }));
 
+// Payment status enum for Paylink payments
+export const paymentStatusEnum = pgEnum("payment_status", ["pending", "paid", "failed", "cancelled"]);
+
+// Payments table for Paylink integration
+export const payments = pgTable("payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  paylinkInvoiceId: text("paylink_invoice_id"), // Paylink invoice ID
+  paylinkTransactionId: text("paylink_transaction_id"), // Paylink transaction ID
+  status: paymentStatusEnum("status").notNull().default("pending"),
+  paymentUrl: text("payment_url"), // URL to redirect user for payment
+  description: text("description"),
+  metadata: text("metadata"), // JSON string for additional data
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  user: one(users, {
+    fields: [payments.userId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -484,6 +510,12 @@ export const insertReviewSchema = createInsertSchema(reviews).omit({
   createdAt: true,
 });
 
+export const insertPaymentSchema = createInsertSchema(payments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -527,6 +559,9 @@ export type OtpCode = typeof otpCodes.$inferSelect;
 export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type Review = typeof reviews.$inferSelect;
 
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;
+
 export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({
   id: true,
   createdAt: true,
@@ -561,17 +596,25 @@ export type ConversationPreview = {
 
 // Task categories with subcategories for task posting
 export const TASK_CATEGORIES_WITH_SUBS = {
+  pampering: {
+    id: "pampering",
+    nameEn: "Pampering & Luxury",
+    nameAr: "تدلل",
+    colorHex: "#FF6B9D",
+    icon: "heart",
+    subcategories: [],
+  },
   beauty_fashion: {
     id: "beauty_fashion",
-    nameEn: "Beauty & Fashion",
-    nameAr: "الجمال والموضة",
+    nameEn: "Beauty & Personal Care",
+    nameAr: "الجمال والعناية الشخصية",
     colorHex: "#EC4899",
     icon: "sparkles",
     subcategories: [
-      { id: "model", nameEn: "Model", nameAr: "مودل" },
       { id: "makeup_artist", nameEn: "Makeup Artist", nameAr: "ميكب ارتست" },
-      { id: "hair_stylist", nameEn: "Hair Stylist", nameAr: "مصففة الشعر" },
-      { id: "clothing_designer", nameEn: "Clothing Designer", nameAr: "تصميم الملابس" },
+      { id: "hair_stylist", nameEn: "Hair Stylist", nameAr: "مصففة شعر" },
+      { id: "nail_art", nameEn: "Nail Art", nameAr: "بديكير ومناكير" },
+      { id: "home_spa", nameEn: "Home Spa Services", nameAr: "خدمات سبا منزلية" },
     ],
   },
   teaching_education: {
@@ -601,37 +644,54 @@ export const TASK_CATEGORIES_WITH_SUBS = {
   },
   construction: {
     id: "construction",
-    nameEn: "Construction",
-    nameAr: "عمال المقاولات",
-    colorHex: "#EF4444",
+    nameEn: "Home Maintenance",
+    nameAr: "الصيانة المنزلية",
+    colorHex: "#F59E0B",
     icon: "hard-hat",
     subcategories: [
-      { id: "carpenter", nameEn: "Carpenter", nameAr: "النجار" },
-      { id: "blacksmith", nameEn: "Blacksmith", nameAr: "الحداد" },
-      { id: "electrician", nameEn: "Electrician", nameAr: "الكهربائي" },
-      { id: "plumber", nameEn: "Plumber", nameAr: "السباك" },
+      { id: "ac_repair", nameEn: "AC & Cooling", nameAr: "تكييف وتبريد" },
+      { id: "plumber", nameEn: "Plumber", nameAr: "السباكة" },
+      { id: "carpenter", nameEn: "Carpenter", nameAr: "النجارة" },
+      { id: "electrician", nameEn: "Electrician", nameAr: "كهربائي" },
     ],
   },
   special: {
     id: "special",
-    nameEn: "Special Services",
-    nameAr: "فئة خاصة",
-    colorHex: "#EAB308",
+    nameEn: "Home Services",
+    nameAr: "الخدمات المنزلية",
+    colorHex: "#06B6D4",
     icon: "star",
     subcategories: [
-      { id: "package_delivery", nameEn: "Package Delivery", nameAr: "توصيل الطرود واستلامها" },
-      { id: "furniture_moving", nameEn: "Furniture Moving", nameAr: "نقل العفش" },
-      { id: "car_washing", nameEn: "Car Washing", nameAr: "غسيل السيارات" },
+      { id: "home_chef", nameEn: "Home Chef", nameAr: "طاهي منزلي" },
+      { id: "housekeeper", nameEn: "Housekeeper", nameAr: "عاملات منزلية" },
+      { id: "hospitality_service", nameEn: "Hospitality Service", nameAr: "خدامات الضيافة" },
       { id: "home_barber", nameEn: "Home Barber", nameAr: "حلاق منزلي" },
+    ],
+  },
+  car_care: {
+    id: "car_care",
+    nameEn: "Car Care",
+    nameAr: "العناية بالسيارات",
+    colorHex: "#3B82F6",
+    icon: "car",
+    subcategories: [
+      { id: "car_washing", nameEn: "Mobile Car Washing", nameAr: "غسيل سيارات متنقل" },
+      { id: "road_service", nameEn: "Road Service", nameAr: "خدمات الطريق" },
+      { id: "towing_transport", nameEn: "Towing & Transport", nameAr: "سطحات ونقل" },
     ],
   },
   other: {
     id: "other",
-    nameEn: "Other",
-    nameAr: "أخرى",
+    nameEn: "Request What You Want",
+    nameAr: "اطلب اللي تبي",
     colorHex: "#6B7280",
     icon: "more-horizontal",
-    subcategories: [],
+    subcategories: [
+      { id: "package_delivery", nameEn: "Package Delivery", nameAr: "توصيل الطرود واستلامها" },
+      { id: "furniture_moving", nameEn: "Furniture Moving", nameAr: "نقل عفش" },
+      { id: "gas_delivery", nameEn: "Gas Delivery", nameAr: "توصيل الغاز" },
+      { id: "document_service", nameEn: "Document Service", nameAr: "معقب" },
+    ],
   },
 } as const;
 
@@ -639,10 +699,10 @@ export type TaskCategoryId = keyof typeof TASK_CATEGORIES_WITH_SUBS;
 
 // All valid task categories (subcategory IDs + "other")
 export const TASK_CATEGORIES = [
-  "model",
   "makeup_artist",
   "hair_stylist",
-  "clothing_designer",
+  "nail_art",
+  "home_spa",
   "private_tutor",
   "translator",
   "sign_language",
@@ -650,22 +710,29 @@ export const TASK_CATEGORIES = [
   "painting",
   "photography",
   "digital_art",
-  "carpenter",
-  "blacksmith",
-  "electrician",
+  "ac_repair",
   "plumber",
+  "carpenter",
+  "electrician",
+  "home_chef",
+  "housekeeper",
+  "hospitality_service",
+  "home_barber",
+  "car_washing",
+  "road_service",
+  "towing_transport",
   "package_delivery",
   "furniture_moving",
-  "car_washing",
-  "home_barber",
+  "gas_delivery",
+  "document_service",
   "other",
 ] as const;
 
 export type TaskCategory = typeof TASK_CATEGORIES[number];
 
 export const getCategoryInfo = (categoryId: string): { mainCategory: TaskCategoryId; subcategory?: typeof TASK_CATEGORIES_WITH_SUBS[TaskCategoryId]['subcategories'][number] } | null => {
-  if (categoryId === 'other') {
-    return { mainCategory: 'other' };
+  if (categoryId === 'other' || categoryId === 'pampering') {
+    return { mainCategory: categoryId as TaskCategoryId };
   }
   
   for (const [mainId, cat] of Object.entries(TASK_CATEGORIES_WITH_SUBS)) {
@@ -680,16 +747,23 @@ export const getCategoryInfo = (categoryId: string): { mainCategory: TaskCategor
 
 // Professional categories with colors (for professional badges)
 export const PROFESSIONAL_CATEGORIES = {
+  pampering: {
+    id: "pampering",
+    nameEn: "Pampering & Luxury",
+    nameAr: "تدلل",
+    colorHex: "#FF6B9D",
+    roles: [],
+  },
   beauty_fashion: {
     id: "beauty_fashion",
-    nameEn: "Beauty & Fashion",
-    nameAr: "الجمال والموضة",
+    nameEn: "Beauty & Personal Care",
+    nameAr: "الجمال والعناية الشخصية",
     colorHex: "#EC4899",
     roles: [
-      { slug: "model", nameEn: "Model", nameAr: "مودل" },
       { slug: "makeup_artist", nameEn: "Makeup Artist", nameAr: "ميكب ارتست" },
-      { slug: "hair_stylist", nameEn: "Hair Stylist", nameAr: "مصففة الشعر" },
-      { slug: "clothing_designer", nameEn: "Clothing Designer", nameAr: "تصميم الملابس" },
+      { slug: "hair_stylist", nameEn: "Hair Stylist", nameAr: "مصففة شعر" },
+      { slug: "nail_art", nameEn: "Nail Art", nameAr: "بديكير ومناكير" },
+      { slug: "home_spa", nameEn: "Home Spa Services", nameAr: "خدمات سبا منزلية" },
     ],
   },
   teaching_education: {
@@ -717,26 +791,37 @@ export const PROFESSIONAL_CATEGORIES = {
   },
   construction: {
     id: "construction",
-    nameEn: "Construction",
-    nameAr: "عمال المقاولات",
-    colorHex: "#EF4444",
+    nameEn: "Home Maintenance",
+    nameAr: "الصيانة المنزلية",
+    colorHex: "#F59E0B",
     roles: [
-      { slug: "carpenter", nameEn: "Carpenter", nameAr: "النجار" },
-      { slug: "blacksmith", nameEn: "Blacksmith", nameAr: "الحداد" },
-      { slug: "electrician", nameEn: "Electrician", nameAr: "الكهربائي" },
-      { slug: "plumber", nameEn: "Plumber", nameAr: "السباك" },
+      { slug: "ac_repair", nameEn: "AC & Cooling", nameAr: "تكييف وتبريد" },
+      { slug: "plumber", nameEn: "Plumber", nameAr: "السباكة" },
+      { slug: "carpenter", nameEn: "Carpenter", nameAr: "النجارة" },
+      { slug: "electrician", nameEn: "Electrician", nameAr: "كهربائي" },
     ],
   },
   special: {
     id: "special",
-    nameEn: "Special Services",
-    nameAr: "فئة خاصة",
-    colorHex: "#EAB308",
+    nameEn: "Home Services",
+    nameAr: "الخدمات المنزلية",
+    colorHex: "#06B6D4",
     roles: [
-      { slug: "package_delivery", nameEn: "Package Delivery", nameAr: "توصيل الطرود واستلامها" },
-      { slug: "furniture_moving", nameEn: "Furniture Moving", nameAr: "نقل العفش" },
-      { slug: "car_washing", nameEn: "Car Washing", nameAr: "غسيل السيارات" },
+      { slug: "home_chef", nameEn: "Home Chef", nameAr: "طاهي منزلي" },
+      { slug: "housekeeper", nameEn: "Housekeeper", nameAr: "عاملات منزلية" },
+      { slug: "hospitality_service", nameEn: "Hospitality Service", nameAr: "خدامات الضيافة" },
       { slug: "home_barber", nameEn: "Home Barber", nameAr: "حلاق منزلي" },
+    ],
+  },
+  car_care: {
+    id: "car_care",
+    nameEn: "Car Care",
+    nameAr: "العناية بالسيارات",
+    colorHex: "#3B82F6",
+    roles: [
+      { slug: "car_washing", nameEn: "Mobile Car Washing", nameAr: "غسيل سيارات متنقل" },
+      { slug: "road_service", nameEn: "Road Service", nameAr: "خدمات الطريق" },
+      { slug: "towing_transport", nameEn: "Towing & Transport", nameAr: "سطحات ونقل" },
     ],
   },
 } as const;

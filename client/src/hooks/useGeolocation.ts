@@ -14,14 +14,22 @@ interface GeolocationState {
   isLoading: boolean;
   error: string | null;
   isInRiyadh: boolean;
+  isInSupportedCity: boolean;
 }
 
-// Riyadh city boundaries (approximate)
+// City boundaries (approximate)
 const RIYADH_BOUNDS = {
   north: 25.1,
   south: 24.3,
   east: 47.1,
   west: 46.4,
+};
+
+const AL_KHARJ_BOUNDS = {
+  north: 24.25,
+  south: 24.05,
+  east: 47.6,
+  west: 47.3,
 };
 
 export function useGeolocation() {
@@ -31,6 +39,7 @@ export function useGeolocation() {
     isLoading: false,
     error: null,
     isInRiyadh: false,
+    isInSupportedCity: false,
   });
   const { toast } = useToast();
 
@@ -43,6 +52,21 @@ export function useGeolocation() {
       lng <= RIYADH_BOUNDS.east
     );
   }, []);
+
+  // Validate if coordinates are within Al-Kharj boundaries
+  const validateAlKharjLocation = useCallback((lat: number, lng: number): boolean => {
+    return (
+      lat >= AL_KHARJ_BOUNDS.south &&
+      lat <= AL_KHARJ_BOUNDS.north &&
+      lng >= AL_KHARJ_BOUNDS.west &&
+      lng <= AL_KHARJ_BOUNDS.east
+    );
+  }, []);
+
+  // Validate if coordinates are within any supported city
+  const validateSupportedCityLocation = useCallback((lat: number, lng: number): boolean => {
+    return validateRiyadhLocation(lat, lng) || validateAlKharjLocation(lat, lng);
+  }, [validateRiyadhLocation, validateAlKharjLocation]);
 
   // Get current position
   const getCurrentPosition = useCallback((): Promise<Coordinates> => {
@@ -63,12 +87,14 @@ export function useGeolocation() {
           };
           
           const isInRiyadh = validateRiyadhLocation(coords.latitude, coords.longitude);
+          const isInSupportedCity = validateSupportedCityLocation(coords.latitude, coords.longitude);
           
           setState(prev => ({ 
             ...prev, 
             coordinates: coords, 
             isLoading: false,
             isInRiyadh,
+            isInSupportedCity,
           }));
           resolve(coords);
         },
@@ -134,18 +160,19 @@ export function useGeolocation() {
       const address = await getAddress(coords.latitude, coords.longitude);
       
       const isInRiyadh = validateRiyadhLocation(coords.latitude, coords.longitude);
+      const isInSupportedCity = validateSupportedCityLocation(coords.latitude, coords.longitude);
       
-      setState(prev => ({ ...prev, isInRiyadh }));
+      setState(prev => ({ ...prev, isInRiyadh, isInSupportedCity }));
       
-      if (!isInRiyadh) {
+      if (!isInSupportedCity) {
         toast({
-          title: 'موقع خارج الرياض',
-          description: 'الخدمة متاحة حالياً في الرياض فقط',
+          title: 'موقع خارج المدن المدعومة',
+          description: 'الخدمة متاحة حالياً في الرياض والخرج فقط',
           variant: 'destructive',
         });
       }
       
-      return { ...coords, address, isInRiyadh };
+      return { ...coords, address, isInRiyadh, isInSupportedCity };
     } catch (error: any) {
       toast({
         title: 'خطأ في تحديد الموقع',
@@ -154,7 +181,7 @@ export function useGeolocation() {
       });
       throw error;
     }
-  }, [getCurrentPosition, getAddress, validateRiyadhLocation, toast]);
+  }, [getCurrentPosition, getAddress, validateRiyadhLocation, validateSupportedCityLocation, toast]);
 
   // Check if geolocation is supported
   const isSupported = 'geolocation' in navigator;
@@ -166,5 +193,6 @@ export function useGeolocation() {
     getAddress,
     getLocationWithAddress,
     validateRiyadhLocation,
+    validateSupportedCityLocation,
   };
 }

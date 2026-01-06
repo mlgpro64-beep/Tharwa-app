@@ -7,10 +7,11 @@ import { TaskCard } from '@/components/TaskCard';
 import { CountUp } from '@/components/CountUp';
 import { useQuery } from '@tanstack/react-query';
 import { TaskCardSkeleton, EmptyState } from '@/components/ui/animated';
-import { Bell, Settings, Wallet, Plus, ArrowRight, TrendingUp, CheckCircle, Search, Sparkles, GraduationCap, HardHat, Inbox, Clock, CheckCircle2, XCircle, Send } from 'lucide-react';
+import { formatCurrency } from '@/lib/currency';
+import { Bell, Settings, Wallet, Plus, ArrowRight, TrendingUp, CheckCircle, Search, Heart, Sparkles, GraduationCap, HardHat, Inbox, Clock, CheckCircle2, XCircle, Send, Car, Home, Palette } from 'lucide-react';
 import type { TaskWithDetails, User, DirectServiceRequest } from '@shared/schema';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { TASK_CATEGORIES_WITH_SUBS } from '@shared/schema';
+import { TASK_CATEGORIES_WITH_SUBS, getCategoryInfo } from '@shared/schema';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -36,12 +37,17 @@ const itemVariants = {
   }
 };
 
-const promoCategoryIds = ['beauty_fashion', 'teaching_education', 'construction'] as const;
+const promoCategoryIds = ['pampering', 'beauty_fashion', 'construction', 'special', 'car_care', 'other'] as const;
 
 const categoryIcons: Record<string, typeof Sparkles> = {
+  pampering: Heart,
   beauty_fashion: Sparkles,
   teaching_education: GraduationCap,
   construction: HardHat,
+  special: Home,
+  car_care: Car,
+  art: Palette,
+  other: Plus,
 };
 
 const HomeScreen = memo(function HomeScreen() {
@@ -237,6 +243,11 @@ const HomeScreen = memo(function HomeScreen() {
               {promoCategoryIds.map((categoryId, index) => {
                 const category = TASK_CATEGORIES_WITH_SUBS[categoryId];
                 const IconComponent = categoryIcons[categoryId];
+                
+                // Skip if category doesn't exist
+                if (!category || !IconComponent) {
+                  return null;
+                }
                 
                 return (
                   <Link href="/post-task/1" key={categoryId}>
@@ -451,7 +462,10 @@ const HomeScreen = memo(function HomeScreen() {
                 };
                 const config = statusConfig[request.status as keyof typeof statusConfig] || statusConfig.pending;
                 const StatusIcon = config.icon;
-                const category = TASK_CATEGORIES_WITH_SUBS[request.category as keyof typeof TASK_CATEGORIES_WITH_SUBS];
+                const categoryInfo = getCategoryInfo(request.category);
+                const category = categoryInfo 
+                  ? TASK_CATEGORIES_WITH_SUBS[categoryInfo.mainCategory]
+                  : null;
 
                 const linkHref = request.status === 'accepted' && request.linkedTaskId 
                   ? `/task/${request.linkedTaskId}` 
@@ -494,16 +508,18 @@ const HomeScreen = memo(function HomeScreen() {
                             </p>
                             
                             <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                              {category && (
+                              {category && categoryInfo && (
                                 <span 
                                   className="px-2 py-0.5 rounded-full"
                                   style={{ backgroundColor: `${category.colorHex}20`, color: category.colorHex }}
                                 >
-                                  {i18n.language === 'ar' ? category.nameAr : category.nameEn}
+                                  {categoryInfo.subcategory 
+                                    ? (i18n.language === 'ar' ? categoryInfo.subcategory.nameAr : categoryInfo.subcategory.nameEn)
+                                    : (i18n.language === 'ar' ? category.nameAr : category.nameEn)}
                                 </span>
                               )}
                               <span className="font-semibold text-primary">
-                                {request.budget} {i18n.language === 'ar' ? 'ر.س' : 'SAR'}
+                                {formatCurrency(request.budget, { locale: i18n.language === 'ar' ? 'ar' : 'en' })}
                               </span>
                             </div>
                           </div>

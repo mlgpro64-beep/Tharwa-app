@@ -9,8 +9,8 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { TASK_CATEGORIES_WITH_SUBS } from '@shared/schema';
-import { 
-  X, Calendar, Clock, MapPin, User, DollarSign, 
+import {
+  X, Calendar, Clock, MapPin, User,
   FileText, Tag, Send, Loader2, CheckCircle
 } from 'lucide-react';
 import type { User as UserType } from '@shared/schema';
@@ -58,13 +58,13 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
   const { i18n } = useTranslation();
   const isArabic = i18n.language === 'ar';
   const { toast } = useToast();
-  
+
   const [step, setStep] = useState(1);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
+
   const [formData, setFormData] = useState<RequestFormData>({
     category: '',
     title: '',
@@ -90,8 +90,8 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
       toast({
         title: isArabic ? 'تم إرسال الطلب!' : 'Request Sent!',
-        description: isArabic 
-          ? 'سيتم إخطارك عندما يرد المنفذ' 
+        description: isArabic
+          ? 'سيتم إخطارك عندما يرد المنفذ'
           : 'You will be notified when the tasker responds',
       });
       resetAndClose();
@@ -141,7 +141,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
       async (position) => {
         const { latitude, longitude } = position.coords;
         const locationName = await reverseGeocode(latitude, longitude);
-        
+
         updateField('location', locationName);
         updateField('latitude', latitude);
         updateField('longitude', longitude);
@@ -156,7 +156,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
 
   const validateStep = useCallback((stepNum: number): boolean => {
     const newErrors: Record<string, string> = {};
-    
+
     if (stepNum === 1) {
       if (!formData.category) {
         newErrors.category = isArabic ? 'اختر التصنيف' : 'Select a category';
@@ -182,7 +182,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
         newErrors.scheduledTime = isArabic ? 'الوقت مطلوب' : 'Time is required';
       }
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }, [formData, isArabic]);
@@ -220,7 +220,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
           {isArabic ? 'اختر التصنيف' : 'Choose Category'}
         </h3>
       </div>
-      
+
       <div className="grid grid-cols-2 gap-3 max-h-[40vh] overflow-y-auto no-scrollbar py-2">
         {categoryOptions.map((cat) => (
           <motion.button
@@ -235,16 +235,16 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
                 : "border-transparent bg-muted hover:bg-muted/80"
             )}
           >
-            <div 
+            <div
               className="w-10 h-10 rounded-full flex items-center justify-center mb-2"
               style={{ backgroundColor: `${cat.color}20` }}
             >
               <span className="text-xl" style={{ color: cat.color }}>
-                {cat.icon === 'sparkles' ? '✨' : 
-                 cat.icon === 'graduation-cap' ? '🎓' : 
-                 cat.icon === 'palette' ? '🎨' : 
-                 cat.icon === 'hard-hat' ? '🔨' : 
-                 cat.icon === 'star' ? '⭐' : '📦'}
+                {cat.icon === 'sparkles' ? '✨' :
+                  cat.icon === 'graduation-cap' ? '🎓' :
+                    cat.icon === 'palette' ? '🎨' :
+                      cat.icon === 'hard-hat' ? '🔨' :
+                        cat.icon === 'star' ? '⭐' : '📦'}
               </span>
             </div>
             <span className="font-semibold text-sm block truncate">
@@ -253,7 +253,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
           </motion.button>
         ))}
       </div>
-      
+
       {errors.category && (
         <p className="text-destructive text-sm font-medium">{errors.category}</p>
       )}
@@ -274,7 +274,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
           {isArabic ? 'تفاصيل الخدمة' : 'Service Details'}
         </h3>
       </div>
-      
+
       <FloatingInput
         label={isArabic ? 'عنوان الخدمة' : 'Service Title'}
         value={formData.title}
@@ -282,7 +282,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
         error={errors.title}
         data-testid="input-service-title"
       />
-      
+
       <div className="relative">
         <textarea
           value={formData.description}
@@ -290,8 +290,8 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
           placeholder={isArabic ? 'صف ما تحتاجه بالتفصيل...' : 'Describe what you need in detail...'}
           className={cn(
             "w-full h-32 px-4 py-4 rounded-2xl border-2 bg-card shadow-sm outline-none transition-all resize-none font-medium",
-            errors.description 
-              ? "border-destructive/50 focus:border-destructive" 
+            errors.description
+              ? "border-destructive/50 focus:border-destructive"
               : "border-transparent focus:border-primary/50"
           )}
           data-testid="input-service-description"
@@ -317,7 +317,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
           {isArabic ? 'الموعد والموقع' : 'Schedule & Location'}
         </h3>
       </div>
-      
+
       <FloatingInput
         label={isArabic ? 'الميزانية (ريال)' : 'Budget (SAR)'}
         type="number"
@@ -326,7 +326,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
         error={errors.budget}
         data-testid="input-budget"
       />
-      
+
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => setShowDatePicker(true)}
@@ -345,7 +345,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
             {formData.scheduledDate || (isArabic ? 'التاريخ' : 'Date')}
           </span>
         </button>
-        
+
         <button
           onClick={() => setShowTimePicker(true)}
           data-testid="button-select-time"
@@ -364,7 +364,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
           </span>
         </button>
       </div>
-      
+
       <div className="relative">
         <FloatingInput
           label={isArabic ? 'الموقع' : 'Location'}
@@ -402,7 +402,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
         onClick={resetAndClose}
         data-testid="modal-backdrop"
       />
-      
+
       <motion.div
         initial={{ opacity: 0, y: 100 }}
         animate={{ opacity: 1, y: 0 }}
@@ -411,7 +411,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
         data-testid="modal-direct-request"
       >
         <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-4 sm:hidden" />
-        
+
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -434,7 +434,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
             <X className="w-6 h-6" />
           </button>
         </div>
-        
+
         <div className="flex items-center gap-2 mb-6">
           {[1, 2, 3].map((s) => (
             <div
@@ -446,7 +446,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
             />
           ))}
         </div>
-        
+
         <div className="min-h-[280px]">
           <AnimatePresence mode="wait">
             {step === 1 && renderStep1()}
@@ -454,7 +454,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
             {step === 3 && renderStep3()}
           </AnimatePresence>
         </div>
-        
+
         <div className="flex gap-3 mt-6">
           {step > 1 && (
             <button
@@ -465,7 +465,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
               {isArabic ? 'رجوع' : 'Back'}
             </button>
           )}
-          
+
           {step < 3 ? (
             <button
               onClick={handleNext}
@@ -493,7 +493,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
           )}
         </div>
       </motion.div>
-      
+
       <DateTimePicker
         isOpen={showDatePicker}
         onClose={() => setShowDatePicker(false)}
@@ -501,7 +501,7 @@ export const DirectServiceRequestModal = memo(function DirectServiceRequestModal
         mode="date"
         title={isArabic ? 'اختر التاريخ' : 'Select Date'}
       />
-      
+
       <DateTimePicker
         isOpen={showTimePicker}
         onClose={() => setShowTimePicker(false)}

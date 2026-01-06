@@ -29,6 +29,7 @@
     "register": "Register",
     "logout": "Logout",
     "username": "Username",
+    "invalidUsername": "Username must be 3-20 characters and can only contain letters, numbers, and _",
     "password": "Password",
     "confirmPassword": "Confirm Password",
     "email": "Email",
@@ -137,6 +138,14 @@
     "bidPlaced": "Bid placed",
     "bidAccepted": "Bid accepted",
     "bidRejected": "Bid rejected",
+    "postTaskSteps": {
+      "step1Title": "What do you need help with?",
+      "step1Description": "Select a category for your task",
+      "step2Title": "Tell us the details",
+      "step2Description": "Write a clear description of your task",
+      "step3Title": "Set location and timing",
+      "step3Description": "Choose the right place and time"
+    },
     "statuses": {
       "open": "Open",
       "assigned": "Assigned",
@@ -145,17 +154,19 @@
       "cancelled": "Cancelled"
     },
     "categories": {
-      "beauty_fashion": "Beauty & Fashion",
+      "pampering": "Pampering & Luxury",
+      "beauty_fashion": "Beauty & Personal Care",
       "teaching_education": "Teaching & Education",
       "art": "Art",
-      "construction": "Construction",
-      "special": "Special Services",
-      "other": "Other",
+      "construction": "Home Maintenance",
+      "special": "Home Services",
+      "car_care": "Car Care",
+      "other": "Request What You Want",
       "subcategories": "subcategories",
-      "model": "Model",
       "makeup_artist": "Makeup Artist",
       "hair_stylist": "Hair Stylist",
-      "clothing_designer": "Clothing Designer",
+      "nail_art": "Nail Art",
+      "home_spa": "Home Spa Services",
       "private_tutor": "Private Tutor",
       "translator": "Language Translator",
       "sign_language": "Sign Language",
@@ -163,14 +174,21 @@
       "painting": "Painting",
       "photography": "Photography",
       "digital_art": "Digital Art",
-      "carpenter": "Carpenter",
-      "blacksmith": "Blacksmith",
-      "electrician": "Electrician",
+      "ac_repair": "AC & Cooling",
       "plumber": "Plumber",
+      "carpenter": "Carpenter",
+      "electrician": "Electrician",
+      "home_chef": "Home Chef",
+      "housekeeper": "Housekeeper",
+      "hospitality_service": "Hospitality Service",
+      "home_barber": "Home Barber",
+      "car_washing": "Mobile Car Washing",
+      "road_service": "Road Service",
+      "towing_transport": "Towing & Transport",
       "package_delivery": "Package Delivery",
       "furniture_moving": "Furniture Moving",
-      "car_washing": "Car Washing",
-      "home_barber": "Home Barber"
+      "gas_delivery": "Gas Delivery",
+      "document_service": "Document Service"
     },
     "filters": {
       "allCategories": "All Categories",
@@ -229,6 +247,13 @@
     "editProfile": "Edit Profile",
     "myProfile": "My Profile",
     "accountSettings": "Account Settings",
+    "changeAvatar": "Tap to change profile picture",
+    "invalidImageType": "Please select an image file",
+    "imageTooLarge": "Image size must be less than 5MB",
+    "imageLoadError": "Failed to load image",
+    "profileUpdated": "Profile updated successfully",
+    "imageSelected": "Image selected",
+    "clickSaveToUpdate": "Click Save to update your profile picture",
     "memberSince": "Member since",
     "rating": "Rating",
     "reviews": "Reviews",
@@ -303,15 +328,19 @@
     "nearbyTasks": "Nearby Tasks",
     "yourLocation": "Your Location",
     "searchArea": "Search this area",
-    "noTasksNearby": "No tasks nearby"
+    "noTasksNearby": "No tasks nearby",
+    "tapToViewMap": "Tap to view map",
+    "openMap": "Open map",
+    "locationNotAvailable": "Location not available"
   },
   "location": {
     "comingSoon": "Coming Soon to Your Area",
-    "comingSoonDesc": "We're currently available in Riyadh only. We'll be in your area soon!",
-    "riyadhOnly": "Available in Riyadh",
+    "comingSoonDesc": "We're currently available in Riyadh and Al-Kharj. We'll be in your area soon!",
+    "riyadhOnly": "Available in Riyadh and Al-Kharj",
     "notifyMe": "Notify me when we launch",
     "currentlyAvailable": "Currently available in:",
     "riyadh": "Riyadh",
+    "alKharj": "Al-Kharj",
     "expandingSoon": "Expanding to more cities soon",
     "locationRequired": "We need your location to show nearby tasks",
     "enableLocation": "Enable Location"
@@ -412,7 +441,7 @@
     },
     "contact": {
       "title": "Contact Us",
-      "content": "If you have any questions about this privacy policy, you can contact us at:\n• Email: privacy@tharwa.app\n• Phone: +966 11 000 0000"
+      "content": "If you have any questions about this privacy policy, you can contact us at:\n• Email: privacy@tharwwa.com\n• Phone: +966 11 000 0000"
     }
   },
   "terms": {
@@ -517,17 +546,18 @@
   "professionalRoles": {
     "title": "Professional Roles",
     "categories": {
-      "beauty_fashion": "Beauty & Fashion",
+      "beauty_fashion": "Beauty & Personal Care",
       "teaching_education": "Teaching & Education",
       "art": "Art",
-      "construction": "Construction Workers",
-      "special": "Special Category"
+      "construction": "Home Maintenance",
+      "special": "Home Services",
+      "car_care": "Car Care"
     },
     "roles": {
-      "model": "Model",
       "makeup_artist": "Makeup Artist",
       "hair_stylist": "Hair Stylist",
-      "clothing_designer": "Clothing Designer",
+      "nail_art": "Nail Art",
+      "home_spa": "Home Spa Services",
       "private_tutor": "Private Tutor",
       "translator": "Language Translator",
       "sign_language": "Sign Language",
@@ -535,14 +565,17 @@
       "painting": "Painting",
       "photography": "Photography",
       "digital_art": "Digital Art",
-      "carpenter": "Carpenter",
-      "blacksmith": "Blacksmith",
-      "electrician": "Electrician",
+      "ac_repair": "AC & Cooling",
       "plumber": "Plumber",
-      "package_delivery": "Package Delivery",
-      "furniture_moving": "Furniture Moving",
-      "car_washing": "Car Washing",
-      "home_barber": "Home Barber"
+      "carpenter": "Carpenter",
+      "electrician": "Electrician",
+      "home_chef": "Home Chef",
+      "housekeeper": "Housekeeper",
+      "hospitality_service": "Hospitality Service",
+      "home_barber": "Home Barber",
+      "car_washing": "Mobile Car Washing",
+      "road_service": "Road Service",
+      "towing_transport": "Towing & Transport"
     }
   },
   "taskerType": {

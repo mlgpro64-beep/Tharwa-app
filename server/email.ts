@@ -3,6 +3,15 @@ import { Resend } from 'resend';
 let connectionSettings: any;
 
 async function getCredentials() {
+  // Try environment variables first (for Cursor/local development)
+  if (process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
+    return {
+      apiKey: process.env.RESEND_API_KEY,
+      fromEmail: process.env.RESEND_FROM_EMAIL,
+    };
+  }
+
+  // Fallback to Replit connectors (for Replit deployment)
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY 
     ? 'repl ' + process.env.REPL_IDENTITY 
@@ -11,7 +20,7 @@ async function getCredentials() {
     : null;
 
   if (!xReplitToken) {
-    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
+    throw new Error('Resend credentials not found. Set RESEND_API_KEY and RESEND_FROM_EMAIL in .env file, or use Replit connectors.');
   }
 
   connectionSettings = await fetch(

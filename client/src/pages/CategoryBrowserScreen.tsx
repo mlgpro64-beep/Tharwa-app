@@ -5,16 +5,18 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { TASK_CATEGORIES_WITH_SUBS, type TaskCategoryId } from '@shared/schema';
 import { 
-  Sparkles, GraduationCap, Palette, HardHat, Star, MoreHorizontal,
+  Heart, Sparkles, GraduationCap, Palette, HardHat, Star, MoreHorizontal, Car,
   ArrowRight, ArrowLeft
 } from 'lucide-react';
 
 const categoryIcons: Record<TaskCategoryId, typeof Sparkles> = {
+  pampering: Heart,
   beauty_fashion: Sparkles,
   teaching_education: GraduationCap,
   art: Palette,
   construction: HardHat,
   special: Star,
+  car_care: Car,
   other: MoreHorizontal,
 };
 
@@ -108,15 +110,19 @@ const CategoryBrowserScreen = memo(function CategoryBrowserScreen() {
                     />
                   </div>
                   
-                  <h3 className="text-base font-bold text-foreground mb-1 line-clamp-2">
-                    {name}
-                  </h3>
-                  
-                  {subcategoryCount > 0 && (
-                    <p className="text-xs text-muted-foreground mb-3">
-                      {subcategoryCount} {isArabic ? 'تخصصات' : 'specialties'}
-                    </p>
-                  )}
+                        <h3 className="text-base font-bold text-foreground mb-1 line-clamp-2">
+                          {name}
+                        </h3>
+                        
+                        {categoryId === 'pampering' ? (
+                          <p className="text-xs text-muted-foreground mb-3">
+                            {isArabic ? 'اطلب اللي في خاطرك' : 'Request what\'s on your mind'}
+                          </p>
+                        ) : subcategoryCount > 0 ? (
+                          <p className="text-xs text-muted-foreground mb-3">
+                            {subcategoryCount} {isArabic ? 'تخصصات' : 'specialties'}
+                          </p>
+                        ) : null}
 
                   <div 
                     className="flex items-center gap-1.5 text-xs font-medium"

@@ -69,8 +69,14 @@ export function AvailabilityCalendar({ userId, isEditable = false, onDateSelect 
   const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
   
   const handleDateClick = (date: Date) => {
-    if (!isEditable) return;
-    setSelectedDate(date);
+    if (isEditable) {
+      setSelectedDate(date);
+    } else {
+      // If not editable (viewing as client), call onDateSelect callback
+      const dateStr = format(date, "yyyy-MM-dd");
+      const status = getDateStatus(date);
+      onDateSelect?.(dateStr, status || "available");
+    }
   };
   
   const handleSetAvailability = (status: "available" | "busy") => {
@@ -137,11 +143,11 @@ export function AvailabilityCalendar({ userId, isEditable = false, onDateSelect 
               key={day.toISOString()}
               whileTap={isEditable && !isPast ? { scale: 0.95 } : undefined}
               onClick={() => !isPast && handleDateClick(day)}
-              disabled={isPast || !isEditable}
+              disabled={isPast}
               className={`
                 aspect-square rounded-xl flex items-center justify-center text-sm font-medium
                 transition-all duration-200 relative
-                ${isPast ? "opacity-40 cursor-not-allowed" : isEditable ? "cursor-pointer" : "cursor-default"}
+                ${isPast ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}
                 ${isSelected ? "ring-2 ring-primary ring-offset-2" : ""}
                 ${isToday(day) ? "font-bold" : ""}
                 ${status === "available" 

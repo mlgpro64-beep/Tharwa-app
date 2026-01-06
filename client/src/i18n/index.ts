@@ -14,7 +14,8 @@ const resources = {
   }
 };
 
-i18n
+// Initialize i18n synchronously to prevent null errors
+const initPromise = i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
@@ -27,8 +28,16 @@ i18n
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage']
+    },
+    react: {
+      useSuspense: false // Disable suspense to prevent null errors
     }
   });
+
+// Ensure i18n is ready before exporting
+if (!i18n.isInitialized) {
+  initPromise.catch(console.error);
+}
 
 export const isRTL = () => {
   const rtlLanguages = ['ar', 'he', 'fa', 'ur'];

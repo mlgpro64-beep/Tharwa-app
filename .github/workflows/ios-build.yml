@@ -1,0 +1,70 @@
+name: Build iOS App
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build app
+      run: npm run build
+      env:
+        NODE_ENV: production
+    
+    - name: Sync Capacitor
+      run: npm run cap:sync
+    
+    - name: Install CocoaPods dependencies
+      run: |
+        cd ios/App
+        pod install
+    
+    - name: Build iOS (Archive)
+      run: |
+        cd ios/App
+        xcodebuild -workspace App.xcworkspace \
+          -scheme App \
+          -configuration Release \
+          -destination 'generic/platform=iOS' \
+          -archivePath build/App.xcarchive \
+          archive \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
+    
+    - name: Upload iOS archive
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-archive
+        path: ios/App/build/App.xcarchive
+        retention-days: 7
+
+
+
+
+
+
+
+
+
+
+
+

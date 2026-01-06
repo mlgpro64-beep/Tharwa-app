@@ -14,19 +14,33 @@ import type { User } from '@shared/schema';
 
 export default function EditProfileScreen() {
   const [, setLocation] = useLocation();
-  const { setUser } = useApp();
+  const { setUser, user: appUser } = useApp();
   const { toast } = useToast();
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isAuthenticated = !!localStorage.getItem('userId');
   
-  const { data: currentUser } = useQuery<User>({
+  const { data: currentUser, isLoading: isLoadingUser } = useQuery<User>({
     queryKey: ['/api/users/me'],
-    enabled: isAuthenticated,
+    queryFn: async () => {
+      const res = await fetch('/api/users/me', { credentials: 'include' });
+      if (!res.ok) {
+        if (res.status === 401) {
+          setTimeout(() => setLocation('/login'), 1000);
+          throw new Error('Not authenticated');
+        }
+        throw new Error('Failed to fetch user');
+      }
+      const userData = await res.json();
+      return userData;
+    },
+    retry: false,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const [formData, setFormData] = useState({
     name: '',
+    username: '',
     email: '',
     phone: '',
     bio: '',
@@ -36,19 +50,19 @@ export default function EditProfileScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (currentUser) {
+    const userData = currentUser || appUser;
+    if (userData) {
       setFormData({
-        name: currentUser.name || '',
-        email: currentUser.email || '',
-        phone: currentUser.phone || '',
-        bio: currentUser.bio || '',
-        location: currentUser.location || '',
+        name: userData.name || '',
+        username: userData.username || '',
+        email: userData.email || '',
+        phone: userData.phone || '',
+        bio: userData.bio || '',
+        location: userData.location || '',
       });
-      if (currentUser.avatar) {
-        setAvatarPreview(currentUser.avatar);
-      }
+      setAvatarPreview(userData.avatar || null);
     }
-  }, [currentUser]);
+  }, [currentUser, appUser]);
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
@@ -57,18 +71,43 @@ export default function EditProfileScreen() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
         toast({ 
           title: t('errors.somethingWentWrong'), 
-          description: 'Image size must be less than 5MB', 
+          description: t('profile.invalidImageType') || 'Please select an image file', 
           variant: 'destructive' 
         });
         return;
       }
+      
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ 
+          title: t('errors.somethingWentWrong'), 
+          description: t('profile.imageTooLarge') || 'Image size must be less than 5MB', 
+          variant: 'destructive' 
+        });
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64 = event.target?.result as string;
-        setAvatarPreview(base64);
+        if (base64) {
+          setAvatarPreview(base64);
+          toast({ 
+            title: t('profile.imageSelected') || 'Image selected', 
+            description: t('profile.clickSaveToUpdate') || 'Click Save to update your profile picture',
+          });
+        }
+      };
+      reader.onerror = () => {
+        toast({ 
+          title: t('errors.somethingWentWrong'), 
+          description: t('profile.imageLoadError') || 'Failed to load image', 
+          variant: 'destructive' 
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -81,8 +120,17 @@ export default function EditProfileScreen() {
     },
     onSuccess: (data) => {
       setUser(data);
+      // Update avatar preview with the saved avatar
+      if (data.avatar) {
+        setAvatarPreview(data.avatar);
+      }
       queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
-      toast({ title: t('profile.editProfile'), description: t('common.save') });
+      queryClient.invalidateQueries({ queryKey: ['/api/users', data.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      toast({ 
+        title: t('profile.editProfile'), 
+        description: t('profile.profileUpdated') || t('common.save') 
+      });
       setLocation('/profile');
     },
     onError: (error: Error) => {
@@ -94,6 +142,11 @@ export default function EditProfileScreen() {
     const newErrors: Record<string, string> = {};
     
     if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.username.trim()) {
+      newErrors.username = t('errors.required');
+    } else if (!/^[a-zA-Z0-9_]{3,20}$/.test(formData.username.trim())) {
+      newErrors.username = t('auth.invalidUsername');
+    }
     if (!formData.email.trim()) newErrors.email = 'Email is required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Invalid email';
     
@@ -103,9 +156,19 @@ export default function EditProfileScreen() {
 
   const handleSubmit = () => {
     if (validateForm()) {
-      const dataToSend = avatarPreview && avatarPreview !== currentUser?.avatar
-        ? { ...formData, avatar: avatarPreview }
-        : formData;
+      const dataToSend: typeof formData & { avatar?: string } = { ...formData };
+      
+      // Always include avatar if preview exists (user selected a new image)
+      if (avatarPreview) {
+        dataToSend.avatar = avatarPreview;
+        console.log('[Profile] Updating avatar, preview length:', avatarPreview.length);
+      }
+      
+      console.log('[Profile] Submitting profile update:', { 
+        hasAvatar: !!dataToSend.avatar,
+        avatarLength: dataToSend.avatar?.length 
+      });
+      
       updateProfileMutation.mutate(dataToSend);
     }
   };
@@ -120,6 +183,37 @@ export default function EditProfileScreen() {
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
+
+  // Show loading state
+  if (isLoadingUser) {
+    return (
+      <Screen className="px-6">
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </Screen>
+    );
+  }
+
+  // If no user data, show error or redirect
+  const userData = currentUser || appUser;
+  if (!userData) {
+    return (
+      <Screen className="px-6">
+        <div className="flex flex-col items-center justify-center min-h-screen">
+          <p className="text-muted-foreground mb-4">{t('errors.unauthorized') || 'Please login to edit your profile'}</p>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setLocation('/login')}
+            className="px-6 py-3 gradient-primary text-white rounded-2xl font-bold"
+          >
+            {t('auth.login')}
+          </motion.button>
+        </div>
+      </Screen>
+    );
+  }
 
   return (
     <Screen className="px-6">
@@ -178,7 +272,9 @@ export default function EditProfileScreen() {
             <Camera className="w-4 h-4" />
           </motion.button>
         </div>
-        <p className="text-sm text-muted-foreground mt-4">{t('profile.editProfile')}</p>
+        <p className="text-sm text-muted-foreground mt-4 text-center">
+          {t('profile.changeAvatar') || 'Tap to change profile picture'}
+        </p>
       </motion.div>
 
       <div className="space-y-4 flex-1">
@@ -187,6 +283,14 @@ export default function EditProfileScreen() {
           value={formData.name}
           onChange={handleChange('name')}
           error={errors.name}
+        />
+        
+        <FloatingInput
+          label={t('auth.username') || 'Username'}
+          value={formData.username}
+          onChange={handleChange('username')}
+          error={errors.username}
+          dir="ltr"
         />
         
         <FloatingInput

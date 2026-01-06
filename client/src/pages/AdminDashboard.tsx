@@ -131,7 +131,7 @@ export default function AdminDashboard() {
               <h1 className="text-xl font-bold">{isRTL ? "لوحة الأدمن" : "Admin Panel"}</h1>
             </div>
           </div>
-          {stats?.pendingVerifications > 0 && (
+          {stats && stats.pendingVerifications > 0 && (
             <Badge variant="destructive" className="animate-pulse">
               {stats.pendingVerifications} {isRTL ? "بانتظار المراجعة" : "pending"}
             </Badge>

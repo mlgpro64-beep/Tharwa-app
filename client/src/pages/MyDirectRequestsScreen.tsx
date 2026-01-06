@@ -6,11 +6,12 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { ChevronLeft, Clock, CheckCircle2, XCircle, MapPin, Calendar, DollarSign, Send, X } from 'lucide-react';
+import { ChevronLeft, Clock, CheckCircle2, XCircle, MapPin, Calendar, Wallet, Send, X } from 'lucide-react';
+import { formatCurrency } from '@/lib/currency';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import type { DirectServiceRequest, User } from '@shared/schema';
-import { TASK_CATEGORIES_WITH_SUBS } from '@shared/schema';
+import { TASK_CATEGORIES_WITH_SUBS, getCategoryInfo } from '@shared/schema';
 
 type DirectRequestWithUsers = DirectServiceRequest & {
   client: Omit<User, 'password'> | null;
@@ -27,8 +28,8 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
     transition: { type: "spring", stiffness: 300, damping: 24 }
   }
@@ -68,30 +69,30 @@ const MyDirectRequestsScreen = memo(function MyDirectRequestsScreen() {
   });
 
   const statusConfig = {
-    pending: { 
-      icon: Clock, 
-      color: 'text-warning', 
+    pending: {
+      icon: Clock,
+      color: 'text-warning',
       bgColor: 'bg-warning/10',
       borderColor: 'border-warning/30',
       label: isArabic ? 'قيد الانتظار' : 'Pending'
     },
-    accepted: { 
-      icon: CheckCircle2, 
-      color: 'text-success', 
+    accepted: {
+      icon: CheckCircle2,
+      color: 'text-success',
       bgColor: 'bg-success/10',
       borderColor: 'border-success/30',
       label: isArabic ? 'مقبول' : 'Accepted'
     },
-    rejected: { 
-      icon: XCircle, 
-      color: 'text-destructive', 
+    rejected: {
+      icon: XCircle,
+      color: 'text-destructive',
       bgColor: 'bg-destructive/10',
       borderColor: 'border-destructive/30',
       label: isArabic ? 'مرفوض' : 'Rejected'
     },
-    cancelled: { 
-      icon: XCircle, 
-      color: 'text-muted-foreground', 
+    cancelled: {
+      icon: XCircle,
+      color: 'text-muted-foreground',
       bgColor: 'bg-muted/10',
       borderColor: 'border-muted/30',
       label: isArabic ? 'ملغي' : 'Cancelled'
@@ -119,7 +120,7 @@ const MyDirectRequestsScreen = memo(function MyDirectRequestsScreen() {
       </div>
 
       <div className="relative z-10 px-5 py-5">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center gap-4 mb-6"
@@ -151,7 +152,7 @@ const MyDirectRequestsScreen = memo(function MyDirectRequestsScreen() {
         >
           {isLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
-              <motion.div 
+              <motion.div
                 key={i}
                 variants={itemVariants}
                 className="glass rounded-[20px] p-4 animate-pulse"
@@ -170,7 +171,10 @@ const MyDirectRequestsScreen = memo(function MyDirectRequestsScreen() {
             requests.map((request, index) => {
               const config = statusConfig[request.status as keyof typeof statusConfig] || statusConfig.pending;
               const StatusIcon = config.icon;
-              const category = TASK_CATEGORIES_WITH_SUBS[request.category as keyof typeof TASK_CATEGORIES_WITH_SUBS];
+              const categoryInfo = getCategoryInfo(request.category);
+              const category = categoryInfo
+                ? TASK_CATEGORIES_WITH_SUBS[categoryInfo.mainCategory]
+                : null;
 
               return (
                 <motion.div
@@ -189,7 +193,7 @@ const MyDirectRequestsScreen = memo(function MyDirectRequestsScreen() {
                         </AvatarFallback>
                       </Avatar>
                     </Link>
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <Link href={`/profile/${request.taskerId}`}>
@@ -202,37 +206,39 @@ const MyDirectRequestsScreen = memo(function MyDirectRequestsScreen() {
                           {config.label}
                         </span>
                       </div>
-                      
+
                       <p className="font-semibold text-foreground mb-1">{request.title}</p>
                       <p className="text-sm text-muted-foreground line-clamp-2">{request.description}</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 mb-4">
-                    {category && (
+                    {category && categoryInfo && (
                       <div className="flex items-center gap-2">
-                        <span 
+                        <span
                           className="w-3 h-3 rounded-full"
                           style={{ backgroundColor: category.colorHex }}
                         />
                         <span className="text-sm text-muted-foreground">
-                          {isArabic ? category.nameAr : category.nameEn}
+                          {categoryInfo.subcategory
+                            ? (isArabic ? categoryInfo.subcategory.nameAr : categoryInfo.subcategory.nameEn)
+                            : (isArabic ? category.nameAr : category.nameEn)}
                         </span>
                       </div>
                     )}
-                    
+
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <DollarSign className="w-4 h-4" />
+                      <Wallet className="w-4 h-4" />
                       <span className="font-semibold text-primary">
-                        {request.budget} {isArabic ? 'ر.س' : 'SAR'}
+                        {formatCurrency(request.budget)}
                       </span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4" />
                       <span>{formatDate(request.scheduledDate)} - {request.scheduledTime}</span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <MapPin className="w-4 h-4" />
                       <span className="truncate">{request.location}</span>
@@ -242,7 +248,7 @@ const MyDirectRequestsScreen = memo(function MyDirectRequestsScreen() {
                   <div className="flex gap-2">
                     {request.status === 'accepted' && request.linkedTaskId && (
                       <Link href={`/task/${request.linkedTaskId}`} className="flex-1">
-                        <Button 
+                        <Button
                           className="w-full gradient-primary text-white rounded-xl"
                           data-testid={`button-view-task-${request.id}`}
                         >
@@ -251,7 +257,7 @@ const MyDirectRequestsScreen = memo(function MyDirectRequestsScreen() {
                         </Button>
                       </Link>
                     )}
-                    
+
                     {request.status === 'pending' && (
                       <Button
                         variant="outline"
@@ -269,7 +275,7 @@ const MyDirectRequestsScreen = memo(function MyDirectRequestsScreen() {
               );
             })
           ) : (
-            <motion.div 
+            <motion.div
               variants={itemVariants}
               className="glass rounded-[24px] p-8 text-center"
             >
@@ -280,8 +286,8 @@ const MyDirectRequestsScreen = memo(function MyDirectRequestsScreen() {
                 {isArabic ? 'لا توجد طلبات' : 'No Requests'}
               </h3>
               <p className="text-sm text-muted-foreground mb-4">
-                {isArabic 
-                  ? 'يمكنك طلب خدمة مباشرة من صفحة أي منفذ' 
+                {isArabic
+                  ? 'يمكنك طلب خدمة مباشرة من صفحة أي منفذ'
                   : 'You can request a service directly from any tasker profile'}
               </p>
               <Link href="/search-taskers">

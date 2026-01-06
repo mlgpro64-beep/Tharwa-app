@@ -109,28 +109,30 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
           variants={itemVariants}
           className="relative mb-5"
         >
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground rtl:right-4 rtl:left-auto" />
-          <input
-            type="search"
-            placeholder={`${t('common.search')}...`}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-13 ps-12 pe-12 rounded-2xl glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all text-base"
-            data-testid="input-search-tasks"
-          />
-          <AnimatePresence>
-            {searchQuery && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                onClick={handleClearSearch}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full bg-muted/80 hover:bg-muted transition-colors rtl:left-4 rtl:right-auto"
-              >
-                <X className="w-3.5 h-3.5 text-muted-foreground" />
-              </motion.button>
-            )}
-          </AnimatePresence>
+          <div className="liquid-glass-search rounded-[1.25rem] overflow-hidden">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50 rtl:right-4 rtl:left-auto z-10" />
+            <input
+              type="search"
+              placeholder={`${t('common.search')}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-14 ps-12 pe-12 bg-transparent text-white placeholder:text-white/40 focus:outline-none text-base font-medium"
+              data-testid="input-search-tasks"
+            />
+            <AnimatePresence>
+              {searchQuery && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  onClick={handleClearSearch}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors rtl:left-4 rtl:right-auto z-10"
+                >
+                  <X className="w-3.5 h-3.5 text-white/60" />
+                </motion.button>
+              )}
+            </AnimatePresence>
+          </div>
         </motion.div>
 
         <motion.div

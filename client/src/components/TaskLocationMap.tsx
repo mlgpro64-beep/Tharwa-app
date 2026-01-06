@@ -1,7 +1,10 @@
-import { useEffect, useRef, memo } from 'react';
+import { useEffect, useRef, memo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Navigation, Maximize2 } from 'lucide-react';
+import { MapPin, Navigation } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getMapStyle, createTileLayerConfig, createMarkerIcon } from '@/lib/mapConfig';
+import { FullScreenMapModal } from './FullScreenMapModal';
+import { useTranslation } from 'react-i18next';
 
 declare global {
   interface Window {
@@ -24,6 +27,8 @@ const TaskLocationMap = memo(function TaskLocationMap({
 }: TaskLocationMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const { t, i18n } = useTranslation();
 
   const lat = latitude ? parseFloat(String(latitude)) : null;
   const lng = longitude ? parseFloat(String(longitude)) : null;
@@ -37,6 +42,11 @@ const TaskLocationMap = memo(function TaskLocationMap({
       mapInstanceRef.current = null;
     }
 
+    // Detect dark mode
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    const mapStyle = getMapStyle(undefined, isDarkMode);
+    const tileConfig = createTileLayerConfig(mapStyle);
+
     const map = window.L.map(mapRef.current, {
       zoomControl: false,
       attributionControl: false,
@@ -46,31 +56,18 @@ const TaskLocationMap = memo(function TaskLocationMap({
       doubleClickZoom: false,
       boxZoom: false,
       keyboard: false,
-    }).setView([lat, lng], 18);
+    }).setView([lat, lng], 15);
 
-    window.L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      maxZoom: 20,
-      subdomains: 'abcd',
+    window.L.tileLayer(tileConfig.url, tileConfig.options).addTo(map);
+
+    // Create transparent blue circle with 100 meter radius
+    window.L.circle([lat, lng], {
+      radius: 100, // 100 meters
+      color: '#3b82f6', // blue color
+      fillColor: '#3b82f6',
+      fillOpacity: 0.2, // transparent
+      weight: 2
     }).addTo(map);
-
-    const pulsingIcon = window.L.divIcon({
-      className: 'task-location-marker',
-      html: `
-        <div class="relative">
-          <div class="absolute inset-0 bg-primary/30 rounded-full animate-ping"></div>
-          <div class="relative w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center shadow-lg shadow-primary/40 border-2 border-white">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-              <circle cx="12" cy="10" r="3"/>
-            </svg>
-          </div>
-        </div>
-      `,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
-    });
-
-    window.L.marker([lat, lng], { icon: pulsingIcon }).addTo(map);
 
     mapInstanceRef.current = map;
 
@@ -81,12 +78,6 @@ const TaskLocationMap = memo(function TaskLocationMap({
       }
     };
   }, [lat, lng, hasCoordinates]);
-
-  const openInMaps = () => {
-    if (!hasCoordinates) return;
-    const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-    window.open(url, '_blank');
-  };
 
   if (!hasCoordinates) {
     return (
@@ -103,7 +94,9 @@ const TaskLocationMap = memo(function TaskLocationMap({
             <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
               <MapPin className="w-6 h-6 text-primary" />
             </div>
-            <p className="text-sm text-muted-foreground font-medium">Location not available</p>
+            <p className="text-sm text-muted-foreground font-medium">
+              {t('map.locationNotAvailable')}
+            </p>
           </div>
         </div>
       </motion.div>
@@ -128,16 +121,6 @@ const TaskLocationMap = memo(function TaskLocationMap({
       
       <div className="absolute inset-0 pointer-events-none rounded-3xl ring-1 ring-inset ring-white/10" />
       
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={openInMaps}
-        className="absolute top-3 right-3 w-10 h-10 glass flex items-center justify-center rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto"
-        data-testid="button-open-maps"
-      >
-        <Maximize2 className="w-4 h-4" />
-      </motion.button>
-      
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent p-4 pt-8">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
@@ -147,16 +130,28 @@ const TaskLocationMap = memo(function TaskLocationMap({
             <p className="text-white text-sm font-bold truncate">
               {location || `${lat?.toFixed(4)}, ${lng?.toFixed(4)}`}
             </p>
-            <p className="text-white/70 text-xs">Tap to open in Maps</p>
+            <p className="text-white/70 text-xs">
+              {t('map.tapToViewMap')}
+            </p>
           </div>
         </div>
       </div>
       
       <button 
-        onClick={openInMaps}
+        onClick={() => setIsMapModalOpen(true)}
         className="absolute inset-0 cursor-pointer"
-        aria-label="Open location in maps"
+        aria-label={t('map.openMap')}
       />
+      
+      {hasCoordinates && lat !== null && lng !== null && (
+        <FullScreenMapModal
+          isOpen={isMapModalOpen}
+          onClose={() => setIsMapModalOpen(false)}
+          latitude={lat}
+          longitude={lng}
+          location={location}
+        />
+      )}
     </motion.div>
   );
 });

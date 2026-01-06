@@ -2,6 +2,7 @@ import { memo, useCallback } from 'react';
 import { Link } from 'wouter';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/currency';
 import { ArrowDownLeft, ArrowUpRight, Check, Clock } from 'lucide-react';
 import type { Transaction } from '@shared/schema';
 
@@ -11,15 +12,6 @@ interface TransactionCardProps {
 }
 
 export const TransactionCard = memo(function TransactionCard({ transaction, index = 0 }: TransactionCardProps) {
-  const formatCurrency = useCallback((amount: number | string) => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(num);
-  }, []);
 
   const formatDate = useCallback((date: Date | string) => {
     const d = typeof date === 'string' ? new Date(date) : date;
@@ -81,7 +73,11 @@ export const TransactionCard = memo(function TransactionCard({ transaction, inde
             "font-extrabold text-lg",
             isCredit ? 'text-success' : 'text-destructive'
           )}>
-            {isCredit ? '+' : '-'}{formatCurrency(transaction.amount)}
+            {isCredit ? '+' : '-'}{formatCurrency(transaction.amount, { 
+              minimumFractionDigits: 2, 
+              maximumFractionDigits: 2,
+              locale: 'en'
+            })}
           </div>
         </motion.div>
       </Link>
