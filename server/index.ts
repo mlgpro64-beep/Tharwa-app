@@ -234,7 +234,9 @@ httpServer.on("upgrade", (req, socket, head) => {
   // Railway sets PORT automatically, default to 5000 for local development
   // This serves both the API and the client.
   const port = parseInt(process.env.PORT || "5000", 10);
-  const host = process.platform === 'win32' ? 'localhost' : '0.0.0.0';
+  // In production, always listen on 0.0.0.0 to accept connections from Railway
+  // In development on Windows, use localhost for compatibility
+  const host = (isDevelopment && process.platform === 'win32') ? 'localhost' : '0.0.0.0';
   httpServer.listen(
     port,
     host,
