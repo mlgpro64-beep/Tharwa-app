@@ -6,7 +6,9 @@
 // For local development, leave empty to use relative URLs.
 
 // Get API URL from environment variable (set in Railway) or use relative URLs
-export const API_URL = import.meta.env.VITE_API_URL || '';
+// In production, if VITE_API_URL is not set, use the current domain
+export const API_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.PROD ? window.location.origin : '');
 
 // Detect if running in Capacitor native app
 export const isCapacitor = typeof window !== 'undefined' && 
