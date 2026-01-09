@@ -787,22 +787,11 @@ router.get("/api/tasks/:id", async (req, res) => {
 // Daily task limit for clients: 5 tasks per day
 const DAILY_TASK_LIMIT = 5;
 
-// Riyadh city boundaries for location validation
-const RIYADH_BOUNDS = {
-  north: 25.1,
-  south: 24.3,
-  east: 47.1,
-  west: 46.4,
-};
-
+// Location validation - OPEN TO ALL REGIONS
+// Previously restricted to Riyadh, now open globally
 function isLocationInRiyadh(latitude?: number, longitude?: number): boolean {
-  if (latitude === undefined || longitude === undefined) return true; // Skip validation if no coords
-  return (
-    latitude >= RIYADH_BOUNDS.south &&
-    latitude <= RIYADH_BOUNDS.north &&
-    longitude >= RIYADH_BOUNDS.west &&
-    longitude <= RIYADH_BOUNDS.east
-  );
+  // Always return true - service is available in all regions
+  return true;
 }
 
 router.get("/api/tasks/my/today-count", async (req, res) => {
@@ -886,12 +875,8 @@ router.post("/api/tasks", async (req, res) => {
         });
       }
 
-      if (!isLocationInRiyadh(lat, lng)) {
-        return res.status(400).json({
-          error: "Location outside Riyadh",
-          message: "الخدمة متاحة حالياً في الرياض فقط",
-        });
-      }
+      // Location validation removed - service available in all regions
+      // Coordinates are validated for range but not restricted to specific area
     }
 
     const data = { ...req.body, clientId: req.userId };
@@ -956,12 +941,8 @@ router.patch("/api/tasks/:id", async (req, res) => {
         });
       }
 
-      if (!isLocationInRiyadh(lat, lng)) {
-        return res.status(400).json({
-          error: "Location outside Riyadh",
-          message: "الخدمة متاحة حالياً في الرياض فقط",
-        });
-      }
+      // Location validation removed - service available in all regions
+      // Coordinates are validated for range but not restricted to specific area
     }
 
     const updated = await storage.updateTask(req.params.id, req.body);
