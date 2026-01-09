@@ -43,30 +43,23 @@ export function useGeolocation() {
   });
   const { toast } = useToast();
 
-  // Validate if coordinates are within Riyadh boundaries
+  // Location validation removed - service available in all regions
   const validateRiyadhLocation = useCallback((lat: number, lng: number): boolean => {
-    return (
-      lat >= RIYADH_BOUNDS.south &&
-      lat <= RIYADH_BOUNDS.north &&
-      lng >= RIYADH_BOUNDS.west &&
-      lng <= RIYADH_BOUNDS.east
-    );
+    // Always return true - service is available globally
+    return true;
   }, []);
 
-  // Validate if coordinates are within Al-Kharj boundaries
+  // Location validation removed - service available in all regions
   const validateAlKharjLocation = useCallback((lat: number, lng: number): boolean => {
-    return (
-      lat >= AL_KHARJ_BOUNDS.south &&
-      lat <= AL_KHARJ_BOUNDS.north &&
-      lng >= AL_KHARJ_BOUNDS.west &&
-      lng <= AL_KHARJ_BOUNDS.east
-    );
+    // Always return true - service is available globally
+    return true;
   }, []);
 
-  // Validate if coordinates are within any supported city
+  // Location validation removed - service available in all regions
   const validateSupportedCityLocation = useCallback((lat: number, lng: number): boolean => {
-    return validateRiyadhLocation(lat, lng) || validateAlKharjLocation(lat, lng);
-  }, [validateRiyadhLocation, validateAlKharjLocation]);
+    // Always return true - service is available globally
+    return true;
+  }, []);
 
   // Get current position
   const getCurrentPosition = useCallback((): Promise<Coordinates> => {
@@ -86,8 +79,9 @@ export function useGeolocation() {
             accuracy: position.coords.accuracy,
           };
           
-          const isInRiyadh = validateRiyadhLocation(coords.latitude, coords.longitude);
-          const isInSupportedCity = validateSupportedCityLocation(coords.latitude, coords.longitude);
+          // Location validation removed - always allow access
+          const isInRiyadh = true; // Service available in all regions
+          const isInSupportedCity = true; // Service available in all regions
           
           setState(prev => ({ 
             ...prev, 
@@ -159,18 +153,20 @@ export function useGeolocation() {
       const coords = await getCurrentPosition();
       const address = await getAddress(coords.latitude, coords.longitude);
       
-      const isInRiyadh = validateRiyadhLocation(coords.latitude, coords.longitude);
-      const isInSupportedCity = validateSupportedCityLocation(coords.latitude, coords.longitude);
+      // Location validation removed - always allow access
+      const isInRiyadh = true; // Service available in all regions
+      const isInSupportedCity = true; // Service available in all regions
       
       setState(prev => ({ ...prev, isInRiyadh, isInSupportedCity }));
       
-      if (!isInSupportedCity) {
-        toast({
-          title: 'موقع خارج المدن المدعومة',
-          description: 'الخدمة متاحة حالياً في الرياض والخرج فقط',
-          variant: 'destructive',
-        });
-      }
+      // Location restriction removed - no toast needed
+      // if (!isInSupportedCity) {
+      //   toast({
+      //     title: 'موقع خارج المدن المدعومة',
+      //     description: 'الخدمة متاحة حالياً في الرياض والخرج فقط',
+      //     variant: 'destructive',
+      //   });
+      // }
       
       return { ...coords, address, isInRiyadh, isInSupportedCity };
     } catch (error: any) {

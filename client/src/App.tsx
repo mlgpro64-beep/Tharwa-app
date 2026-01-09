@@ -143,11 +143,12 @@ const AppContent = memo(function AppContent() {
     return <PageLoader />;
   }
 
-  if (isAuthenticated && hasCheckedLocation && isInRiyadh === false) {
-    return <ComingSoon onNotifyMe={() => {
-      localStorage.setItem('notifyWhenAvailable', 'true');
-    }} />;
-  }
+  // Location restriction removed - service available in all regions
+  // if (isAuthenticated && hasCheckedLocation && isInRiyadh === false) {
+  //   return <ComingSoon onNotifyMe={() => {
+  //     localStorage.setItem('notifyWhenAvailable', 'true');
+  //   }} />;
+  // }
 
   const isPendingTasker = isAuthenticated &&
     user?.role === 'tasker' &&

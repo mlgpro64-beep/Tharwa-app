@@ -26,26 +26,20 @@ const AL_KHARJ_BOUNDS = {
   maxLon: 47.6,
 };
 
+// Location validation removed - service available in all regions
 const isWithinRiyadh = (lat: number, lon: number): boolean => {
-  return (
-    lat >= RIYADH_BOUNDS.minLat &&
-    lat <= RIYADH_BOUNDS.maxLat &&
-    lon >= RIYADH_BOUNDS.minLon &&
-    lon <= RIYADH_BOUNDS.maxLon
-  );
+  // Always return true - service is available globally
+  return true;
 };
 
 const isWithinAlKharj = (lat: number, lon: number): boolean => {
-  return (
-    lat >= AL_KHARJ_BOUNDS.minLat &&
-    lat <= AL_KHARJ_BOUNDS.maxLat &&
-    lon >= AL_KHARJ_BOUNDS.minLon &&
-    lon <= AL_KHARJ_BOUNDS.maxLon
-  );
+  // Always return true - service is available globally
+  return true;
 };
 
 const isWithinSupportedCity = (lat: number, lon: number): boolean => {
-  return isWithinRiyadh(lat, lon) || isWithinAlKharj(lat, lon);
+  // Always return true - service is available globally
+  return true;
 };
 
 const checkTestMode = (): boolean => {
@@ -93,7 +87,8 @@ export function useLocation(): LocationState {
         setLatitude(lat);
         setLongitude(lon);
         
-        const inRiyadh = isWithinSupportedCity(lat, lon);
+        // Location validation removed - always allow access
+        const inRiyadh = true; // Service available in all regions
         setIsInRiyadh(inRiyadh);
         localStorage.setItem('isInRiyadh', String(inRiyadh));
         localStorage.setItem('userLatitude', String(lat));
@@ -127,7 +122,7 @@ export function useLocation(): LocationState {
   return {
     latitude,
     longitude,
-    isInRiyadh: isTestMode ? true : isInRiyadh,
+    isInRiyadh: true, // Service available in all regions - always allow access
     isLoading,
     error,
     checkLocation,
