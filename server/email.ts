@@ -1,9 +1,7 @@
 import { Resend } from 'resend';
 
-let connectionSettings: any;
-
 async function getCredentials() {
-  // Try environment variables first (for Cursor/local development)
+  // Get credentials from environment variables
   if (process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
     return {
       apiKey: process.env.RESEND_API_KEY,
@@ -11,32 +9,8 @@ async function getCredentials() {
     };
   }
 
-  // Fallback to Replit connectors (for Replit deployment)
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
-    : null;
-
-  if (!xReplitToken) {
-    throw new Error('Resend credentials not found. Set RESEND_API_KEY and RESEND_FROM_EMAIL in .env file, or use Replit connectors.');
-  }
-
-  connectionSettings = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
-    {
-      headers: {
-        'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken
-      }
-    }
-  ).then(res => res.json()).then(data => data.items?.[0]);
-
-  if (!connectionSettings || (!connectionSettings.settings.api_key)) {
-    throw new Error('Resend not connected');
-  }
-  return { apiKey: connectionSettings.settings.api_key, fromEmail: connectionSettings.settings.from_email };
+  // If credentials are not found, throw an error
+  throw new Error('Resend credentials not found. Set RESEND_API_KEY and RESEND_FROM_EMAIL in environment variables.');
 }
 
 async function getResendClient() {
