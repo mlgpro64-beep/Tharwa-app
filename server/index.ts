@@ -1,22 +1,6 @@
 import 'dotenv/config';
-import fs from 'fs';
-import path from 'path';
-const logPath = path.join(process.cwd(), '.cursor', 'debug.log');
-// #region agent log
-try { 
-  const logDir = path.dirname(logPath);
-  if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
-  fs.appendFileSync(logPath, JSON.stringify({location:'server/index.ts:7',message:'Server index.ts loading',data:{hasDatabaseUrl:!!process.env.DATABASE_URL,nodeEnv:process.env.NODE_ENV},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})+'\n'); 
-} catch {}
-// #endregion
 import express, { type Request, Response, NextFunction } from "express";
-// #region agent log
-try { fs.appendFileSync(logPath, JSON.stringify({location:'server/index.ts:8',message:'About to import routes',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})+'\n'); } catch {}
-// #endregion
 import { router } from "./routes";
-// #region agent log
-try { fs.appendFileSync(logPath, JSON.stringify({location:'server/index.ts:10',message:'Routes imported successfully',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})+'\n'); } catch {}
-// #endregion
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import session from "express-session";
@@ -63,10 +47,6 @@ app.use((req, res, next) => {
   // Always allow null origin (for Capacitor iOS/file://)
   allowedOrigins.push('null');
   
-  // #region agent log
-  try { fs.appendFileSync(logPath, JSON.stringify({location:'server/index.ts:36',message:'CORS check',data:{origin,isAllowed:allowedOrigins.includes(origin||''),productionDomain,isDevelopment},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n'); } catch {}
-  // #endregion
-  
   // Set CORS headers
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
@@ -105,9 +85,6 @@ app.use(express.urlencoded({ extended: false }));
 // Session middleware
 const MemoryStore = createMemoryStore(session);
 app.set('trust proxy', 1);
-// #region agent log
-try { fs.appendFileSync(logPath, JSON.stringify({location:'server/index.ts:67',message:'Session config',data:{isDevelopment,secure:!isDevelopment},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n'); } catch {}
-// #endregion
 app.use(
   session({
     store: new MemoryStore({ checkPeriod: 86400000 }),
@@ -166,14 +143,6 @@ const wss = new WebSocketServer({ noServer: true });
 const connections = new Map<string, Set<any>>();
 
 httpServer.on("upgrade", (req, socket, head) => {
-  // #region agent log
-  try { 
-    const logPath = path.join(process.cwd(), '.cursor', 'debug.log');
-    const logDir = path.dirname(logPath);
-    if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
-    fs.appendFileSync(logPath, JSON.stringify({location:'server/index.ts:upgrade',message:'WebSocket upgrade request',data:{url:req.url,isViteHmr:req.url?.startsWith('/vite-hmr'),isWs:req.url?.startsWith('/ws')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H4'})+'\n'); 
-  } catch {}
-  // #endregion
   // Only handle /ws routes for our chat WebSocket - let Vite handle /vite-hmr
   if (req.url?.startsWith("/ws")) {
     wss.handleUpgrade(req, socket, head, (ws) => {
@@ -249,14 +218,6 @@ httpServer.on("upgrade", (req, socket, head) => {
     port,
     host,
     () => {
-      // #region agent log
-      try { 
-        const logPath = path.join(process.cwd(), '.cursor', 'debug.log');
-        const logDir = path.dirname(logPath);
-        if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
-        fs.appendFileSync(logPath, JSON.stringify({location:'server/index.ts:listen',message:'Server listening',data:{port,host,listening:httpServer.listening},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H5'})+'\n'); 
-      } catch {}
-      // #endregion
       log(`serving on http://${host}:${port}`);
       if (isDevelopment) {
         log('🔓 Rate limiting DISABLED in development mode');

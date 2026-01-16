@@ -8,9 +8,6 @@ import { sendOtpSms, isValidSaudiPhone } from "./sms";
 import { getVapidPublicKey, sendPushNotification } from "./push";
 import { calculateLevel, calculateProgress, POINT_VALUES, getLevelInfo } from "./levels";
 import crypto from "crypto";
-import fs from 'fs';
-import path from 'path';
-const logPath = path.join(process.cwd(), '.cursor', 'debug.log');
 
 // ============================================
 // Rate Limiting System
@@ -126,15 +123,6 @@ function removeAuthToken(token: string): void {
 }
 
 export const router = Router();
-
-// #region agent log
-router.use((req, res, next) => {
-  if (req.path.includes('payments')) {
-    fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:router.use',message:'Payment request hitting router',data:{method:req.method,path:req.path,url:req.url,originalUrl:req.originalUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})+'\n');
-  }
-  next();
-});
-// #endregion
 
 // Extend session type to include userId
 declare module "express-session" {
@@ -846,11 +834,6 @@ router.get("/api/tasks/my", async (req, res) => {
     const user = await storage.getUser(req.userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // #region agent log
-    console.log('[DEBUG] Get my tasks - before query', req.userId, user?.role);
-    try { fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:842',message:'Get my tasks - before query',data:{userId:req.userId,userRole:user?.role,timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'I'}})+'\n'); } catch (e) { console.error('[DEBUG] Log write error:', e); }
-    // #endregion
-
     // Get tasks where user is client OR tasker
     let clientTasks: any[] = [];
     let taskerTasks: any[] = [];
@@ -876,11 +859,6 @@ router.get("/api/tasks/my", async (req, res) => {
         message: "حدث خطأ أثناء جلب المهام. يرجى المحاولة مرة أخرى."
       });
     }
-
-    // #region agent log
-    console.log('[DEBUG] Get my tasks - after query', { userId: req.userId, clientTasksCount: clientTasks?.length, taskerTasksCount: taskerTasks?.length });
-    try { fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:853',message:'Get my tasks - after query',data:{userId:req.userId,clientTasksCount:clientTasks?.length,taskerTasksCount:taskerTasks?.length,clientTaskIds:clientTasks?.map(t=>t?.id),taskerTaskIds:taskerTasks?.map(t=>t?.id),timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'I'}})+'\n'); } catch (e) { console.error('[DEBUG] Log write error:', e); }
-    // #endregion
 
     // Combine and deduplicate by task ID
     const allTasks = [...(clientTasks || []), ...(taskerTasks || [])];
@@ -918,50 +896,17 @@ router.get("/api/tasks/my", async (req, res) => {
       });
     }
 
-    // #region agent log
-    console.log('[DEBUG] Get my tasks - final result', { userId: req.userId, uniqueTasksCount: uniqueTasks.length });
-    try { fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:864',message:'Get my tasks - final result',data:{userId:req.userId,uniqueTasksCount:uniqueTasks.length,uniqueTaskIds:uniqueTasks.map(t=>t?.id),timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'I'}})+'\n'); } catch (e) { console.error('[DEBUG] Log write error:', e); }
-    // #endregion
-
     res.json(uniqueTasks);
   } catch (error: any) {
-    // #region agent log
-    console.error('[DEBUG] Get my tasks - error', error);
-    try { fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:864',message:'Get my tasks - error',data:{userId:req.userId,error:error?.message,errorType:error?.constructor?.name,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'}})+'\n'); } catch (e) { console.error('[DEBUG] Log write error:', e); }
-    // #endregion
     res.status(500).json({ error: error.message });
   }
 });
 
 router.get("/api/tasks/available", async (req, res) => {
-  // #region agent log
-  console.log('[DEBUG] Get available tasks - START', req.userId, req.user?.role);
-  try { fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:877',message:'Get available tasks - START',data:{userId:req.userId,userRole:req.user?.role,timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'J'}})+'\n'); } catch (e) { console.error('[DEBUG] Log write error:', e); }
-  // #endregion
   try {
-    // Get all tasks first to see what exists
-    const allTasks = await storage.getTasks({});
-    // #region agent log
-    console.log('[DEBUG] All tasks count:', allTasks?.length);
-    const statusCounts = allTasks?.reduce((acc: any, t: any) => {
-      acc[t.status] = (acc[t.status] || 0) + 1;
-      return acc;
-    }, {});
-    console.log('[DEBUG] Tasks by status:', statusCounts);
-    try { fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:885',message:'All tasks in DB',data:{allTasksCount:allTasks?.length,statusCounts,allTaskStatuses:allTasks?.map(t=>({id:t.id,status:t.status,clientId:t.clientId,taskerId:t.taskerId})),timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'J'}})+'\n'); } catch (e) { console.error('[DEBUG] Log write error:', e); }
-    // #endregion
-    
     const tasks = await storage.getTasks({ status: "open" });
-    // #region agent log
-    console.log('[DEBUG] Open tasks count:', tasks?.length);
-    try { fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:893',message:'Get available tasks - result',data:{userId:req.userId,userRole:req.user?.role,tasksCount:tasks?.length,taskIds:tasks?.map(t=>t.id),taskStatuses:tasks?.map(t=>({id:t.id,status:t.status})),timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'J'}})+'\n'); } catch (e) { console.error('[DEBUG] Log write error:', e); }
-    // #endregion
     res.json(tasks);
   } catch (error: any) {
-    // #region agent log
-    console.error('[DEBUG] Get available tasks - error', error);
-    try { fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:899',message:'Get available tasks - error',data:{userId:req.userId,error:error?.message,timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'J'}})+'\n'); } catch (e) { console.error('[DEBUG] Log write error:', e); }
-    // #endregion
     res.status(500).json({ error: error.message });
   }
 });
@@ -979,31 +924,9 @@ router.get("/api/tasks/saved", async (req, res) => {
 
 router.get("/api/tasks/:id", async (req, res) => {
   try {
-    // #region agent log
-    const logData = {taskId:req.params.id,userId:req.userId,userRole:req.user?.role,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'};
-    fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:862',message:'Task details request received',data:logData})}).catch(()=>{});
-    // #endregion
     const task = await storage.getTask(req.params.id);
     if (!task) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:866',message:'Task not found',data:{taskId:req.params.id,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'}})}).catch(()=>{});
-      // #endregion
       return res.status(404).json({ error: "Task not found" });
-    }
-
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:870',message:'Task retrieved from storage',data:{taskId:req.params.id,hasTitle:!!task.title,hasDescription:!!task.description,hasLocation:!!task.location,hasDate:!!task.date,hasTime:!!task.time,hasBudget:!!task.budget,title:task.title,description:task.description?.substring(0,50),location:task.location,date:task.date,time:task.time,budget:task.budget,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'}})}).catch(()=>{});
-    // #endregion
-
-    // Debug: Log task data structure
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Task Details] Task ID: ${req.params.id}`);
-      console.log(`[Task Details] Title: ${task.title || 'MISSING'}`);
-      console.log(`[Task Details] Description: ${task.description || 'MISSING'}`);
-      console.log(`[Task Details] Location: ${task.location || 'MISSING'}`);
-      console.log(`[Task Details] Date: ${task.date || 'MISSING'}`);
-      console.log(`[Task Details] Time: ${task.time || 'MISSING'}`);
-      console.log(`[Task Details] Budget: ${task.budget || 'MISSING'}`);
     }
 
     // Enrich task with client and tasker data (TaskWithDetails)
@@ -1018,15 +941,8 @@ router.get("/api/tasks/:id", async (req, res) => {
       tasker: tasker ? sanitizeUser(tasker) : undefined,
     };
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:891',message:'Sending enriched task response',data:{taskId:req.params.id,enrichedTitle:enrichedTask.title,enrichedDescription:enrichedTask.description?.substring(0,50),enrichedLocation:enrichedTask.location,enrichedDate:enrichedTask.date,enrichedTime:enrichedTask.time,enrichedBudget:enrichedTask.budget,hasClient:!!enrichedTask.client,hasTasker:!!enrichedTask.tasker,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'}})}).catch(()=>{});
-    // #endregion
-
     res.json(enrichedTask);
   } catch (error: any) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:896',message:'Task details error',data:{taskId:req.params.id,error:error?.message,errorType:error?.constructor?.name,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}})}).catch(()=>{});
-    // #endregion
     console.error('[Task Details] Error:', error);
     res.status(500).json({ error: error.message });
   }
@@ -1055,16 +971,10 @@ router.get("/api/tasks/my/today-count", async (req, res) => {
 
 router.post("/api/tasks", async (req, res) => {
   try {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:1047',message:'POST /api/tasks - START',data:{userId:req.userId,hasBody:!!req.body,bodyKeys:req.body?Object.keys(req.body):[],timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}})}).catch(()=>{});
-    // #endregion
     if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
 
     // Validate required fields
     const { title, description, budget, category } = req.body;
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:1052',message:'POST /api/tasks - After destructuring',data:{hasTitle:!!title,titleType:typeof title,titleLength:title?.length,hasDescription:!!description,descriptionType:typeof description,descriptionLength:description?.length,hasBudget:!!budget,budgetType:typeof budget,budgetValue:budget,hasCategory:!!category,categoryType:typeof category,hasLocation:!!req.body.location,hasDate:!!req.body.date,hasTime:!!req.body.time,hasLatitude:req.body.latitude!==undefined,hasLongitude:req.body.longitude!==undefined,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'}})}).catch(()=>{});
-    // #endregion
 
     if (!title || typeof title !== 'string' || title.trim().length < 3) {
       return res.status(400).json({
@@ -1082,9 +992,6 @@ router.post("/api/tasks", async (req, res) => {
 
     // Validate budget (must be positive number, min 10 SAR)
     const budgetNum = typeof budget === 'string' ? parseFloat(budget) : Number(budget);
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:1069',message:'POST /api/tasks - Budget conversion',data:{originalBudget:budget,budgetNum:budgetNum,isNaN:isNaN(budgetNum),isValid:!isNaN(budgetNum)&&budgetNum>=10&&budgetNum<=100000,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}})}).catch(()=>{});
-    // #endregion
     if (isNaN(budgetNum) || budgetNum < 10 || budgetNum > 100000) {
       return res.status(400).json({
         error: "Invalid budget",
@@ -1150,9 +1057,6 @@ router.post("/api/tasks", async (req, res) => {
       clientId: req.userId,
       status: 'open',
     };
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:1124',message:'POST /api/tasks - TaskData prepared',data:{taskDataKeys:Object.keys(taskData),taskDataValues:Object.fromEntries(Object.entries(taskData).map(([k,v])=>[k,typeof v==='string'?v.substring(0,50):v])),allFieldsPresent:!!taskData.title&&!!taskData.description&&!!taskData.category&&!!taskData.budget&&!!taskData.location&&!!taskData.date&&!!taskData.time&&!!taskData.clientId,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}})}).catch(()=>{});
-    // #endregion
 
     // Add optional fields if provided
     if (latitude !== undefined && longitude !== undefined) {
@@ -1187,13 +1091,7 @@ router.post("/api/tasks", async (req, res) => {
     }
 
     try {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:1168',message:'POST /api/tasks - Before createTask',data:{taskDataKeys:Object.keys(taskData),timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'}})}).catch(()=>{});
-      // #endregion
       const task = await storage.createTask(taskData);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:1169',message:'POST /api/tasks - After createTask',data:{hasTask:!!task,taskId:task?.id,taskTitle:task?.title,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'}})}).catch(()=>{});
-      // #endregion
 
       // Send notifications to taskers in the same category
       try {
@@ -1231,9 +1129,6 @@ router.post("/api/tasks", async (req, res) => {
       throw dbError; // Re-throw to be caught by outer catch
     }
   } catch (error: any) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'routes.ts:1200',message:'POST /api/tasks - ERROR',data:{errorMessage:error?.message,errorCode:error?.code,errorDetail:error?.detail,errorHint:error?.hint,errorStack:error?.stack?.substring(0,200),timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'}})}).catch(()=>{});
-    // #endregion
     console.error('[Create Task] Error:', error);
     res.status(500).json({ 
       error: error.message || "حدث خطأ أثناء إنشاء المهمة",
@@ -1394,10 +1289,6 @@ router.post("/api/tasks/:id/bids", async (req, res) => {
 });
 
 router.post("/api/bids/:id/accept", async (req, res) => {
-  // #region agent log
-  console.log('[DEBUG] Accept bid endpoint called', req.params.id, req.userId);
-  try { fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:1233',message:'Accept bid endpoint - START',data:{bidId:req.params.id,userId:req.userId,timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H'}})+'\n'); } catch (e) { console.error('[DEBUG] Log write error:', e); }
-  // #endregion
   try {
     if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
 
@@ -1408,19 +1299,9 @@ router.post("/api/bids/:id/accept", async (req, res) => {
     if (!task) return res.status(404).json({ error: "Task not found" });
     if (task.clientId !== req.userId) return res.status(403).json({ error: "Not authorized" });
 
-    // #region agent log
-    console.log('[DEBUG] Accept bid - before update', { bidId: req.params.id, taskId: bid.taskId, bidTaskerId: bid.taskerId, currentTaskStatus: task.status, currentTaskTaskerId: task.taskerId });
-    try { fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:1247',message:'Accept bid - before update',data:{bidId:req.params.id,taskId:bid.taskId,bidTaskerId:bid.taskerId,currentTaskStatus:task.status,currentTaskTaskerId:task.taskerId,currentTaskClientId:task.clientId,timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H'}})+'\n'); } catch (e) { console.error('[DEBUG] Log write error:', e); }
-    // #endregion
-
     const updatedBid = await storage.updateBid(req.params.id, { status: "accepted" });
     // Update task status to "in_progress" instead of "assigned" so it appears in IN PROGRESS tab
     const updatedTask = await storage.updateTask(bid.taskId, { status: "in_progress", taskerId: bid.taskerId });
-
-    // #region agent log
-    console.log('[DEBUG] Accept bid - after update', { taskId: bid.taskId, updatedTaskStatus: updatedTask?.status, updatedTaskTaskerId: updatedTask?.taskerId, updatedTaskId: updatedTask?.id });
-    try { fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:1256',message:'Accept bid - after update',data:{taskId:bid.taskId,updatedTaskStatus:updatedTask?.status,updatedTaskTaskerId:updatedTask?.taskerId,updatedTaskId:updatedTask?.id,updatedTaskClientId:updatedTask?.clientId,timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H'}})+'\n'); } catch (e) { console.error('[DEBUG] Log write error:', e); }
-    // #endregion
     
     // Verify the task was updated correctly
     if (!updatedTask) {
@@ -1463,17 +1344,8 @@ router.post("/api/bids/:id/accept", async (req, res) => {
       actionUrl: `/task/${task.id}`,
     });
 
-    // #region agent log
-    console.log('[DEBUG] Accept bid - before response', { taskId: bid.taskId, responseTaskId: updatedTask?.id, responseTaskStatus: updatedTask?.status, responseTaskTaskerId: updatedTask?.taskerId });
-    try { fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:1273',message:'Accept bid - before response',data:{taskId:bid.taskId,responseTaskId:updatedTask?.id,responseTaskStatus:updatedTask?.status,responseTaskTaskerId:updatedTask?.taskerId,updatedTaskClientId:updatedTask?.clientId,timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H'}})+'\n'); } catch (e) { console.error('[DEBUG] Log write error:', e); }
-    // #endregion
-
     res.json({ bid: updatedBid, task: updatedTask });
   } catch (error: any) {
-    // #region agent log
-    console.error('[DEBUG] Accept bid - error', error);
-    try { fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:1264',message:'Accept bid - error',data:{bidId:req.params.id,error:error?.message,errorType:error?.constructor?.name,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}})+'\n'); } catch (e) { console.error('[DEBUG] Log write error:', e); }
-    // #endregion
     res.status(500).json({ error: error.message });
   }
 });
@@ -2939,10 +2811,6 @@ async function authenticatePaylink(): Promise<string> {
     throw new Error('Paylink credentials not configured. Set PAYLINK_APP_ID and PAYLINK_SECRET_KEY environment variables.');
   }
 
-  // #region agent log
-  fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:authenticatePaylink',message:'Attempting Paylink auth',data:{authUrl:PAYLINK_AUTH_URL,isDevelopment,usingTestCreds:isDevelopment,appIdUsed:appId?.substring(0,10)+'...'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})+'\n');
-  // #endregion
-
   const response = await fetch(PAYLINK_AUTH_URL, {
     method: 'POST',
     headers: {
@@ -2957,9 +2825,6 @@ async function authenticatePaylink(): Promise<string> {
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Paylink auth error:', errorText);
-    // #region agent log
-    fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:authenticatePaylink:error',message:'Paylink auth failed',data:{status:response.status,errorPreview:errorText.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})+'\n');
-    // #endregion
     throw new Error(`Failed to authenticate with Paylink: ${response.status}`);
   }
 
@@ -2969,24 +2834,13 @@ async function authenticatePaylink(): Promise<string> {
     throw new Error('No id_token received from Paylink');
   }
 
-  // #region agent log
-  fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:authenticatePaylink:success',message:'Paylink auth successful',data:{hasToken:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})+'\n');
-  // #endregion
-
   return data.id_token;
 }
 
 // Create payment link with Paylink
 router.post("/api/payments/create-link", async (req, res) => {
-  // #region agent log
-  fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:create-payment-link',message:'Payment endpoint hit',data:{userId:req.userId,body:req.body,hasAuth:!!req.headers.authorization},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})+'\n');
-  fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:create-payment-link:v2',message:'VERIFY NEW CODE LOADED',data:{version:'v2-with-test-creds'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})+'\n');
-  // #endregion
   try {
     if (!req.userId) {
-      // #region agent log
-      fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:create-payment-link:noAuth',message:'User not authenticated',data:{headers:Object.keys(req.headers)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
-      // #endregion
       return res.status(401).json({ error: "Not authenticated" });
     }
 
@@ -3002,22 +2856,13 @@ router.post("/api/payments/create-link", async (req, res) => {
     }
 
     // Get task to verify it exists
-    // #region agent log
-    fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:create-payment-link:getTask',message:'Getting task',data:{taskId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})+'\n');
-    // #endregion
     const task = await storage.getTask(taskId);
-    // #region agent log
-    fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:create-payment-link:gotTask',message:'Got task',data:{hasTask:!!task,taskClientId:task?.clientId,reqUserId:req.userId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})+'\n');
-    // #endregion
     if (!task) {
       return res.status(404).json({ error: "Task not found" });
     }
 
     // Verify user is the task owner
     if (task.clientId !== req.userId) {
-      // #region agent log
-      fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:create-payment-link:notOwner',message:'Not task owner',data:{taskClientId:task.clientId,reqUserId:req.userId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})+'\n');
-      // #endregion
       return res.status(403).json({ error: "Only the task owner can make payment" });
     }
 
@@ -3032,9 +2877,6 @@ router.post("/api/payments/create-link", async (req, res) => {
     const cancelUrl = `${baseUrl}/payment/failed?taskId=${taskId}`;
 
     // Step 1: Authenticate with Paylink
-    // #region agent log
-    fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:create-payment-link:beforeAuth',message:'About to authenticate with Paylink',data:{hasAppId:!!process.env.PAYLINK_APP_ID,hasSecretKey:!!process.env.PAYLINK_SECRET_KEY},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})+'\n');
-    // #endregion
     console.log('Authenticating with Paylink...');
     const idToken = await authenticatePaylink();
 
@@ -3091,14 +2933,7 @@ router.post("/api/payments/create-link", async (req, res) => {
     });
 
   } catch (error: any) {
-    // #region agent log
-    fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:create-payment-link:error',message:'Payment error caught',data:{errorMessage:error?.message,errorStack:error?.stack?.substring(0,300)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})+'\n');
-    // #endregion
     console.error('Payment link creation error:', error);
     res.status(500).json({ error: error.message || 'Failed to create payment link' });
   }
 });
-
-// #region agent log
-fs.appendFileSync(logPath, JSON.stringify({location:'routes.ts:end',message:'Routes file fully loaded - payment route registered',data:{timestamp:new Date().toISOString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})+'\n');
-// #endregion

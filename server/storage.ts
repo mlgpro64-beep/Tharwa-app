@@ -373,24 +373,12 @@ export const storage: IStorage = {
   },
   
   async createTask(data: InsertTask) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:375',message:'createTask - START',data:{dataKeys:Object.keys(data),hasTitle:!!data.title,hasDescription:!!data.description,hasCategory:!!data.category,hasBudget:!!data.budget,hasLocation:!!data.location,hasDate:!!data.date,hasTime:!!data.time,hasClientId:!!data.clientId,budgetType:typeof data.budget,budgetValue:data.budget,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'}})}).catch(()=>{});
-    // #endregion
     try {
       // Validate required fields
       if (!data.title || !data.description || !data.category || !data.budget || !data.location || !data.date || !data.time || !data.clientId) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:378',message:'createTask - Validation failed',data:{hasTitle:!!data.title,hasDescription:!!data.description,hasCategory:!!data.category,hasBudget:!!data.budget,hasLocation:!!data.location,hasDate:!!data.date,hasTime:!!data.time,hasClientId:!!data.clientId,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}})}).catch(()=>{});
-        // #endregion
         throw new Error('Missing required fields for task creation');
       }
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:382',message:'createTask - Before db.insert',data:{dataKeys:Object.keys(data),budgetValue:data.budget,budgetType:typeof data.budget,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'}})}).catch(()=>{});
-      // #endregion
       const result = await db.insert(tasks).values(data).returning();
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:383',message:'createTask - After db.insert',data:{hasResult:!!result,resultLength:result?.length,resultId:result?.[0]?.id,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'}})}).catch(()=>{});
-      // #endregion
       
       if (!result || result.length === 0) {
         throw new Error('Failed to create task - no result returned');
@@ -398,9 +386,6 @@ export const storage: IStorage = {
       
       return result[0];
     } catch (error: any) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'storage.ts:389',message:'createTask - ERROR',data:{errorMessage:error?.message,errorCode:error?.code,errorDetail:error?.detail,errorHint:error?.hint,errorConstraint:error?.constraint,errorTable:error?.table,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'}})}).catch(()=>{});
-      // #endregion
       console.error('[Storage] Error in createTask:', error);
       console.error('[Storage] Task data:', data);
       console.error('[Storage] Error details:', {
@@ -414,14 +399,7 @@ export const storage: IStorage = {
   },
   
   async updateTask(id: string, data: Partial<Task>) {
-    // #region agent log
-    const logPath = path.join(process.cwd(), '.cursor', 'debug.log');
-    try { fs.appendFileSync(logPath, JSON.stringify({location:'storage.ts:360',message:'Update task - before',data:{taskId:id,updateData:data,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}})+'\n'); } catch {}
-    // #endregion
     const result = await db.update(tasks).set(data as any).where(eq(tasks.id, id)).returning();
-    // #region agent log
-    try { fs.appendFileSync(logPath, JSON.stringify({location:'storage.ts:365',message:'Update task - after',data:{taskId:id,updatedTaskId:result[0]?.id,updatedTaskStatus:result[0]?.status,updatedTaskTaskerId:result[0]?.taskerId,updatedTaskClientId:result[0]?.clientId,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}})+'\n'); } catch {}
-    // #endregion
     return result[0];
   },
 

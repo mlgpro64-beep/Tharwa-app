@@ -169,10 +169,6 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
         throw new Error(isArabic ? 'المهمة غير موجودة' : 'Task not found');
       }
 
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TaskDetailsScreen.tsx:paymentMutation',message:'Starting payment request',data:{taskId:id,budget:task.budget,userId:user?.id,hasPhone:!!user?.phone},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-
       // Call Express API endpoint
       const response = await apiRequest('POST', '/api/payments/create-link', {
         taskId: id,
@@ -180,12 +176,6 @@ const TaskDetailsScreen = memo(function TaskDetailsScreen() {
         clientPhone: user?.phone || '',
         clientName: user?.name || '',
       });
-
-      // #region agent log
-      const responseClone = response.clone();
-      const responseText = await responseClone.text();
-      fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TaskDetailsScreen.tsx:paymentMutation:response',message:'Received response',data:{status:response.status,ok:response.ok,contentType:response.headers.get('content-type'),bodyPreview:responseText.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
 
       return response.json();
     },

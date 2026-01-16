@@ -16,26 +16,9 @@ const MyTasksScreen = memo(function MyTasksScreen() {
   const isAuthenticated = !!localStorage.getItem('userId');
   const userId = localStorage.getItem('userId');
 
-  // #region agent log
-  React.useEffect(() => {
-    fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MyTasksScreen.tsx:18',message:'MyTasksScreen mounted',data:{userId,isAuthenticated,activeTab,timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'F'}})}).catch(()=>{});
-  }, []);
-  // #endregion
-
   const { data: tasks, isLoading, error } = useQuery<TaskWithDetails[]>({
     queryKey: ['/api/tasks/my'],
     enabled: isAuthenticated,
-    onSuccess: (data) => {
-      // #region agent log
-      console.log('[DEBUG] MyTasksScreen - tasks received', { tasksCount: data?.length, taskIds: data?.map(t=>t.id), taskStatuses: data?.map(t=>({id:t.id,status:t.status,taskerId:t.taskerId,clientId:t.clientId})) });
-      fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MyTasksScreen.tsx:28',message:'My tasks query - success',data:{userId,tasksCount:data?.length,taskIds:data?.map(t=>t.id),taskStatuses:data?.map(t=>({id:t.id,status:t.status,taskerId:t.taskerId,clientId:t.clientId})),timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'F'}})}).catch(()=>{});
-      // #endregion
-    },
-    onError: (error) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MyTasksScreen.tsx:33',message:'My tasks query - error',data:{userId,error:error?.message,timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'F'}})}).catch(()=>{});
-      // #endregion
-    },
   });
 
   const filteredTasks = useMemo(() => {
@@ -43,11 +26,7 @@ const MyTasksScreen = memo(function MyTasksScreen() {
     if (activeTab === 'all') return tasks;
     // Include both "assigned" and "in_progress" tasks in the "in_progress" tab
     if (activeTab === 'in_progress') {
-      const filtered = tasks.filter(task => task.status === 'in_progress' || task.status === 'assigned');
-      // #region agent log
-      console.log('[DEBUG] MyTasksScreen - filtered in_progress tasks', { totalTasks: tasks.length, filteredCount: filtered.length, filteredTaskIds: filtered.map(t=>t.id), allTaskStatuses: tasks.map(t=>({id:t.id,status:t.status,taskerId:t.taskerId})) });
-      // #endregion
-      return filtered;
+      return tasks.filter(task => task.status === 'in_progress' || task.status === 'assigned');
     }
     return tasks.filter(task => task.status === activeTab);
   }, [tasks, activeTab]);

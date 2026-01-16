@@ -91,32 +91,19 @@ export async function apiRequest(
     const path = url.replace('/api/', '');
     // Try Supabase table query only for simple list endpoints
     if (path === 'tasks' || path === 'users' || path === 'messages') {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'queryClient.ts:90',message:'Trying Supabase fallback',data:{url,path,tableName:path.split('/')[0]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
       try {
         const tableName = path.split('/')[0];
         const { data: supabaseData, error } = await supabase
           .from(tableName)
           .select('*');
         
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'queryClient.ts:96',message:'Supabase query result',data:{url,hasError:!!error,hasData:!!supabaseData,dataLength:supabaseData?.length,error:error?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
-        
         if (!error && supabaseData) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'queryClient.ts:102',message:'Returning Supabase data',data:{url,dataLength:supabaseData.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-          // #endregion
           return new Response(JSON.stringify(supabaseData), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
           });
         }
       } catch (e) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'queryClient.ts:110',message:'Supabase error, falling through',data:{url,error:(e as Error)?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
         // Fall through to Express API
       }
     }
@@ -132,35 +119,12 @@ export async function apiRequest(
     headers['Content-Type'] = 'application/json';
   }
   
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'queryClient.ts:apiRequest',message:'API request initiated',data:{method,url,fullUrl,hasAuth:!!headers.Authorization,hasData:!!data,windowLocation:typeof window!=='undefined'?window.location.href:''},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
-  
   const res = await fetch(fullUrl, {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
-
-  // #region agent log
-  if (url.includes('payments')) {
-    const resClone = res.clone();
-    const resText = await resClone.text();
-    fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'queryClient.ts:apiRequest:response',message:'Payment API response',data:{status:res.status,ok:res.ok,contentType:res.headers.get('content-type'),bodyPreview:resText.substring(0,300)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-  }
-  // #endregion
-
-  // #region agent log
-  try {
-    const responseText = await res.clone().text();
-    let responseData: any = {};
-    try {
-      responseData = responseText ? JSON.parse(responseText) : {};
-    } catch {}
-    fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'queryClient.ts:131',message:'API response received',data:{status:res.status,ok:res.ok,url,hasData:!!responseData,responseKeys:responseData?Object.keys(responseData):[],responseTitle:responseData?.title,responseDescription:responseData?.description?.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  } catch {}
-  // #endregion
 
   await throwIfResNotOk(res);
   return res;
@@ -173,10 +137,6 @@ export function getQueryFn<T>(options: {
   const { on401: unauthorizedBehavior } = options;
   return async ({ queryKey }) => {
     const url = queryKey.join("/") as string;
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'queryClient.ts:163',message:'getQueryFn called',data:{url,queryKey},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     
     try {
       // Never use Supabase for auth endpoints
@@ -223,45 +183,23 @@ export function getQueryFn<T>(options: {
       // Everything else goes to Express API (specific resources, nested endpoints, etc.)
       const isSimpleListEndpoint = url === '/api/tasks' || url === '/api/users' || url === '/api/messages';
       if (isSimpleListEndpoint) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'queryClient.ts:211',message:'Trying Supabase in getQueryFn',data:{url,tableName:url.split('/')[2]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
         try {
           const tableName = url.split('/')[2]; // Extract table name from /api/tasks, etc.
           const { data, error } = await supabase
             .from(tableName)
             .select('*');
           
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'queryClient.ts:217',message:'Supabase query result in getQueryFn',data:{url,hasError:!!error,hasData:!!data,dataLength:data?.length,error:error?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-          // #endregion
-          
           if (!error && data) {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'queryClient.ts:221',message:'Returning Supabase data from getQueryFn',data:{url,dataLength:data.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-            // #endregion
             return data as T;
           }
         } catch (e) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'queryClient.ts:226',message:'Supabase error in getQueryFn, falling through',data:{url,error:(e as Error)?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-          // #endregion
           // Fall through to Express API
           console.warn(`[Query] Supabase query failed for ${url}, trying Express API`);
         }
       }
       
-      // #region agent log
-      if (!isSimpleListEndpoint) {
-        fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'queryClient.ts:232',message:'Using Express API for non-simple endpoint',data:{url},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      }
-      // #endregion
-      
       // Fallback to Express API
       const fullUrl = buildApiUrl(url);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'queryClient.ts:232',message:'Fetching from Express API in getQueryFn',data:{url,fullUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       const res = await fetch(fullUrl, {
         credentials: "include",
         headers: await getAuthHeaders(),
@@ -293,17 +231,11 @@ export function getQueryFn<T>(options: {
       
       if (res.ok) {
         const jsonData = await res.json();
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'queryClient.ts:260',message:'Express API response in getQueryFn',data:{url,status:res.status,hasData:!!jsonData,dataKeys:jsonData?Object.keys(jsonData):[],dataTitle:jsonData?.title,dataDescription:jsonData?.description?.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         return jsonData;
       }
       
       return null;
     } catch (error) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a1cd6507-d4e0-471c-acc6-10053f70247e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'queryClient.ts:268',message:'Error in getQueryFn',data:{url,error:(error as Error)?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       // If it's a 401 and we're allowed to return null, do so
       if (unauthorizedBehavior === "returnNull" && error && typeof error === 'object' && 'message' in error) {
         const errorMessage = String(error.message);

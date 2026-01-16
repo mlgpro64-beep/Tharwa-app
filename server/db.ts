@@ -2,22 +2,8 @@ import 'dotenv/config';
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
-import fs from 'fs';
-import path from 'path';
-
-// #region agent log
-const logPath = path.join(process.cwd(), '.cursor', 'debug.log');
-try { 
-  const logDir = path.dirname(logPath);
-  if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
-  fs.appendFileSync(logPath, JSON.stringify({location:'server/db.ts:11',message:'Checking DATABASE_URL',data:{hasDatabaseUrl:!!process.env.DATABASE_URL,nodeEnv:process.env.NODE_ENV},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})+'\n'); 
-} catch {}
-// #endregion
 
 if (!process.env.DATABASE_URL) {
-  // #region agent log
-  try { fs.appendFileSync(logPath, JSON.stringify({location:'server/db.ts:15',message:'DATABASE_URL missing - ERROR',data:{error:'DATABASE_URL not set'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})+'\n'); } catch {}
-  // #endregion
   console.error('❌ DATABASE_URL is not set!');
   console.error('Please set DATABASE_URL in your .env file or environment variables.');
   console.error('Get it from: https://tywwcinmoncjkitzqfaa.supabase.co → Settings → Database');
@@ -61,14 +47,8 @@ pool.on('error', (err) => {
 
 // Test connection
 pool.query('SELECT NOW()').then((result) => {
-  // #region agent log
-  try { fs.appendFileSync(logPath, JSON.stringify({location:'server/db.ts:60',message:'Database connection successful',data:{isSupabase},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})+'\n'); } catch {}
-  // #endregion
   console.log('✅ Database connection successful');
 }).catch((err) => {
-  // #region agent log
-  try { fs.appendFileSync(logPath, JSON.stringify({location:'server/db.ts:63',message:'Database connection failed',data:{error:err.message,isSupabase},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})+'\n'); } catch {}
-  // #endregion
   console.error('❌ Database connection failed:', err.message);
   console.error('Full error:', err);
 });
