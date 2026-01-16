@@ -35,25 +35,29 @@ serve(async (req) => {
       return createErrorResponse('Title, description, category, budget, and location are required', 400)
     }
 
-    // Check daily task limit (5 tasks per day)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
+    // Check daily task limit (5 tasks per day) - disabled in development
+    const isDevelopment = Deno.env.get('ENVIRONMENT') === 'development' || Deno.env.get('NODE_ENV') === 'development'
+    
+    if (!isDevelopment) {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    const { count } = await supabase
-      .from('tasks')
-      .select('*', { count: 'exact', head: true })
-      .eq('client_id', user.id)
-      .gte('created_at', today.toISOString())
-      .lt('created_at', tomorrow.toISOString())
+      const { count } = await supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('client_id', user.id)
+        .gte('created_at', today.toISOString())
+        .lt('created_at', tomorrow.toISOString())
 
-    if ((count || 0) >= 5) {
-      return createErrorResponse('You have reached the daily task limit (5 tasks per day)', 400)
+      if ((count || 0) >= 5) {
+        return createErrorResponse('You have reached the daily task limit (5 tasks per day)', 400)
+      }
     }
 
     // Create task

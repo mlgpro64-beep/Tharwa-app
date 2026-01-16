@@ -263,18 +263,18 @@ const VerifyOTPScreen = memo(function VerifyOTPScreen() {
               <div className="pt-2">
                 <button
                   onClick={() => {
-                    setOtpCode('123456');
-                    // Auto-submit after short delay
-                    setTimeout(() => {
-                      phoneOtpLoginMutation.mutate({ phone, otpCode: '123456' });
-                    }, 300);
+                    // In dev mode, server accepts any OTP code
+                    phoneOtpLoginMutation.mutate({ phone, otpCode: '123456' });
                   }}
                   disabled={phoneOtpLoginMutation.isPending}
                   className="text-xs text-orange-500 font-bold hover:underline disabled:opacity-50 px-3 py-1.5 rounded-lg border border-orange-500/30 bg-orange-500/10"
                   data-testid="button-skip-otp-dev"
                 >
-                  🛠️ {isArabic ? 'تخطي (تطوير فقط)' : 'SKIP (DEV ONLY)'}
+                  🛠️ {isArabic ? 'تخطي OTP (تطوير فقط)' : 'SKIP OTP (DEV ONLY)'}
                 </button>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {isArabic ? 'أي رمز سيُقبل في وضع التطوير' : 'Any code will be accepted in dev mode'}
+                </p>
               </div>
             )}
           </div>

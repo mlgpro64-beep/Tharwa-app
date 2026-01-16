@@ -26,7 +26,7 @@ const PostTaskScreen = lazy(() => import("@/pages/PostTaskScreen"));
 const WalletScreen = lazy(() => import("@/pages/WalletScreen"));
 const SearchTaskersScreen = lazy(() => import("@/pages/SearchTaskersScreen"));
 const ProfileScreen = lazy(() => import("@/pages/ProfileScreen"));
-const ChatScreen = lazy(() => import("@/pages/ChatScreen"));
+const ChatScreen = lazy(() => import("@/pages/ChatScreenSupabase"));
 const ConversationsScreen = lazy(() => import("@/pages/ConversationsScreen"));
 const NotificationScreen = lazy(() => import("@/pages/NotificationScreen"));
 const SettingsScreen = lazy(() => import("@/pages/SettingsScreen"));

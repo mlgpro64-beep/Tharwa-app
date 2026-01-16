@@ -66,29 +66,40 @@ const ProfileScreen = memo(function ProfileScreen() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   }, []);
 
-  const stats = useMemo(() => [
-    { 
-      labelKey: 'profile.rating', 
-      value: user?.rating ? parseFloat(String(user.rating)).toFixed(1) : '0.0',
-      icon: Star,
-      color: 'text-warning',
-      bgColor: 'bg-gradient-to-br from-warning/20 to-warning/5'
-    },
-    { 
-      labelKey: 'profile.tasksCompleted', 
-      value: user?.completedTasks || 0,
-      icon: CheckCircle,
-      color: 'text-success',
-      bgColor: 'bg-gradient-to-br from-success/20 to-success/5'
-    },
-    { 
-      labelKey: 'profile.memberSince', 
-      value: user?.createdAt ? new Date(user.createdAt).getFullYear() : new Date().getFullYear(),
-      icon: Calendar,
-      color: 'text-primary',
-      bgColor: 'bg-gradient-to-br from-primary/20 to-primary/5'
-    },
-  ], [user]);
+  const stats = useMemo(() => {
+    const baseStats = [
+      { 
+        labelKey: 'profile.memberSince', 
+        value: user?.createdAt ? new Date(user.createdAt).getFullYear() : new Date().getFullYear(),
+        icon: Calendar,
+        color: 'text-primary',
+        bgColor: 'bg-gradient-to-br from-primary/20 to-primary/5'
+      },
+    ];
+    
+    // Only show rating and completed tasks for taskers
+    if (userRole === 'tasker' || isTasker) {
+      return [
+        { 
+          labelKey: 'profile.rating', 
+          value: user?.rating ? parseFloat(String(user.rating)).toFixed(1) : '0.0',
+          icon: Star,
+          color: 'text-warning',
+          bgColor: 'bg-gradient-to-br from-warning/20 to-warning/5'
+        },
+        { 
+          labelKey: 'profile.tasksCompleted', 
+          value: user?.completedTasks || 0,
+          icon: CheckCircle,
+          color: 'text-success',
+          bgColor: 'bg-gradient-to-br from-success/20 to-success/5'
+        },
+        ...baseStats,
+      ];
+    }
+    
+    return baseStats;
+  }, [user, userRole, isTasker]);
 
   const menuItems = useMemo(() => {
     const items = [
@@ -234,29 +245,31 @@ const ProfileScreen = memo(function ProfileScreen() {
           )}
         </motion.div>
 
-        <motion.div 
-          variants={itemVariants}
-          className="grid grid-cols-3 gap-3 mb-6"
-        >
-          {stats.map((stat, index) => {
-            const Icon = stat.icon;
-            return (
-              <motion.div
-                key={stat.labelKey}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25 + index * 0.05 }}
-                className="glass rounded-[20px] p-4 text-center"
-              >
-                <div className={cn("w-9 h-9 rounded-xl mx-auto mb-2.5 flex items-center justify-center", stat.bgColor)}>
-                  <Icon className={cn("w-4 h-4", stat.color)} />
-                </div>
-                <p className="text-xl font-extrabold text-foreground">{stat.value}</p>
-                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mt-0.5">{t(stat.labelKey)}</p>
-              </motion.div>
-            );
-          })}
-        </motion.div>
+        {stats.length > 0 && (
+          <motion.div 
+            variants={itemVariants}
+            className={cn("grid gap-3 mb-6", stats.length === 3 ? "grid-cols-3" : stats.length === 2 ? "grid-cols-2" : "grid-cols-1")}
+          >
+            {stats.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <motion.div
+                  key={stat.labelKey}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 + index * 0.05 }}
+                  className="glass rounded-[20px] p-4 text-center"
+                >
+                  <div className={cn("w-9 h-9 rounded-xl mx-auto mb-2.5 flex items-center justify-center", stat.bgColor)}>
+                    <Icon className={cn("w-4 h-4", stat.color)} />
+                  </div>
+                  <p className="text-xl font-extrabold text-foreground">{stat.value}</p>
+                  <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mt-0.5">{t(stat.labelKey)}</p>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        )}
 
         {user?.bio && (
           <motion.div

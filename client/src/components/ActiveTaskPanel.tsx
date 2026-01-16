@@ -3,14 +3,12 @@ import { Link } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     MapPin, Navigation, Phone, MessageCircle, Clock,
-    CheckCircle, User, ChevronUp, ChevronDown, ExternalLink,
-    Route, Star, Wallet, Calendar, Copy, Check
+    CheckCircle, ChevronUp, ExternalLink, Route, Star, Wallet, Calendar
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/currency';
 import { useTranslation } from 'react-i18next';
-import { useToast } from '@/hooks/use-toast';
 import { getMapStyle, createTileLayerConfig } from '@/lib/mapConfig';
 
 declare global {
@@ -48,11 +46,9 @@ export const ActiveTaskPanel = memo(function ActiveTaskPanel({
     onRequestCompletion,
     isRequestingCompletion = false
 }: ActiveTaskPanelProps) {
-    const { t, i18n } = useTranslation();
-    const { toast } = useToast();
+    const { i18n } = useTranslation();
     const isArabic = i18n.language === 'ar';
     const [isExpanded, setIsExpanded] = useState(true);
-    const [phoneCopied, setPhoneCopied] = useState(false);
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<any>(null);
 
@@ -64,14 +60,12 @@ export const ActiveTaskPanel = memo(function ActiveTaskPanel({
     useEffect(() => {
         if (!mapRef.current || !window.L || !hasCoordinates || !isExpanded) return;
 
-        // Cleanup existing map
         if (mapInstanceRef.current) {
             mapInstanceRef.current.remove();
             mapInstanceRef.current = null;
         }
 
-        const isDarkMode = document.documentElement.classList.contains('dark');
-        const mapStyle = getMapStyle(undefined, isDarkMode);
+        const mapStyle = getMapStyle(undefined, true);
         const tileConfig = createTileLayerConfig(mapStyle);
 
         const map = window.L.map(mapRef.current, {
@@ -81,36 +75,68 @@ export const ActiveTaskPanel = memo(function ActiveTaskPanel({
 
         window.L.tileLayer(tileConfig.url, tileConfig.options).addTo(map);
 
-        // Custom marker icon
-        const customIcon = window.L.divIcon({
-            className: 'custom-marker',
+        // Modern exact location marker for assigned tasker
+        const exactPinIcon = window.L.divIcon({
+            className: 'exact-location-marker',
             html: `
-        <div style="
-          width: 48px;
-          height: 48px;
-          background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
-          border-radius: 50% 50% 50% 0;
-          transform: rotate(-45deg);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
-          border: 3px solid white;
-        ">
-          <div style="transform: rotate(45deg); color: white; font-size: 20px;">📍</div>
-        </div>
-      `,
-            iconSize: [48, 48],
-            iconAnchor: [24, 48],
+                <div style="position: relative; width: 52px; height: 52px;">
+                    <!-- Modern pin with white background -->
+                    <div style="
+                        position: absolute;
+                        top: 0;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        width: 40px;
+                        height: 40px;
+                        background: white;
+                        border-radius: 50% 50% 50% 0;
+                        transform: translateX(-50%) rotate(-45deg);
+                        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+                    ">
+                        <div style="
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%) rotate(45deg);
+                            width: 22px;
+                            height: 22px;
+                            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        ">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- Shadow -->
+                    <div style="
+                        position: absolute;
+                        bottom: 4px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        width: 10px;
+                        height: 4px;
+                        background: rgba(0, 0, 0, 0.15);
+                        border-radius: 50%;
+                        filter: blur(2px);
+                    "></div>
+                </div>
+            `,
+            iconSize: [52, 52],
+            iconAnchor: [26, 48],
         });
 
-        window.L.marker([lat, lng], { icon: customIcon }).addTo(map);
+        window.L.marker([lat, lng], { icon: exactPinIcon }).addTo(map);
 
-        // Pulsing circle around marker
+        // Small indicator circle around exact location
         window.L.circle([lat, lng], {
-            radius: 150,
-            color: '#6366F1',
-            fillColor: '#6366F1',
+            radius: 30,
+            color: '#10b981',
+            fillColor: '#10b981',
             fillOpacity: 0.15,
             weight: 2,
         }).addTo(map);
@@ -125,75 +151,40 @@ export const ActiveTaskPanel = memo(function ActiveTaskPanel({
         };
     }, [lat, lng, hasCoordinates, isExpanded]);
 
-    // Open navigation in external app
     const openNavigation = () => {
         if (!hasCoordinates) return;
-
         const destination = `${lat},${lng}`;
-        const label = encodeURIComponent(task.location || task.title);
-
-        // Try to detect platform and open appropriate navigation
         const userAgent = navigator.userAgent.toLowerCase();
 
         if (/iphone|ipad|ipod/.test(userAgent)) {
-            // iOS - Apple Maps
             window.open(`maps://maps.apple.com/?daddr=${destination}&dirflg=d`, '_blank');
         } else if (/android/.test(userAgent)) {
-            // Android - Google Maps
             window.open(`google.navigation:q=${destination}`, '_blank');
         } else {
-            // Fallback to Google Maps web
             window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`, '_blank');
         }
     };
 
-    // Copy phone number
-    const copyPhone = async () => {
-        if (!task.client?.phone) return;
-
-        try {
-            await navigator.clipboard.writeText(task.client.phone);
-            setPhoneCopied(true);
-            toast({
-                title: isArabic ? 'تم النسخ' : 'Copied',
-                description: isArabic ? 'تم نسخ رقم الجوال' : 'Phone number copied',
-            });
-            setTimeout(() => setPhoneCopied(false), 2000);
-        } catch {
-            toast({
-                title: isArabic ? 'خطأ' : 'Error',
-                description: isArabic ? 'فشل نسخ الرقم' : 'Failed to copy',
-                variant: 'destructive',
-            });
-        }
-    };
-
-    // Call client
-    const callClient = () => {
-        if (!task.client?.phone) return;
-        window.open(`tel:${task.client.phone}`, '_self');
-    };
-
     return (
         <motion.div
-            initial={{ y: 50, opacity: 0 }}
+            initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="glass-premium rounded-3xl overflow-hidden border border-white/10"
+            className="rounded-2xl overflow-hidden bg-zinc-900/50"
         >
-            {/* Header with toggle */}
-            <motion.div
+            {/* Header */}
+            <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="flex items-center justify-between p-4 cursor-pointer bg-gradient-to-r from-primary/10 to-accent/10"
+                className="w-full flex items-center justify-between p-4 bg-blue-500/10"
             >
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/25">
-                        <Route className="w-5 h-5 text-white" />
+                    <div className="w-9 h-9 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                        <Route className="w-4 h-4 text-blue-400" />
                     </div>
-                    <div>
-                        <h3 className="font-bold text-foreground">
+                    <div className="text-left">
+                        <h3 className="font-semibold text-white text-sm">
                             {isArabic ? 'المهمة النشطة' : 'Active Task'}
                         </h3>
-                        <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                        <p className="text-xs text-zinc-500 truncate max-w-[200px]">
                             {task.title}
                         </p>
                     </div>
@@ -202,9 +193,9 @@ export const ActiveTaskPanel = memo(function ActiveTaskPanel({
                     animate={{ rotate: isExpanded ? 180 : 0 }}
                     transition={{ duration: 0.2 }}
                 >
-                    <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                    <ChevronUp className="w-5 h-5 text-zinc-500" />
                 </motion.div>
-            </motion.div>
+            </button>
 
             <AnimatePresence>
                 {isExpanded && (
@@ -212,218 +203,142 @@ export const ActiveTaskPanel = memo(function ActiveTaskPanel({
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
+                        transition={{ duration: 0.25 }}
                     >
-                        {/* Map Section */}
+                        {/* Map */}
                         {hasCoordinates && (
                             <div className="relative">
                                 <div
                                     ref={mapRef}
-                                    className="h-48 w-full"
-                                    style={{ minHeight: '192px' }}
+                                    className="h-40 w-full"
+                                    style={{ minHeight: '160px' }}
                                 />
-
-                                {/* Navigation Button Overlay */}
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
+                                
+                                {/* Navigation Button */}
+                                <button
                                     onClick={openNavigation}
-                                    className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-2xl font-bold shadow-xl shadow-primary/30"
+                                    className="absolute bottom-3 right-3 flex items-center gap-2 px-3 py-2 bg-white text-black rounded-xl text-sm font-medium transition-transform active:scale-95"
                                 >
-                                    <Navigation className="w-5 h-5" />
-                                    <span>{isArabic ? 'ابدأ الملاحة' : 'Start Navigation'}</span>
-                                    <ExternalLink className="w-4 h-4 opacity-70" />
-                                </motion.button>
+                                    <Navigation className="w-4 h-4" />
+                                    <span>{isArabic ? 'ابدأ' : 'Navigate'}</span>
+                                    <ExternalLink className="w-3 h-3 opacity-60" />
+                                </button>
 
-                                {/* Location Info */}
-                                <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-md rounded-xl px-3 py-2 max-w-[180px]">
-                                    <div className="flex items-center gap-2">
-                                        <MapPin className="w-4 h-4 text-white" />
+                                {/* Location Badge */}
+                                <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md rounded-lg px-2.5 py-1.5 max-w-[160px]">
+                                    <div className="flex items-center gap-1.5">
+                                        <MapPin className="w-3 h-3 text-white flex-shrink-0" />
                                         <p className="text-white text-xs font-medium truncate">
-                                            {task.location || `${lat?.toFixed(4)}, ${lng?.toFixed(4)}`}
+                                            {task.location || `${lat?.toFixed(3)}, ${lng?.toFixed(3)}`}
                                         </p>
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* Client Info Section */}
+                        {/* Client Info */}
                         {task.client && (
-                            <div className="p-4 border-t border-white/5">
-                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
-                                    {isArabic ? 'معلومات العميل' : 'Client Information'}
+                            <div className="p-4 border-t border-zinc-800/50">
+                                <p className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide mb-3">
+                                    {isArabic ? 'العميل' : 'Client'}
                                 </p>
-
+                                
                                 <div className="flex items-center gap-3 mb-4">
-                                    <Avatar className="w-14 h-14 border-2 border-primary/20 shadow-lg">
+                                    <Avatar className="w-10 h-10 ring-2 ring-zinc-800">
                                         <AvatarImage src={task.client.avatar || undefined} />
-                                        <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-bold text-lg">
+                                        <AvatarFallback className="bg-zinc-800 text-white font-semibold text-sm">
                                             {task.client.name?.charAt(0) || 'U'}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-bold text-foreground text-lg truncate">{task.client.name}</p>
-                                        <div className="flex items-center gap-2">
-                                            <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
-                                            <span className="text-sm font-medium text-muted-foreground">
+                                        <p className="font-semibold text-white truncate">{task.client.name}</p>
+                                        <div className="flex items-center gap-1">
+                                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                            <span className="text-xs text-zinc-500">
                                                 {parseFloat(String(task.client.rating || 0)).toFixed(1)}
                                             </span>
                                         </div>
                                     </div>
-                                </div>
-
-                                {/* Action Buttons */}
-                                <div className="grid grid-cols-3 gap-3">
-                                    {/* Call Button */}
-                                    <motion.button
-                                        whileHover={{ scale: 1.03 }}
-                                        whileTap={{ scale: 0.97 }}
-                                        onClick={callClient}
-                                        disabled={!task.client.phone}
-                                        className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-green-500/10 hover:bg-green-500/20 transition-colors disabled:opacity-50"
-                                    >
-                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/25">
-                                            <Phone className="w-6 h-6 text-white" />
-                                        </div>
-                                        <span className="text-xs font-bold text-green-600 dark:text-green-400">
-                                            {isArabic ? 'اتصال' : 'Call'}
-                                        </span>
-                                    </motion.button>
-
-                                    {/* Chat Button */}
-                                    <Link href={`/chat/${task.id}`}>
-                                        <motion.button
-                                            whileHover={{ scale: 1.03 }}
-                                            whileTap={{ scale: 0.97 }}
-                                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-primary/10 hover:bg-primary/20 transition-colors w-full"
-                                        >
-                                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center shadow-lg shadow-primary/25">
-                                                <MessageCircle className="w-6 h-6 text-white" />
-                                            </div>
-                                            <span className="text-xs font-bold text-primary">
-                                                {isArabic ? 'محادثة' : 'Chat'}
-                                            </span>
-                                        </motion.button>
-                                    </Link>
-
-                                    {/* Copy Phone Button */}
-                                    <motion.button
-                                        whileHover={{ scale: 1.03 }}
-                                        whileTap={{ scale: 0.97 }}
-                                        onClick={copyPhone}
-                                        disabled={!task.client.phone}
-                                        className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 transition-colors disabled:opacity-50"
-                                    >
-                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
-                                            {phoneCopied ? (
-                                                <Check className="w-6 h-6 text-white" />
-                                            ) : (
-                                                <Copy className="w-6 h-6 text-white" />
-                                            )}
-                                        </div>
-                                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
-                                            {phoneCopied
-                                                ? (isArabic ? 'تم النسخ' : 'Copied')
-                                                : (isArabic ? 'نسخ الرقم' : 'Copy #')
-                                            }
-                                        </span>
-                                    </motion.button>
-                                </div>
-
-                                {/* Phone Number Display */}
-                                {task.client.phone && (
-                                    <div className="mt-4 p-3 rounded-2xl bg-muted/50 flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <Phone className="w-4 h-4 text-muted-foreground" />
-                                            <span className="font-mono font-medium text-foreground" dir="ltr">
-                                                {task.client.phone}
-                                            </span>
-                                        </div>
-                                        <motion.button
-                                            whileTap={{ scale: 0.9 }}
-                                            onClick={copyPhone}
-                                            className="text-primary"
-                                        >
-                                            {phoneCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                                        </motion.button>
+                                    
+                                    {/* Quick Actions */}
+                                    <div className="flex items-center gap-2">
+                                        {task.client.phone && (
+                                            <a
+                                                href={`tel:${task.client.phone}`}
+                                                className="w-9 h-9 rounded-full bg-emerald-500/10 flex items-center justify-center"
+                                            >
+                                                <Phone className="w-4 h-4 text-emerald-400" />
+                                            </a>
+                                        )}
+                                        <Link href={`/chat/${task.id}`}>
+                                            <button className="w-9 h-9 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                                <MessageCircle className="w-4 h-4 text-blue-400" />
+                                            </button>
+                                        </Link>
                                     </div>
-                                )}
+                                </div>
                             </div>
                         )}
 
                         {/* Task Details */}
-                        <div className="p-4 border-t border-white/5">
-                            <div className="grid grid-cols-2 gap-3 mb-4">
-                                <div className="p-3 rounded-2xl bg-muted/30">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Wallet className="w-4 h-4 text-primary" />
-                                        <span className="text-xs text-muted-foreground font-medium">
+                        <div className="px-4 pb-4">
+                            <div className="grid grid-cols-2 gap-2 mb-4">
+                                <div className="p-3 rounded-xl bg-zinc-800/50">
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                        <Wallet className="w-3.5 h-3.5 text-zinc-500" />
+                                        <span className="text-[10px] text-zinc-500 uppercase tracking-wide">
                                             {isArabic ? 'الميزانية' : 'Budget'}
                                         </span>
                                     </div>
-                                    <p className="font-bold text-foreground">
+                                    <p className="font-semibold text-white text-sm">
                                         {formatCurrency(task.budget, { locale: isArabic ? 'ar' : 'en' })}
                                     </p>
                                 </div>
-                                <div className="p-3 rounded-2xl bg-muted/30">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Calendar className="w-4 h-4 text-accent" />
-                                        <span className="text-xs text-muted-foreground font-medium">
+                                <div className="p-3 rounded-xl bg-zinc-800/50">
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                        <Calendar className="w-3.5 h-3.5 text-zinc-500" />
+                                        <span className="text-[10px] text-zinc-500 uppercase tracking-wide">
                                             {isArabic ? 'الموعد' : 'Schedule'}
                                         </span>
                                     </div>
-                                    <p className="font-bold text-foreground text-sm">
-                                        {task.date || (isArabic ? 'غير محدد' : 'Not set')}
+                                    <p className="font-semibold text-white text-sm">
+                                        {task.date || (isArabic ? 'مرن' : 'Flexible')}
                                     </p>
-                                    {task.time && (
-                                        <p className="text-xs text-muted-foreground">{task.time}</p>
-                                    )}
                                 </div>
                             </div>
 
-                            {/* Complete Task Button */}
+                            {/* Completion Button */}
                             {task.status === 'assigned' && onRequestCompletion && (
-                                <motion.button
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
+                                <button
                                     onClick={onRequestCompletion}
                                     disabled={isRequestingCompletion}
-                                    className="w-full h-14 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl font-bold shadow-xl shadow-green-500/30 flex items-center justify-center gap-2 disabled:opacity-50"
+                                    className="w-full h-12 bg-emerald-500 text-white rounded-xl font-semibold flex items-center justify-center gap-2 transition-transform active:scale-[0.98] disabled:opacity-50"
                                 >
                                     {isRequestingCompletion ? (
                                         <>
                                             <motion.div
                                                 animate={{ rotate: 360 }}
                                                 transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                                                className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                                                className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
                                             />
                                             <span>{isArabic ? 'جاري الإرسال...' : 'Sending...'}</span>
                                         </>
                                     ) : (
                                         <>
-                                            <CheckCircle className="w-5 h-5" />
-                                            <span>{isArabic ? 'تم إنجاز المهمة' : 'Task Completed'}</span>
+                                            <CheckCircle className="w-4 h-4" />
+                                            <span>{isArabic ? 'تم إنجاز المهمة' : 'Mark as Complete'}</span>
                                         </>
                                     )}
-                                </motion.button>
+                                </button>
                             )}
 
-                            {/* Waiting for payment state */}
+                            {/* Waiting State */}
                             {task.status === 'in_progress' && (
-                                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
-                                            <Clock className="w-5 h-5 text-amber-500" />
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-amber-600 dark:text-amber-400">
-                                                {isArabic ? 'في انتظار الدفع' : 'Awaiting Payment'}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {isArabic ? 'العميل سيقوم بالدفع لإتمام المهمة' : 'Client will complete payment'}
-                                            </p>
-                                        </div>
-                                    </div>
+                                <div className="h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center gap-2">
+                                    <Clock className="w-4 h-4 text-amber-400" />
+                                    <span className="text-sm font-medium text-amber-400">
+                                        {isArabic ? 'في انتظار الدفع' : 'Awaiting Payment'}
+                                    </span>
                                 </div>
                             )}
                         </div>

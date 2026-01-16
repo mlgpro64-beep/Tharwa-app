@@ -9,6 +9,14 @@ import { nanoid } from "nanoid";
 const viteLogger = createLogger();
 
 export async function setupVite(server: Server, app: Express) {
+  // #region agent log
+  try { 
+    const logPath = path.join(process.cwd(), '.cursor', 'debug.log');
+    const logDir = path.dirname(logPath);
+    if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+    fs.appendFileSync(logPath, JSON.stringify({location:'server/vite.ts:setupVite',message:'Setting up Vite with HMR',data:{serverListening:server.listening},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H5'})+'\n'); 
+  } catch {}
+  // #endregion
   const serverOptions = {
     middlewareMode: true,
     hmr: { 

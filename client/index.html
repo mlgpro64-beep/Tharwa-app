@@ -132,13 +132,27 @@
         };
       }
       
-      // Register Service Worker
+      // Service Worker handling - DISABLE in development
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((reg) => console.log('SW registered:', reg.scope))
-            .catch((err) => console.log('SW registration failed:', err));
-        });
+        const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        if (isDevelopment) {
+          // In development: Unregister all service workers immediately
+          navigator.serviceWorker.getRegistrations().then((registrations) => {
+            registrations.forEach((registration) => {
+              registration.unregister().then((success) => {
+                if (success) console.log('[SW] Unregistered in dev mode');
+              });
+            });
+          });
+        } else {
+          // In production: Register service worker
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+              .then((reg) => console.log('[SW] Registered:', reg.scope))
+              .catch((err) => console.error('[SW] Registration failed:', err));
+          });
+        }
       }
       
       // iOS standalone mode detection

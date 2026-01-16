@@ -3,8 +3,9 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/currency';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, Briefcase, Clock, Check, X, Wallet } from 'lucide-react';
+import { Star, Briefcase, Clock, Check, X } from 'lucide-react';
 import type { BidWithTasker } from '@shared/schema';
+import { useTranslation } from 'react-i18next';
 
 interface OfferCardProps {
   offer: BidWithTasker;
@@ -19,104 +20,110 @@ export const OfferCard = memo(function OfferCard({
   onReject,
   showActions = true
 }: OfferCardProps) {
+  const { i18n } = useTranslation();
+  const isArabic = i18n.language === 'ar';
 
   const getInitials = useCallback((name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   }, []);
 
-  const getStatusBadge = useCallback((status: string) => {
-    const styles = {
-      pending: { bg: 'bg-warning/15 text-warning border-warning/20', icon: Clock, label: 'Pending' },
-      accepted: { bg: 'bg-success/15 text-success border-success/20', icon: Check, label: 'Accepted' },
-      rejected: { bg: 'bg-destructive/15 text-destructive border-destructive/20', icon: X, label: 'Rejected' },
-    };
+  const getStatusConfig = useCallback((status: string) => {
+    switch (status) {
+      case 'pending':
+        return { color: 'bg-amber-500/10 text-amber-400', icon: Clock, label: isArabic ? 'معلق' : 'Pending' };
+      case 'accepted':
+        return { color: 'bg-emerald-500/10 text-emerald-400', icon: Check, label: isArabic ? 'مقبول' : 'Accepted' };
+      case 'rejected':
+        return { color: 'bg-red-500/10 text-red-400', icon: X, label: isArabic ? 'مرفوض' : 'Rejected' };
+      default:
+        return null;
+    }
+  }, [isArabic]);
 
-    const style = styles[status as keyof typeof styles];
-    if (!style) return null;
+  // Only render if tasker exists and is valid
+  if (!offer.tasker || !offer.tasker.id) {
+    return null;
+  }
 
-    const Icon = style.icon;
-    return (
-      <span className={cn(
-        "text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1 border",
-        style.bg
-      )}>
-        <Icon className="w-3 h-3" />
-        {style.label}
-      </span>
-    );
-  }, []);
-
-  const taskerName = offer.tasker?.name || 'Unknown Tasker';
-  const taskerRating = offer.tasker?.rating ? parseFloat(String(offer.tasker.rating)) : 0;
-  const taskerJobs = offer.tasker?.completedTasks || 0;
+  const taskerName = offer.tasker.name || (isArabic ? 'منفذ غير معروف' : 'Unknown Tasker');
+  const taskerRating = offer.tasker.rating ? parseFloat(String(offer.tasker.rating)) : 0;
+  const taskerJobs = offer.tasker.completedTasks || 0;
+  const statusConfig = getStatusConfig(offer.status);
 
   return (
     <motion.div
-      whileTap={{ scale: 0.98 }}
-      className="glass rounded-3xl p-5 transition-all hover:shadow-lg"
+      whileTap={{ scale: 0.995 }}
+      className="rounded-2xl bg-zinc-900/50 p-4 transition-all"
       data-testid={`offer-card-${offer.id}`}
     >
-      <div className="flex items-start gap-4">
-        <Avatar className="w-14 h-14 border-2 border-white/20 shadow-lg">
+      <div className="flex items-start gap-3">
+        {/* Avatar */}
+        <Avatar className="w-11 h-11 ring-2 ring-zinc-800">
           <AvatarImage src={offer.tasker?.avatar || undefined} alt={taskerName} />
-          <AvatarFallback className="gradient-primary text-white font-bold">
+          <AvatarFallback className="bg-zinc-800 text-white font-semibold text-sm">
             {getInitials(taskerName)}
           </AvatarFallback>
         </Avatar>
 
+        {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <h4 className="font-bold text-foreground text-lg truncate">{taskerName}</h4>
-            {getStatusBadge(offer.status)}
+          {/* Header Row */}
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <h4 className="font-semibold text-white truncate">{taskerName}</h4>
+            {statusConfig && (
+              <span className={cn(
+                "text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1",
+                statusConfig.color
+              )}>
+                <statusConfig.icon className="w-3 h-3" />
+                {statusConfig.label}
+              </span>
+            )}
           </div>
 
-          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-            <div className="flex items-center gap-1.5">
-              <Star className="w-4 h-4 fill-warning text-warning" />
-              <span className="font-bold">{taskerRating.toFixed(1)}</span>
+          {/* Stats */}
+          <div className="flex items-center gap-3 text-sm mb-3">
+            <div className="flex items-center gap-1">
+              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+              <span className="text-zinc-400 font-medium">{taskerRating.toFixed(1)}</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Briefcase className="w-4 h-4" />
-              <span>{taskerJobs} jobs</span>
+            <div className="flex items-center gap-1 text-zinc-500">
+              <Briefcase className="w-3.5 h-3.5" />
+              <span>{taskerJobs} {isArabic ? 'مهمة' : 'jobs'}</span>
             </div>
           </div>
 
+          {/* Message */}
           {offer.message && (
-            <div className="bg-white/30 dark:bg-white/5 rounded-xl p-3 mb-4">
-              <p className="text-sm text-muted-foreground italic">
-                "{offer.message}"
-              </p>
-            </div>
+            <p className="text-sm text-zinc-500 mb-3 line-clamp-2">
+              "{offer.message}"
+            </p>
           )}
 
+          {/* Footer */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 bg-primary/10 px-4 py-2 rounded-xl">
-              <Wallet className="w-5 h-5 text-primary" />
-              <span className="text-xl font-extrabold text-primary">
-                {formatCurrency(offer.amount, { locale: 'en' })}
-              </span>
-            </div>
+            {/* Offer Amount */}
+            <span className="text-lg font-bold text-white">
+              {formatCurrency(offer.amount, { locale: isArabic ? 'ar' : 'en' })}
+            </span>
 
+            {/* Actions */}
             {showActions && offer.status === 'pending' && (
               <div className="flex items-center gap-2">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                <button
                   onClick={() => onReject?.(offer.id)}
-                  className="px-5 py-2.5 rounded-xl glass-button font-bold text-sm"
+                  className="h-9 px-4 rounded-xl bg-zinc-800 text-zinc-400 text-sm font-medium transition-colors hover:bg-zinc-700"
                   data-testid={`button-reject-offer-${offer.id}`}
                 >
-                  Decline
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  {isArabic ? 'رفض' : 'Decline'}
+                </button>
+                <button
                   onClick={() => onAccept?.(offer.id)}
-                  className="px-5 py-2.5 rounded-xl gradient-primary text-white font-bold text-sm shadow-lg shadow-primary/25"
+                  className="h-9 px-4 rounded-xl bg-white text-black text-sm font-medium transition-transform active:scale-[0.98]"
                   data-testid={`button-accept-offer-${offer.id}`}
                 >
-                  Accept
-                </motion.button>
+                  {isArabic ? 'قبول' : 'Accept'}
+                </button>
               </div>
             )}
           </div>

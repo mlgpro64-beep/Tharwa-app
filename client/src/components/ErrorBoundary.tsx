@@ -32,6 +32,60 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+        // Ignore common non-critical errors that shouldn't trigger error boundary
+        const errorMessage = error.message || '';
+        const errorStack = error.stack || '';
+        
+        // Check if it's a dynamic import error - requires page reload
+        const isDynamicImportError = errorMessage.includes('Failed to fetch dynamically imported module') ||
+                                   errorMessage.includes('Importing a module script failed') ||
+                                   errorMessage.includes('dynamically imported module');
+        
+        if (isDynamicImportError) {
+            console.warn('ErrorBoundary: Dynamic import error detected, clearing cache and reloading...');
+            
+            // Clear all caches and reload
+            if ('caches' in window) {
+                caches.keys().then((names) => {
+                    names.forEach(name => caches.delete(name));
+                });
+            }
+            
+            // Unregister service workers
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then((registrations) => {
+                    registrations.forEach((registration) => registration.unregister());
+                });
+            }
+            
+            // Force reload after a short delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+            return;
+        }
+        
+        // These are expected errors and shouldn't show the error page
+        const ignoredErrors = [
+            'Failed to fetch',
+            'NetworkError',
+            'Network request failed',
+            'load failed',
+            'timeout',
+            'AbortError',
+            'ChunkLoadError', // Vite hot reload chunk errors
+        ];
+        
+        const shouldIgnore = ignoredErrors.some(ignored => 
+            errorMessage.includes(ignored) || errorStack.includes(ignored)
+        );
+        
+        if (shouldIgnore) {
+            console.warn('ErrorBoundary: Ignoring non-critical error:', error.message);
+            // Don't set error state for ignored errors
+            return;
+        }
+
         console.error('ErrorBoundary caught an error:', error, errorInfo);
 
         this.setState({

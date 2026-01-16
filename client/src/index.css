@@ -129,103 +129,108 @@
   --sar: env(safe-area-inset-right);
 }
 
-/* DARK MODE - Deep Navy & Luminous Accents */
+/* DARK MODE - Deep Obsidian (TaskDetailsScreen Aesthetic) */
 .dark {
   --button-outline: rgba(255,255,255, .08);
   --badge-outline: rgba(255,255,255, .05);
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .08);
+  --elevate-1: rgba(255,255,255, .03);
+  --elevate-2: rgba(255,255,255, .06);
   
-  /* Core palette - Deep Navy Gradient */
-  --background: 232 45% 6%;
-  --foreground: 220 20% 95%;
-  --border: 232 30% 15%;
+  /* ===== DEEP OBSIDIAN PALETTE ===== */
+  /* Based on TaskDetailsScreen success */
   
-  /* Glassmorphism surfaces */
-  --surface: 232 40% 10%;
-  --surface-foreground: 220 20% 95%;
-  --card: 232 40% 10%;
-  --card-foreground: 220 20% 95%;
-  --card-border: 232 30% 16%;
+  /* Core palette - Ultra Deep Black */
+  /* #0a0a0b = hsl(240 9% 3.5%) */
+  --background: 240 9% 3.5%;
+  --foreground: 0 0% 98%;
+  --border: 240 6% 12%;
   
-  /* Glass effect colors */
-  --glass: 232 40% 12%;
-  --glass-border: 232 30% 20%;
+  /* Glassmorphism surfaces - Subtle elevation */
+  /* bg-zinc-900/50 equivalent */
+  --surface: 240 6% 8%;
+  --surface-foreground: 0 0% 98%;
+  --card: 240 6% 8%;
+  --card-foreground: 0 0% 98%;
+  --card-border: 240 6% 14%;
   
-  /* Sidebar */
-  --sidebar: 232 45% 8%;
-  --sidebar-foreground: 220 20% 95%;
-  --sidebar-border: 232 30% 14%;
-  --sidebar-primary: 231 98% 65%;
+  /* Glass effect colors - Elevated surfaces */
+  --glass: 240 6% 10%;
+  --glass-border: 240 6% 16%;
+  
+  /* Sidebar - Deep background */
+  --sidebar: 240 9% 5%;
+  --sidebar-foreground: 0 0% 98%;
+  --sidebar-border: 240 6% 12%;
+  --sidebar-primary: 217 91% 60%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 232 30% 16%;
-  --sidebar-accent-foreground: 220 20% 95%;
-  --sidebar-ring: 231 98% 65%;
+  --sidebar-accent: 240 6% 12%;
+  --sidebar-accent-foreground: 0 0% 98%;
+  --sidebar-ring: 217 91% 60%;
   
-  /* Popover */
-  --popover: 232 40% 11%;
-  --popover-foreground: 220 20% 95%;
-  --popover-border: 232 30% 18%;
+  /* Popover - Elevated dark */
+  --popover: 240 6% 9%;
+  --popover-foreground: 0 0% 98%;
+  --popover-border: 240 6% 14%;
   
-  /* Primary - Luminous Electric Cobalt */
-  --primary: 231 98% 65%;
+  /* Primary - Blue accent (matches blue-500) */
+  --primary: 217 91% 60%;
   --primary-foreground: 0 0% 100%;
-  --primary-dark: 231 98% 55%;
-  --primary-light: 231 98% 75%;
+  --primary-dark: 217 91% 50%;
+  --primary-light: 217 91% 70%;
   
-  /* Secondary */
-  --secondary: 232 30% 16%;
-  --secondary-foreground: 220 20% 95%;
+  /* Secondary - Subtle elevation */
+  --secondary: 240 6% 12%;
+  --secondary-foreground: 0 0% 98%;
   
-  /* Muted */
-  --muted: 232 30% 14%;
-  --muted-foreground: 225 15% 55%;
+  /* Muted - Zinc tones for text hierarchy */
+  --muted: 240 5% 16%;
+  --muted-foreground: 240 5% 60%;
   
-  /* Accent - Luminous Aurora */
-  --accent: 171 76% 52%;
+  /* Accent - Emerald for success actions */
+  --accent: 160 84% 45%;
   --accent-foreground: 0 0% 100%;
   
-  /* Destructive - Bright Crimson */
-  --destructive: 350 89% 62%;
+  /* Destructive - Red for errors */
+  --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
   
-  /* Success - Bright Emerald */
-  --success: 152 76% 52%;
+  /* Success - Emerald */
+  --success: 160 84% 45%;
   --success-foreground: 0 0% 100%;
   
-  /* Warning - Bright Amber */
-  --warning: 36 100% 60%;
-  --warning-foreground: 30 60% 10%;
+  /* Warning - Amber */
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 0%;
   
-  /* Separator */
-  --separator: 232 30% 18%;
+  /* Separator - Subtle lines */
+  --separator: 240 6% 14%;
   
   /* Input & Ring */
-  --input: 232 30% 20%;
-  --ring: 231 98% 65%;
+  --input: 240 6% 16%;
+  --ring: 217 91% 60%;
   
-  /* Charts */
-  --chart-1: 231 98% 68%;
-  --chart-2: 36 100% 62%;
-  --chart-3: 152 76% 55%;
-  --chart-4: 171 76% 55%;
-  --chart-5: 280 85% 65%;
+  /* Charts - Vibrant on dark */
+  --chart-1: 217 91% 65%;
+  --chart-2: 38 92% 55%;
+  --chart-3: 160 84% 50%;
+  --chart-4: 280 85% 65%;
+  --chart-5: 340 82% 60%;
   
-  /* Premium shadows for dark mode */
-  --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.25);
-  --shadow-xs: 0px 2px 4px 0px hsl(0 0% 0% / 0.30);
-  --shadow-sm: 0px 4px 8px -2px hsl(0 0% 0% / 0.40), inset 0 1px 0 hsl(231 98% 65% / 0.03);
-  --shadow: 0px 8px 16px -4px hsl(0 0% 0% / 0.45), inset 0 1px 0 hsl(231 98% 65% / 0.04);
-  --shadow-md: 0px 12px 24px -6px hsl(0 0% 0% / 0.50), inset 0 1px 0 hsl(231 98% 65% / 0.05);
-  --shadow-lg: 0px 20px 40px -8px hsl(0 0% 0% / 0.55), inset 0 1px 0 hsl(231 98% 65% / 0.06);
-  --shadow-xl: 0px 32px 64px -12px hsl(0 0% 0% / 0.60), inset 0 1px 0 hsl(231 98% 65% / 0.07);
-  --shadow-2xl: 0px 48px 96px -16px hsl(0 0% 0% / 0.65), inset 0 1px 0 hsl(231 98% 65% / 0.08);
+  /* Premium shadows for deep dark mode */
+  --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.4);
+  --shadow-xs: 0px 2px 4px 0px hsl(0 0% 0% / 0.5);
+  --shadow-sm: 0px 4px 8px -2px hsl(0 0% 0% / 0.6);
+  --shadow: 0px 8px 16px -4px hsl(0 0% 0% / 0.65);
+  --shadow-md: 0px 12px 24px -6px hsl(0 0% 0% / 0.7);
+  --shadow-lg: 0px 20px 40px -8px hsl(0 0% 0% / 0.75);
+  --shadow-xl: 0px 32px 64px -12px hsl(0 0% 0% / 0.8);
+  --shadow-2xl: 0px 48px 96px -16px hsl(0 0% 0% / 0.85);
   
-  /* Glow shadows - brighter for dark */
-  --shadow-glow-primary: 0 0 40px hsl(231 98% 65% / 0.35), 0 0 80px hsl(231 98% 65% / 0.20);
-  --shadow-glow-accent: 0 0 40px hsl(171 76% 52% / 0.35), 0 0 80px hsl(171 76% 52% / 0.20);
-  --shadow-glow-success: 0 0 32px hsl(152 76% 52% / 0.4);
+  /* Glow shadows - Refined for deep dark */
+  --shadow-glow-primary: 0 0 32px hsl(217 91% 60% / 0.25);
+  --shadow-glow-accent: 0 0 32px hsl(160 84% 45% / 0.25);
+  --shadow-glow-success: 0 0 24px hsl(160 84% 45% / 0.3);
 
   /* Border calculations */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
@@ -243,7 +248,7 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overscroll-behavior-y: none;
@@ -253,17 +258,38 @@
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
     font-feature-settings: 'cv11' 1, 'ss01' 1;
-    background-color: hsl(var(--background));
     min-height: 100vh;
+    min-height: 100dvh;
+  }
+  
+  /* Light mode body */
+  body {
+    background-color: hsl(var(--background));
+  }
+  
+  /* Dark mode body - Deep Obsidian */
+  .dark body,
+  body.dark {
+    background-color: #0a0a0b;
   }
   
   html {
     background-color: hsl(var(--background));
   }
   
+  .dark html,
+  html.dark {
+    background-color: #0a0a0b;
+  }
+  
   #root {
     min-height: 100vh;
+    min-height: 100dvh;
     background-color: hsl(var(--background));
+  }
+  
+  .dark #root {
+    background-color: #0a0a0b;
   }
 
   input, textarea {
@@ -322,22 +348,91 @@
   .pr-safe {
     padding-right: env(safe-area-inset-right);
   }
+  
+  /* Safe area with custom minimum */
+  .top-safe {
+    top: max(12px, env(safe-area-inset-top));
+  }
+  .bottom-safe {
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  /* ========== GLOBAL APP THEME UTILITIES ========== */
+  
+  /* App Background - The deepest dark (#0a0a0b) */
+  .bg-app {
+    @apply bg-white;
+  }
+  .dark .bg-app {
+    background-color: #0a0a0b;
+  }
+  
+  /* Card Background - Subtle elevation (zinc-900/50 equivalent) */
+  .bg-card-elevated {
+    @apply bg-white/80;
+  }
+  .dark .bg-card-elevated {
+    background-color: rgba(24, 24, 27, 0.5);
+  }
+  
+  /* Surface Background - Standard surfaces (zinc-900/60 equivalent) */
+  .bg-surface-dark {
+    @apply bg-gray-50;
+  }
+  .dark .bg-surface-dark {
+    background-color: rgba(24, 24, 27, 0.6);
+  }
+  
+  /* Elevated Card - More prominent cards */
+  .bg-card-prominent {
+    @apply bg-white;
+  }
+  .dark .bg-card-prominent {
+    background-color: rgba(24, 24, 27, 0.8);
+  }
+  
+  /* Glass Action Bar - For sticky footers/headers */
+  .bg-action-bar {
+    @apply bg-white/95 backdrop-blur-xl;
+  }
+  .dark .bg-action-bar {
+    background-color: rgba(24, 24, 27, 0.8);
+    @apply backdrop-blur-xl;
+  }
+  
+  /* Border colors for dark theme */
+  .border-subtle {
+    @apply border-gray-200;
+  }
+  .dark .border-subtle {
+    border-color: rgba(63, 63, 70, 0.5);
+  }
+  
+  .border-elevated {
+    @apply border-gray-100;
+  }
+  .dark .border-elevated {
+    border-color: rgba(63, 63, 70, 0.3);
+  }
 
   /* ========== LUMINOUS GLASS SYSTEM ========== */
   
   /* Glass Card - Standard frosted */
   .glass {
-    @apply bg-white/70 dark:bg-white/[0.06] backdrop-blur-2xl;
+    @apply bg-white/70 backdrop-blur-2xl;
     border: 1px solid rgba(255,255,255,0.4);
     box-shadow: 
       0 4px 24px -4px rgba(0,0,0,0.06),
       inset 0 1px 0 rgba(255,255,255,0.4);
   }
   .dark .glass {
-    border-color: rgba(255,255,255,0.08);
+    /* Deep dark glass - zinc-900 base with subtle opacity */
+    background-color: rgba(24, 24, 27, 0.6);
+    @apply backdrop-blur-2xl;
+    border-color: rgba(63, 63, 70, 0.5);
     box-shadow: 
-      0 4px 24px -4px rgba(0,0,0,0.3),
-      inset 0 1px 0 rgba(255,255,255,0.06);
+      0 4px 24px -4px rgba(0,0,0,0.5),
+      inset 0 1px 0 rgba(255,255,255,0.03);
   }
   
   /* Glass Card - Premium with luminous border */
@@ -351,12 +446,14 @@
       inset 0 1px 0 rgba(255,255,255,0.6);
   }
   .dark .glass-premium {
-    background: linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.05) 100%);
-    border-color: rgba(255,255,255,0.10);
+    /* Deep dark premium glass - elevated zinc-900 */
+    background: linear-gradient(135deg, rgba(39, 39, 42, 0.8) 0%, rgba(24, 24, 27, 0.6) 100%);
+    @apply backdrop-blur-3xl;
+    border-color: rgba(63, 63, 70, 0.6);
     box-shadow: 
-      0 8px 32px -8px hsl(231 98% 65% / 0.15),
-      0 4px 16px -4px rgba(0,0,0,0.3),
-      inset 0 1px 0 rgba(255,255,255,0.08);
+      0 8px 32px -8px rgba(0, 0, 0, 0.6),
+      0 4px 16px -4px rgba(0,0,0,0.4),
+      inset 0 1px 0 rgba(255,255,255,0.05);
   }
   
   /* Glass Card - Ultra premium with glow */
@@ -497,17 +594,18 @@
   /* Mesh gradient background */
   .gradient-mesh {
     background: 
-      radial-gradient(ellipse at 20% 0%, hsl(231 98% 61% / 0.15) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 100%, hsl(171 76% 47% / 0.12) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 50%, hsl(280 85% 60% / 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 20% 0%, hsl(231 98% 61% / 0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, hsl(171 76% 47% / 0.10) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, hsl(280 85% 60% / 0.06) 0%, transparent 60%),
       hsl(var(--background));
   }
   .dark .gradient-mesh {
+    /* Deep Obsidian base (#0a0a0b) with subtle accent glows */
     background: 
-      radial-gradient(ellipse at 20% 0%, hsl(231 98% 65% / 0.20) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 100%, hsl(171 76% 52% / 0.15) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 50%, hsl(280 85% 65% / 0.10) 0%, transparent 60%),
-      hsl(var(--background));
+      radial-gradient(ellipse at 20% 0%, hsl(217 91% 60% / 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, hsl(160 84% 45% / 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, hsl(280 85% 60% / 0.04) 0%, transparent 60%),
+      #0a0a0b;
   }
   
   /* Gradient Text */

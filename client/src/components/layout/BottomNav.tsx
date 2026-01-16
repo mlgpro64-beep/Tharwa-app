@@ -1,10 +1,10 @@
-import { memo, useMemo, useCallback } from 'react';
+import { memo, useMemo, useCallback, useRef } from 'react';
 import { useLocation, Link } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, ListTodo, Wallet, User, Home, List, Search, Plus } from 'lucide-react';
+import { LayoutGrid, ListTodo, User, Home, Search, Send, Briefcase } from 'lucide-react';
 
 interface NavItem {
   icon: typeof Home;
@@ -17,26 +17,28 @@ export const BottomNav = memo(function BottomNav() {
   const [location] = useLocation();
   const { userRole } = useApp();
   const { t } = useTranslation();
+  const navRef = useRef<HTMLDivElement>(null);
 
   const isActive = useCallback((path: string) => {
     if (path === '/home') return location === '/home' || location === '/';
-    if (path === '/post-task/1') return location === '/post-task/1' || location.startsWith('/post-task/1');
+    if (path === '/tasks-feed') return location === '/tasks-feed' || location.startsWith('/tasks-feed');
+    if (path === '/my-tasks') return location === '/my-tasks' || location.startsWith('/my-tasks');
     return location === path || location.startsWith(path + '/');
   }, [location]);
 
+  // Role-based navigation:
+  // Client: Home (Categories Dashboard) -> My Tasks -> Profile
+  // Executor/Tasker: Browse Tasks (Marketplace) -> My Offers -> Profile
   const navItems: NavItem[] = useMemo(() => 
     userRole === 'tasker' 
       ? [
-          { icon: LayoutDashboard, labelKey: 'nav.home', path: '/home' },
-          { icon: ListTodo, labelKey: 'nav.tasks', path: '/tasks-feed' },
-          { icon: Wallet, labelKey: 'wallet.title', path: '/wallet' },
+          { icon: Search, labelKey: 'nav.browseTasks', path: '/tasks-feed' },
+          { icon: Send, labelKey: 'nav.myOffers', path: '/my-tasks' },
           { icon: User, labelKey: 'nav.profile', path: '/profile' },
         ]
       : [
-          { icon: Home, labelKey: 'nav.home', path: '/home' },
-          { icon: List, labelKey: 'tasks.myTasks', path: '/my-tasks' },
-          { icon: Plus, labelKey: 'nav.categories', path: '/post-task/1', isCenter: true },
-          { icon: Search, labelKey: 'searchTaskers.title', path: '/search-taskers' },
+          { icon: LayoutGrid, labelKey: 'nav.home', path: '/home' },
+          { icon: Briefcase, labelKey: 'tasks.myTasks', path: '/my-tasks' },
           { icon: User, labelKey: 'nav.profile', path: '/profile' },
         ],
     [userRole]
@@ -52,6 +54,7 @@ export const BottomNav = memo(function BottomNav() {
     '/settings',
     '/wallet/withdraw',
     '/wallet/add-card',
+    '/verify-otp',
   ], []);
 
   const shouldHide = useMemo(() => 
@@ -68,14 +71,16 @@ export const BottomNav = memo(function BottomNav() {
 
   return (
     <motion.div 
-      initial={{ y: 100, opacity: 0 }}
+      ref={navRef}
+      initial={false}
       animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 100, opacity: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none"
+      className="fixed bottom-0 left-0 right-0 z-[9999] pointer-events-none"
     >
-      <div className="mx-4 mb-8 pb-safe flex justify-center">
-        {/* Glass Effect Navigation Bar */}
-        <div className="relative flex items-center bg-white/80 dark:bg-black/20 backdrop-blur-xl rounded-full p-1.5 border border-gray-200 dark:border-white/10 shadow-lg dark:shadow-2xl pointer-events-auto max-w-fit mx-auto">
+      <div className="mx-4 mb-6 pb-safe flex justify-center">
+        {/* Glass Effect Navigation Bar - Deep Dark Theme */}
+        <div className="relative flex items-center bg-white/90 dark:bg-zinc-900/80 backdrop-blur-xl rounded-full p-1.5 border border-gray-200/50 dark:border-zinc-800/50 shadow-lg dark:shadow-2xl dark:shadow-black/50 pointer-events-auto max-w-fit mx-auto">
           <div className="flex items-center gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -92,13 +97,13 @@ export const BottomNav = memo(function BottomNav() {
                     whileTap={{ scale: 0.9 }}
                     className={cn(
                       "relative flex items-center gap-2 px-4 py-2.5 rounded-full transition-colors duration-300 outline-none",
-                      active ? "text-primary dark:text-white" : "text-muted-foreground hover:text-foreground dark:text-white/60 dark:hover:text-white/90"
+                      active ? "text-primary dark:text-white" : "text-gray-500 hover:text-gray-900 dark:text-zinc-500 dark:hover:text-zinc-300"
                     )}
                   >
                     {active && (
                       <motion.div
                         layoutId="nav-active-pill"
-                        className="absolute inset-0 bg-black/5 dark:bg-white/20 backdrop-blur-md rounded-full border border-black/5 dark:border-white/30 shadow-sm dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2)]"
+                        className="absolute inset-0 bg-gray-100 dark:bg-zinc-800 rounded-full border border-gray-200/50 dark:border-zinc-700/50"
                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                       />
                     )}

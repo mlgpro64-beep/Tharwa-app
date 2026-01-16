@@ -1,8 +1,8 @@
-import { useEffect, useRef, memo, useState } from 'react';
+import { useEffect, useRef, memo, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Navigation } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getMapStyle, createTileLayerConfig, createMarkerIcon } from '@/lib/mapConfig';
+import { getMapStyle, createTileLayerConfig } from '@/lib/mapConfig';
 import { FullScreenMapModal } from './FullScreenMapModal';
 import { useTranslation } from 'react-i18next';
 
@@ -17,36 +17,73 @@ interface TaskLocationMapProps {
   longitude: number | string | null;
   location?: string;
   className?: string;
+  category?: string;
+  showExactLocation?: boolean; // For tasker's active task view
+}
+
+// Generate a random offset for privacy (100-200 meters in random direction)
+// This is seeded by the coordinates so it's consistent for the same location
+function getPrivacyOffset(lat: number, lng: number): { latOffset: number; lngOffset: number } {
+  // Create a simple seed from coordinates for consistency
+  const seed = Math.abs(lat * 1000 + lng * 1000) % 1000;
+  const pseudoRandom1 = Math.sin(seed) * 10000;
+  const pseudoRandom2 = Math.cos(seed * 2) * 10000;
+  
+  // Random angle (0-360 degrees)
+  const angle = (pseudoRandom1 - Math.floor(pseudoRandom1)) * 2 * Math.PI;
+  
+  // Random distance (100-200 meters)
+  const distance = 100 + (pseudoRandom2 - Math.floor(pseudoRandom2)) * 100;
+  
+  // Convert distance to lat/lng offset (approximate)
+  // 1 degree latitude ≈ 111,000 meters
+  // 1 degree longitude ≈ 111,000 * cos(latitude) meters
+  const latOffset = (distance * Math.cos(angle)) / 111000;
+  const lngOffset = (distance * Math.sin(angle)) / (111000 * Math.cos(lat * Math.PI / 180));
+  
+  return { latOffset, lngOffset };
 }
 
 const TaskLocationMap = memo(function TaskLocationMap({ 
   latitude, 
   longitude, 
   location,
-  className 
+  className,
+  category,
+  showExactLocation = false
 }: TaskLocationMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
 
   const lat = latitude ? parseFloat(String(latitude)) : null;
   const lng = longitude ? parseFloat(String(longitude)) : null;
   const hasCoordinates = lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng);
+  
+  // Check if this is an immersive/full-width map (no rounded corners)
+  const isImmersive = className?.includes('rounded-none');
+
+  // Calculate privacy offset for circle (memoized for consistency)
+  const privacyOffset = useMemo(() => {
+    if (!hasCoordinates || !lat || !lng || showExactLocation) {
+      return { latOffset: 0, lngOffset: 0 };
+    }
+    return getPrivacyOffset(lat, lng);
+  }, [lat, lng, hasCoordinates, showExactLocation]);
 
   useEffect(() => {
-    if (!mapRef.current || !window.L || !hasCoordinates) return;
+    if (!mapRef.current || !window.L || !hasCoordinates || !lat || !lng) return;
 
     if (mapInstanceRef.current) {
       mapInstanceRef.current.remove();
       mapInstanceRef.current = null;
     }
 
-    // Detect dark mode
-    const isDarkMode = document.documentElement.classList.contains('dark');
-    const mapStyle = getMapStyle(undefined, isDarkMode);
+    const mapStyle = getMapStyle(undefined, true);
     const tileConfig = createTileLayerConfig(mapStyle);
 
+    // Center map on the actual location
     const map = window.L.map(mapRef.current, {
       zoomControl: false,
       attributionControl: false,
@@ -60,14 +97,82 @@ const TaskLocationMap = memo(function TaskLocationMap({
 
     window.L.tileLayer(tileConfig.url, tileConfig.options).addTo(map);
 
-    // Create transparent blue circle with 100 meter radius
-    window.L.circle([lat, lng], {
-      radius: 100, // 100 meters
-      color: '#3b82f6', // blue color
+    // Privacy circle - OFFSET from actual location
+    const circleLat = lat + privacyOffset.latOffset;
+    const circleLng = lng + privacyOffset.lngOffset;
+    
+    // Outer glow circle
+    window.L.circle([circleLat, circleLng], {
+      radius: 180,
+      color: 'transparent',
       fillColor: '#3b82f6',
-      fillOpacity: 0.2, // transparent
-      weight: 2
+      fillOpacity: 0.08,
+      weight: 0
     }).addTo(map);
+
+    // Main privacy circle
+    window.L.circle([circleLat, circleLng], {
+      radius: 120,
+      color: '#3b82f6',
+      fillColor: '#3b82f6',
+      fillOpacity: 0.15,
+      weight: 2,
+      dashArray: '8, 4'
+    }).addTo(map);
+
+    // Modern pulsing dot marker at circle center (NOT exact location)
+    const pulsingDotIcon = window.L.divIcon({
+      className: 'pulsing-marker',
+      html: `
+        <div style="position: relative; width: 48px; height: 48px;">
+          <!-- Pulsing rings -->
+          <div style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(59, 130, 246, 0.2);
+            animation: pulse-ring 2s ease-out infinite;
+          "></div>
+          <div style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(59, 130, 246, 0.3);
+            animation: pulse-ring 2s ease-out infinite 0.5s;
+          "></div>
+          <!-- Center dot -->
+          <div style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5), 0 0 0 3px rgba(255, 255, 255, 0.9);
+          "></div>
+        </div>
+        <style>
+          @keyframes pulse-ring {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+          }
+        </style>
+      `,
+      iconSize: [48, 48],
+      iconAnchor: [24, 24],
+    });
+
+    window.L.marker([circleLat, circleLng], { icon: pulsingDotIcon }).addTo(map);
 
     mapInstanceRef.current = map;
 
@@ -77,24 +182,28 @@ const TaskLocationMap = memo(function TaskLocationMap({
         mapInstanceRef.current = null;
       }
     };
-  }, [lat, lng, hasCoordinates]);
+  }, [lat, lng, hasCoordinates, privacyOffset]);
 
   if (!hasCoordinates) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         className={cn(
-          "glass rounded-3xl overflow-hidden",
+          "overflow-hidden bg-zinc-900",
+          isImmersive ? "" : "rounded-3xl",
           className
         )}
       >
-        <div className="h-48 bg-gradient-to-br from-primary/5 to-primary/10 flex items-center justify-center">
+        <div className={cn(
+          "h-56 bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center",
+          isImmersive ? "h-72" : ""
+        )}>
           <div className="text-center">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
-              <MapPin className="w-6 h-6 text-primary" />
+            <div className="w-14 h-14 rounded-full bg-zinc-800 flex items-center justify-center mx-auto mb-4">
+              <MapPin className="w-7 h-7 text-zinc-500" />
             </div>
-            <p className="text-sm text-muted-foreground font-medium">
+            <p className="text-sm text-zinc-500 font-medium">
               {t('map.locationNotAvailable')}
             </p>
           </div>
@@ -105,41 +214,53 @@ const TaskLocationMap = memo(function TaskLocationMap({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className={cn(
-        "glass rounded-3xl overflow-hidden relative group",
+        "overflow-hidden relative group",
+        isImmersive ? "" : "rounded-3xl shadow-2xl shadow-black/20",
         className
       )}
       data-testid="task-location-map"
     >
       <div 
         ref={mapRef} 
-        className="h-48 w-full"
-        style={{ minHeight: '192px' }}
+        className={cn(
+          "w-full",
+          isImmersive ? "h-72" : "h-56 rounded-3xl"
+        )}
+        style={{ minHeight: isImmersive ? '288px' : '224px' }}
       />
       
-      <div className="absolute inset-0 pointer-events-none rounded-3xl ring-1 ring-inset ring-white/10" />
-      
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent p-4 pt-8">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
-            <Navigation className="w-4 h-4 text-white" />
+      {/* Only show overlay info if not immersive */}
+      {!isImmersive && (
+        <>
+          <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/80 to-transparent pointer-events-none rounded-b-3xl" />
+          
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center">
+                <Navigation className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-sm font-semibold truncate">
+                  {location || t('map.approximateArea')}
+                </p>
+                <p className="text-white/60 text-xs">
+                  {t('map.tapToViewMap')}
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white text-sm font-bold truncate">
-              {location || `${lat?.toFixed(4)}, ${lng?.toFixed(4)}`}
-            </p>
-            <p className="text-white/70 text-xs">
-              {t('map.tapToViewMap')}
-            </p>
-          </div>
-        </div>
-      </div>
+        </>
+      )}
       
       <button 
         onClick={() => setIsMapModalOpen(true)}
-        className="absolute inset-0 cursor-pointer"
+        className={cn(
+          "absolute inset-0 cursor-pointer",
+          isImmersive ? "" : "rounded-3xl"
+        )}
         aria-label={t('map.openMap')}
       />
       
@@ -150,6 +271,7 @@ const TaskLocationMap = memo(function TaskLocationMap({
           latitude={lat}
           longitude={lng}
           location={location}
+          showExactLocation={showExactLocation}
         />
       )}
     </motion.div>

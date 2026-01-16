@@ -165,6 +165,11 @@ const RegisterScreen = memo(function RegisterScreen() {
   // Send Phone OTP for registration
   const sendOtpMutation = useMutation({
     mutationFn: async (phone: string) => {
+      // In development mode, skip OTP sending
+      if (import.meta.env.DEV) {
+        console.log('[DEV] OTP sending skipped for registration');
+        return { success: true, devMode: true };
+      }
       const response = await apiRequest('POST', '/api/auth/send-phone-otp', { phone, type: 'registration' });
       if (!response.ok) {
         const errorData = await response.json();
@@ -172,7 +177,14 @@ const RegisterScreen = memo(function RegisterScreen() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // In development mode, bypass OTP step and proceed directly to registration/certificate
+      if (import.meta.env.DEV && data.devMode) {
+        console.log('[DEV] Bypassing OTP step, proceeding directly to registration');
+        // Automatically verify OTP in dev mode (server will accept any code)
+        verifyOtpMutation.mutate({ phone: formData.phone, otpCode: '123456' });
+        return;
+      }
       setShowOtpStep(true);
       toast({ 
         title: isRTL ? 'تم إرسال الرمز' : 'Code Sent', 
@@ -507,7 +519,7 @@ const RegisterScreen = memo(function RegisterScreen() {
                   />
                 </div>
 
-                <div className="text-center">
+                <div className="text-center space-y-2">
                   <button 
                     onClick={() => sendOtpMutation.mutate(formData.phone)}
                     disabled={sendOtpMutation.isPending}
@@ -516,6 +528,22 @@ const RegisterScreen = memo(function RegisterScreen() {
                   >
                     {isRTL ? 'إعادة إرسال الرمز' : 'Resend code'}
                   </button>
+                  {/* Development-only skip button */}
+                  {import.meta.env.DEV && (
+                    <div className="pt-2">
+                      <button
+                        onClick={() => {
+                          // Skip OTP verification in dev mode
+                          verifyOtpMutation.mutate({ phone: formData.phone, otpCode: '123456' });
+                        }}
+                        disabled={verifyOtpMutation.isPending}
+                        className="text-xs text-orange-500 font-bold hover:underline disabled:opacity-50 px-3 py-1.5 rounded-lg border border-orange-500/30 bg-orange-500/10"
+                        data-testid="button-skip-otp-dev"
+                      >
+                        🛠️ {isRTL ? 'تخطي OTP (تطوير فقط)' : 'SKIP OTP (DEV ONLY)'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </motion.div>
 

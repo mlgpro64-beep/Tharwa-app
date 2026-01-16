@@ -104,7 +104,14 @@
     "promoCards": {
       "title": "ما الذي تحتاج المساعدة فيه؟",
       "findExpert": "ابحث عن خبير"
-    }
+    },
+    "whatDoYouNeed": "ماذا تحتاج اليوم؟",
+    "chooseService": "اختر خدمة وسنربطك بأفضل مقدمي الخدمة",
+    "requestCustom": "طلب خدمة مخصصة",
+    "cantFind": "لم تجد ما تبحث عنه؟ أخبرنا",
+    "myActiveTasks": "مهامي النشطة",
+    "services": "خدمات",
+    "requestNow": "اطلب الآن"
   },
   "tasks": {
     "title": "المهام",
@@ -377,7 +384,9 @@
     "post": "نشر",
     "messages": "الرسائل",
     "profile": "الملف",
-    "categories": "الفئات"
+    "categories": "الفئات",
+    "browseTasks": "تصفح",
+    "myOffers": "عروضي"
   },
   "errors": {
     "required": "هذا الحقل مطلوب",

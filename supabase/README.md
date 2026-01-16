@@ -74,6 +74,9 @@ npm run supabase:functions:deploy:send-phone-otp
 ### Users
 - `get-users-me` - جلب بيانات المستخدم الحالي
 
+### Payments
+- `create-payment-link` - إنشاء رابط دفع عبر Paylink (السعودية)
+
 ## 🔧 Environment Variables
 
 في Supabase Dashboard → Settings → Edge Functions → Secrets:
@@ -84,6 +87,11 @@ SUPABASE_ANON_KEY=sb_publishable_abSbDhFuX3gx-SNlM3RUnA_68duuFjN
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 AUTHENTICA_API_KEY=your-sms-api-key (اختياري)
 ENVIRONMENT=production
+
+# Paylink Payment Gateway (Saudi Arabia)
+PAYLINK_APP_ID=your-paylink-app-id
+PAYLINK_SECRET_KEY=your-paylink-secret-key
+APP_BASE_URL=https://your-app-url.com (للـ callback URLs)
 ```
 
 ## 📊 استخدام Edge Functions

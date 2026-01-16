@@ -166,7 +166,15 @@ const wss = new WebSocketServer({ noServer: true });
 const connections = new Map<string, Set<any>>();
 
 httpServer.on("upgrade", (req, socket, head) => {
-  // Only handle /ws routes for our chat WebSocket
+  // #region agent log
+  try { 
+    const logPath = path.join(process.cwd(), '.cursor', 'debug.log');
+    const logDir = path.dirname(logPath);
+    if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+    fs.appendFileSync(logPath, JSON.stringify({location:'server/index.ts:upgrade',message:'WebSocket upgrade request',data:{url:req.url,isViteHmr:req.url?.startsWith('/vite-hmr'),isWs:req.url?.startsWith('/ws')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H4'})+'\n'); 
+  } catch {}
+  // #endregion
+  // Only handle /ws routes for our chat WebSocket - let Vite handle /vite-hmr
   if (req.url?.startsWith("/ws")) {
     wss.handleUpgrade(req, socket, head, (ws) => {
       const url = new URL(req.url || "", "http://localhost");
@@ -241,6 +249,14 @@ httpServer.on("upgrade", (req, socket, head) => {
     port,
     host,
     () => {
+      // #region agent log
+      try { 
+        const logPath = path.join(process.cwd(), '.cursor', 'debug.log');
+        const logDir = path.dirname(logPath);
+        if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+        fs.appendFileSync(logPath, JSON.stringify({location:'server/index.ts:listen',message:'Server listening',data:{port,host,listening:httpServer.listening},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H5'})+'\n'); 
+      } catch {}
+      // #endregion
       log(`serving on http://${host}:${port}`);
       if (isDevelopment) {
         log('🔓 Rate limiting DISABLED in development mode');

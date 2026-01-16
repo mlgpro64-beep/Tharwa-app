@@ -65,37 +65,77 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const checkAuth = async () => {
       try {
         // Check Supabase Auth session first
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        let session = null;
+        let sessionError = null;
+        
+        try {
+          const sessionResult = await supabase.auth.getSession();
+          session = sessionResult.data?.session || null;
+          sessionError = sessionResult.error;
+        } catch (supabaseError) {
+          console.warn('[Auth] Supabase session check failed, using fallback:', supabaseError);
+          sessionError = supabaseError as any;
+        }
         
         if (session && !sessionError) {
           // User is authenticated via Supabase Auth
           // Fetch user data from our API using Supabase token
-          const res = await fetch('/api/users/me', {
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`
+          try {
+            const res = await fetch('/api/users/me', {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`
+              },
+              credentials: 'include'
+            });
+            
+            if (res.ok) {
+              const userData = await res.json();
+              setUser(userData);
+              if (userData.role) {
+                setUserRole(userData.role as UserRole);
+              }
+            } else if (res.status === 401) {
+              // Not authenticated, clear any stale session
+              setUser(null);
             }
-          });
-          
-          if (res.ok) {
-            const userData = await res.json();
-            setUser(userData);
-            if (userData.role) {
-              setUserRole(userData.role as UserRole);
-            }
+          } catch (fetchError) {
+            console.warn('[Auth] Failed to fetch user with Supabase token, trying fallback:', fetchError);
+            // Fall through to Express session check
           }
-        } else {
-          // Fallback to Express session (backward compatibility)
-          const res = await fetch('/api/users/me', { credentials: 'include' });
-          if (res.ok) {
-            const userData = await res.json();
-            setUser(userData);
-            if (userData.role) {
-              setUserRole(userData.role as UserRole);
+        }
+        
+        // Fallback to Express session (backward compatibility)
+        // Only try if Supabase auth didn't work
+        if (!session || sessionError) {
+          try {
+            const res = await fetch('/api/users/me', { 
+              credentials: 'include',
+              signal: AbortSignal.timeout(5000) // 5 second timeout
+            });
+            
+            if (res.ok) {
+              const userData = await res.json();
+              setUser(userData);
+              if (userData.role) {
+                setUserRole(userData.role as UserRole);
+              }
+            } else if (res.status === 401) {
+              // Not authenticated - this is normal for logged out users
+              setUser(null);
             }
+          } catch (fetchError: any) {
+            // Network error or timeout - server might not be running
+            // This is OK, user is just not authenticated
+            if (fetchError.name !== 'AbortError') {
+              console.warn('[Auth] Failed to check authentication (server may be offline):', fetchError.message);
+            }
+            setUser(null);
           }
         }
       } catch (error) {
-        console.error('[Auth] Error checking authentication:', error);
+        // Catch any unexpected errors to prevent crash
+        console.error('[Auth] Unexpected error checking authentication:', error);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -104,30 +144,52 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     checkAuth();
     
     // Listen for Supabase Auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        // User signed in via Supabase Auth
-        const res = await fetch('/api/users/me', {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
+    let subscription: { unsubscribe: () => void } | null = null;
+    
+    try {
+      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+        try {
+          if (event === 'SIGNED_IN' && session) {
+            // User signed in via Supabase Auth
+            try {
+              const res = await fetch('/api/users/me', {
+                headers: {
+                  'Authorization': `Bearer ${session.access_token}`
+                },
+                credentials: 'include'
+              });
+              if (res.ok) {
+                const userData = await res.json();
+                setUser(userData);
+                if (userData.role) {
+                  setUserRole(userData.role as UserRole);
+                }
+              }
+            } catch (error) {
+              console.warn('[Auth] Failed to fetch user after sign in:', error);
+            }
+          } else if (event === 'SIGNED_OUT') {
+            // User signed out
+            setUser(null);
+            setUserRole('client');
           }
-        });
-        if (res.ok) {
-          const userData = await res.json();
-          setUser(userData);
-          if (userData.role) {
-            setUserRole(userData.role as UserRole);
-          }
+        } catch (error) {
+          console.error('[Auth] Error in auth state change handler:', error);
         }
-      } else if (event === 'SIGNED_OUT') {
-        // User signed out
-        setUser(null);
-        setUserRole('client');
-      }
-    });
+      });
+      subscription = data.subscription;
+    } catch (error) {
+      console.warn('[Auth] Failed to set up auth state listener:', error);
+    }
     
     return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        try {
+          subscription.unsubscribe();
+        } catch (error) {
+          // Ignore unsubscribe errors
+        }
+      }
     };
   }, []);
 

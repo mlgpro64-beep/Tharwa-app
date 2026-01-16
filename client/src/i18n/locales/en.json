@@ -104,7 +104,14 @@
     "promoCards": {
       "title": "What do you need help with?",
       "findExpert": "Find an expert"
-    }
+    },
+    "whatDoYouNeed": "What do you need today?",
+    "chooseService": "Choose a service and we'll connect you with the best providers",
+    "requestCustom": "Request Custom Service",
+    "cantFind": "Can't find what you need? Tell us",
+    "myActiveTasks": "My Active Tasks",
+    "services": "services",
+    "requestNow": "Request now"
   },
   "tasks": {
     "title": "Tasks",
@@ -351,7 +358,9 @@
     "post": "Post",
     "messages": "Messages",
     "profile": "Profile",
-    "categories": "Categories"
+    "categories": "Categories",
+    "browseTasks": "Browse",
+    "myOffers": "My Offers"
   },
   "errors": {
     "required": "This field is required",

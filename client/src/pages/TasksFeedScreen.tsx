@@ -6,9 +6,9 @@ import { TaskCard } from '@/components/TaskCard';
 import { useQuery } from '@tanstack/react-query';
 import { TaskCardSkeleton, EmptyState } from '@/components/ui/animated';
 import { cn } from '@/lib/utils';
-import { TASK_CATEGORIES_WITH_SUBS, getCategoryInfo, type TaskCategoryId } from '@shared/schema';
-import { Search, SearchX, X, Filter } from 'lucide-react';
+import { Search, SearchX, X } from 'lucide-react';
 import type { TaskWithDetails } from '@shared/schema';
+import { useApp } from '@/context/AppContext';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -37,32 +37,47 @@ const itemVariants = {
 const TasksFeedScreen = memo(function TasksFeedScreen() {
   const [, setLocation] = useLocation();
   const { t, i18n } = useTranslation();
+  const { userRole } = useApp();
   const isArabic = i18n.language === 'ar';
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'available' | 'my_tasks'>('available');
   const isAuthenticated = !!localStorage.getItem('userId');
+  const isTasker = userRole === 'tasker';
 
-  const { data: tasks, isLoading } = useQuery<TaskWithDetails[]>({
-    queryKey: ['/api/tasks/available', selectedCategory],
-    enabled: isAuthenticated,
+  const { data: availableTasks, isLoading: isLoadingAvailable } = useQuery<TaskWithDetails[]>({
+    queryKey: ['/api/tasks/available'],
+    enabled: isAuthenticated && activeTab === 'available',
   });
 
+  const { data: myTasks, isLoading: isLoadingMyTasks } = useQuery<TaskWithDetails[]>({
+    queryKey: ['/api/tasks/my'],
+    enabled: isAuthenticated && activeTab === 'my_tasks' && isTasker,
+  });
+
+  const tasks = activeTab === 'available' ? availableTasks : myTasks;
+  const isLoading = activeTab === 'available' ? isLoadingAvailable : isLoadingMyTasks;
+
   const filteredTasks = useMemo(() => {
-    return tasks?.filter(task => {
-      if (!selectedCategory) return true;
-      
-      const taskCatInfo = getCategoryInfo(task.category);
-      const matchesCategory = taskCatInfo?.mainCategory === selectedCategory;
+    if (!tasks) return [];
+    
+    // Filter by tab
+    let tabFiltered = tasks;
+    if (activeTab === 'my_tasks' && isTasker) {
+      // Show only in_progress and assigned tasks for tasker
+      tabFiltered = tasks.filter(task => 
+        task.taskerId === localStorage.getItem('userId') && 
+        (task.status === 'in_progress' || task.status === 'assigned')
+      );
+    }
+    
+    // Filter by search
+    return tabFiltered.filter(task => {
       const matchesSearch = !searchQuery || 
         task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         task.description.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
-    }) || [];
-  }, [tasks, selectedCategory, searchQuery]);
-
-  const handleCategorySelect = useCallback((category: string | null) => {
-    setSelectedCategory(category);
-  }, []);
+      return matchesSearch;
+    });
+  }, [tasks, searchQuery, activeTab, isTasker]);
 
   const handleClearSearch = useCallback(() => {
     setSearchQuery('');
@@ -100,10 +115,42 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
           <div>
             <h1 className="text-2xl font-extrabold text-foreground tracking-tight">{t('tasks.feed')}</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {taskCount} {t('tasks.available')}
+              {taskCount} {activeTab === 'available' ? t('tasks.available') : (isArabic ? 'مهام جارية' : 'In Progress')}
             </p>
           </div>
         </motion.div>
+
+        {isTasker && (
+          <motion.div
+            variants={itemVariants}
+            className="flex gap-2 mb-5"
+          >
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setActiveTab('available')}
+              className={cn(
+                "px-5 py-2.5 rounded-2xl font-bold text-sm transition-all",
+                activeTab === 'available'
+                  ? "gradient-primary text-white shadow-lg shadow-primary/25"
+                  : "glass text-muted-foreground"
+              )}
+            >
+              {isArabic ? 'المتاحة' : 'Available'}
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setActiveTab('my_tasks')}
+              className={cn(
+                "px-5 py-2.5 rounded-2xl font-bold text-sm transition-all",
+                activeTab === 'my_tasks'
+                  ? "gradient-primary text-white shadow-lg shadow-primary/25"
+                  : "glass text-muted-foreground"
+              )}
+            >
+              {isArabic ? 'مهامي الجارية' : 'My Tasks'}
+            </motion.button>
+          </motion.div>
+        )}
 
         <motion.div
           variants={itemVariants}
@@ -135,59 +182,6 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
           </div>
         </motion.div>
 
-        <motion.div
-          variants={itemVariants}
-          className="mb-6"
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <Filter className="w-4 h-4 text-muted-foreground" />
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('tasks.category')}</span>
-          </div>
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-5 px-5">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleCategorySelect(null)}
-              data-testid="button-category-all"
-              className={cn(
-                "px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-200",
-                selectedCategory === null
-                  ? "gradient-primary text-white shadow-lg shadow-primary/25"
-                  : "glass text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {t('tasks.filters.allCategories')}
-            </motion.button>
-            {(Object.entries(TASK_CATEGORIES_WITH_SUBS) as [TaskCategoryId, typeof TASK_CATEGORIES_WITH_SUBS[TaskCategoryId]][]).map(([categoryId, category]) => {
-              const displayName = isArabic ? category.nameAr : category.nameEn;
-              const colorHex = category.colorHex || '#6B7280';
-              
-              return (
-                <motion.button
-                  key={categoryId}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleCategorySelect(categoryId)}
-                  data-testid={`button-filter-${categoryId}`}
-                  className={cn(
-                    "px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-200",
-                    selectedCategory === categoryId
-                      ? "text-white shadow-lg"
-                      : "glass text-muted-foreground hover:text-foreground"
-                  )}
-                  style={{
-                    background: selectedCategory === categoryId 
-                      ? `linear-gradient(135deg, ${colorHex} 0%, ${colorHex}CC 100%)`
-                      : undefined,
-                    boxShadow: selectedCategory === categoryId 
-                      ? `0 8px 20px -8px ${colorHex}60`
-                      : undefined,
-                  }}
-                >
-                  {displayName}
-                </motion.button>
-              );
-            })}
-          </div>
-        </motion.div>
       </motion.div>
 
       <div className="relative z-10 px-5">
@@ -225,15 +219,14 @@ const TasksFeedScreen = memo(function TasksFeedScreen() {
               <EmptyState
                 icon={<SearchX className="w-8 h-8" />}
                 title={t('tasks.empty.title')}
-                description={t('tasks.empty.description')}
+                  description={t('tasks.empty.description')}
                 action={
-                  (searchQuery || selectedCategory) && (
+                  searchQuery && (
                     <motion.button
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.97 }}
                       onClick={() => {
                         setSearchQuery('');
-                        setSelectedCategory(null);
                       }}
                       className="glass-premium text-foreground px-6 py-3 rounded-2xl font-bold flex items-center gap-2"
                     >

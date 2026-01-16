@@ -6,12 +6,13 @@ import { useTranslation } from 'react-i18next';
 import { TaskCard } from '@/components/TaskCard';
 import { CountUp } from '@/components/CountUp';
 import { useQuery } from '@tanstack/react-query';
-import { TaskCardSkeleton, EmptyState } from '@/components/ui/animated';
+import { TaskCardSkeleton, EmptyState, Skeleton } from '@/components/ui/animated';
 import { formatCurrency } from '@/lib/currency';
-import { Bell, Settings, Wallet, Plus, ArrowRight, TrendingUp, CheckCircle, Search, Heart, Sparkles, GraduationCap, HardHat, Inbox, Clock, CheckCircle2, XCircle, Send, Car, Home, Palette } from 'lucide-react';
+import { Bell, Settings, Wallet, Plus, ArrowRight, TrendingUp, CheckCircle, Search, Heart, Sparkles, GraduationCap, HardHat, Inbox, Clock, CheckCircle2, XCircle, Send, Car, Home, Palette, LayoutGrid, MapPin, Calendar, ChevronRight, ListTodo, Truck, Wrench, Scissors, Package, Zap } from 'lucide-react';
 import type { TaskWithDetails, User, DirectServiceRequest } from '@shared/schema';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { TASK_CATEGORIES_WITH_SUBS, getCategoryInfo } from '@shared/schema';
+import { cn } from '@/lib/utils';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -43,17 +44,30 @@ const categoryIcons: Record<string, typeof Sparkles> = {
   pampering: Heart,
   beauty_fashion: Sparkles,
   teaching_education: GraduationCap,
-  construction: HardHat,
+  construction: Wrench,
   special: Home,
   car_care: Car,
   art: Palette,
-  other: Plus,
+  other: Package,
 };
+
+// Service categories for client home dashboard - main services to highlight
+const serviceCategories = [
+  { id: 'car_care', icon: Car, gradient: 'from-blue-500 to-blue-600' },
+  { id: 'other', icon: Truck, gradient: 'from-orange-500 to-orange-600' },
+  { id: 'construction', icon: Wrench, gradient: 'from-amber-500 to-amber-600' },
+  { id: 'special', icon: Home, gradient: 'from-cyan-500 to-cyan-600' },
+  { id: 'beauty_fashion', icon: Scissors, gradient: 'from-pink-500 to-pink-600' },
+  { id: 'teaching_education', icon: GraduationCap, gradient: 'from-green-500 to-green-600' },
+  { id: 'art', icon: Palette, gradient: 'from-purple-500 to-purple-600' },
+  { id: 'pampering', icon: Sparkles, gradient: 'from-rose-500 to-rose-600' },
+] as const;
 
 const HomeScreen = memo(function HomeScreen() {
   const [, setLocation] = useLocation();
   const { userRole, user } = useApp();
   const { t, i18n } = useTranslation();
+  const isArabic = i18n.language === 'ar';
 
   const { data: currentUser } = useQuery<User>({
     queryKey: ['/api/users/me'],
@@ -61,15 +75,24 @@ const HomeScreen = memo(function HomeScreen() {
   });
 
   const isAuthenticated = !!localStorage.getItem('userId');
+  const isClient = userRole === 'client';
+  const isTasker = userRole === 'tasker';
 
-  const { data: tasks, isLoading: tasksLoading } = useQuery<TaskWithDetails[]>({
-    queryKey: ['/api/tasks', userRole === 'tasker' ? 'available' : 'my'],
-    enabled: isAuthenticated,
+  // Client: Fetch their own tasks (active ones)
+  const { data: myTasks, isLoading: myTasksLoading } = useQuery<TaskWithDetails[]>({
+    queryKey: ['/api/tasks/my'],
+    enabled: isAuthenticated && isClient,
+  });
+
+  // Tasker: Fetch available tasks in the marketplace
+  const { data: availableTasks, isLoading: tasksLoading } = useQuery<TaskWithDetails[]>({
+    queryKey: ['/api/tasks/available'],
+    enabled: isAuthenticated && isTasker,
   });
 
   const { data: stats } = useQuery<{ earnings: number; jobsDone: number }>({
     queryKey: ['/api/stats'],
-    enabled: isAuthenticated && userRole === 'tasker',
+    enabled: isAuthenticated && isTasker,
   });
 
   type DirectRequestWithUsers = DirectServiceRequest & {
@@ -87,9 +110,12 @@ const HomeScreen = memo(function HomeScreen() {
     [directRequests]
   );
 
-  const clientDirectRequests = useMemo(() => 
-    userRole === 'client' ? (directRequests || []).slice(0, 3) : [],
-    [directRequests, userRole]
+  // Client: Filter active tasks (open, assigned, in_progress)
+  const activeClientTasks = useMemo(() => 
+    isClient 
+      ? (myTasks || []).filter(t => ['open', 'assigned', 'in_progress'].includes(t.status)).slice(0, 3)
+      : [],
+    [myTasks, isClient]
   );
 
   const displayUser = currentUser || user;
@@ -97,7 +123,9 @@ const HomeScreen = memo(function HomeScreen() {
     displayUser?.balance ? parseFloat(String(displayUser.balance)) : 0,
     [displayUser?.balance]
   );
-  const recentTasks = useMemo(() => tasks?.slice(0, 3) || [], [tasks]);
+  
+  // Tasker: Recent available tasks for browse
+  const recentTasks = useMemo(() => availableTasks?.slice(0, 5) || [], [availableTasks]);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -107,25 +135,26 @@ const HomeScreen = memo(function HomeScreen() {
   }, [t]);
 
   return (
-    <div className="min-h-screen gradient-mesh pt-safe pb-32">
+    <div className="min-h-screen bg-background dark:bg-[#0a0a0b] pt-safe pb-32">
+      {/* Ambient gradient orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 0.5, scale: 1 }}
+          animate={{ opacity: 0.4, scale: 1 }}
           transition={{ duration: 1, ease: "easeOut" }}
-          className="absolute -top-32 -right-32 w-80 h-80 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-3xl rtl:-left-32 rtl:right-auto"
+          className="absolute -top-32 -right-32 w-80 h-80 bg-gradient-to-br from-primary/15 dark:from-blue-500/10 to-primary/5 dark:to-transparent rounded-full blur-3xl rtl:-left-32 rtl:right-auto"
         />
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 0.35, scale: 1 }}
+          animate={{ opacity: 0.25, scale: 1 }}
           transition={{ duration: 1.2, delay: 0.2, ease: "easeOut" }}
-          className="absolute top-60 -left-24 w-56 h-56 bg-gradient-to-tr from-accent/25 to-accent/5 rounded-full blur-3xl rtl:-right-24 rtl:left-auto"
+          className="absolute top-60 -left-24 w-56 h-56 bg-gradient-to-tr from-accent/20 dark:from-emerald-500/10 to-accent/5 dark:to-transparent rounded-full blur-3xl rtl:-right-24 rtl:left-auto"
         />
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.2 }}
+          animate={{ opacity: 0.15 }}
           transition={{ duration: 1.5, delay: 0.4 }}
-          className="absolute bottom-40 right-10 w-40 h-40 bg-gradient-to-tl from-primary/15 to-transparent rounded-full blur-2xl rtl:left-10 rtl:right-auto"
+          className="absolute bottom-40 right-10 w-40 h-40 bg-gradient-to-tl from-primary/10 dark:from-indigo-500/10 to-transparent rounded-full blur-2xl rtl:left-10 rtl:right-auto"
         />
       </div>
 
@@ -139,57 +168,64 @@ const HomeScreen = memo(function HomeScreen() {
           variants={itemVariants}
           className="flex items-center justify-between mb-8"
         >
-          <div>
-            <motion.p 
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="text-sm text-muted-foreground font-medium mb-0.5"
-            >
-              {greeting}
-            </motion.p>
-            <motion.h1 
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-2xl font-extrabold text-foreground tracking-tight"
-            >
-              {displayUser?.name || t('common.guest')}
-            </motion.h1>
+          <div className="flex items-center gap-3">
+            {/* Avatar for Client Home Dashboard */}
+            {isClient && (
+              <Link href="/profile">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Avatar className="w-14 h-14 ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
+                    <AvatarImage src={displayUser?.avatar || ''} alt={displayUser?.name} />
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-white text-lg font-bold">
+                      {displayUser?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </motion.div>
+              </Link>
+            )}
+            <div>
+              <motion.p 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="text-sm text-muted-foreground font-medium mb-0.5"
+              >
+                {greeting}
+              </motion.p>
+              <motion.h1 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+                className="text-2xl font-extrabold text-foreground tracking-tight"
+              >
+                {displayUser?.name || t('common.guest')}
+              </motion.h1>
+            </div>
           </div>
           <div className="flex items-center gap-2.5">
-            {userRole === 'client' && (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.92 }}
-                onClick={() => setLocation('/wallet')}
-                className="w-11 h-11 flex items-center justify-center rounded-2xl glass transition-all duration-200"
-                data-testid="button-wallet"
-              >
-                <Wallet className="w-5 h-5 text-foreground/80" />
-              </motion.button>
-            )}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.92 }}
               onClick={() => setLocation('/notifications')}
-              className="w-11 h-11 flex items-center justify-center rounded-2xl glass transition-all duration-200"
+              className="w-11 h-11 flex items-center justify-center rounded-2xl bg-white/80 dark:bg-zinc-900/60 backdrop-blur-xl border border-gray-200/50 dark:border-zinc-800/50 transition-all duration-200"
               data-testid="button-notifications"
             >
-              <Bell className="w-5 h-5 text-foreground/80" />
+              <Bell className="w-5 h-5 text-foreground/80 dark:text-zinc-400" />
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.92 }}
               onClick={() => setLocation('/settings')}
-              className="w-11 h-11 flex items-center justify-center rounded-2xl glass transition-all duration-200"
+              className="w-11 h-11 flex items-center justify-center rounded-2xl bg-white/80 dark:bg-zinc-900/60 backdrop-blur-xl border border-gray-200/50 dark:border-zinc-800/50 transition-all duration-200"
               data-testid="button-settings"
             >
-              <Settings className="w-5 h-5 text-foreground/80" />
+              <Settings className="w-5 h-5 text-foreground/80 dark:text-zinc-400" />
             </motion.button>
           </div>
         </motion.div>
 
-        {userRole === 'tasker' ? (
+        {userRole === 'tasker' && (
           <motion.div variants={itemVariants}>
             <Link href="/wallet">
               <motion.div 
@@ -236,76 +272,6 @@ const HomeScreen = memo(function HomeScreen() {
                 </div>
               </motion.div>
             </Link>
-          </motion.div>
-        ) : (
-          <motion.div variants={itemVariants} className="mb-6">
-            <div className="flex overflow-x-auto gap-3 pb-2 -mx-5 px-5 scrollbar-hide" data-testid="carousel-promo-cards">
-              {promoCategoryIds.map((categoryId, index) => {
-                const category = TASK_CATEGORIES_WITH_SUBS[categoryId];
-                const IconComponent = categoryIcons[categoryId];
-                
-                // Skip if category doesn't exist
-                if (!category || !IconComponent) {
-                  return null;
-                }
-                
-                return (
-                  <Link href="/post-task/1" key={categoryId}>
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.1, type: "spring", stiffness: 300 }}
-                      whileHover={{ scale: 1.05, y: -4 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="relative min-w-[140px] h-[160px] rounded-[24px] overflow-hidden cursor-pointer flex-shrink-0"
-                      style={{
-                        background: `linear-gradient(135deg, ${category.colorHex}20, ${category.colorHex}10)`,
-                      }}
-                      data-testid={`card-promo-${categoryId}`}
-                    >
-                      <div 
-                        className="absolute inset-0 backdrop-blur-xl"
-                        style={{
-                          background: `linear-gradient(135deg, ${category.colorHex}30, transparent)`,
-                        }}
-                      />
-                      <div 
-                        className="absolute inset-0 border rounded-[24px]"
-                        style={{
-                          borderColor: `${category.colorHex}40`,
-                        }}
-                      />
-                      
-                      <div className="absolute top-0 right-0 w-20 h-20 rounded-full blur-2xl opacity-40 rtl:left-0 rtl:right-auto"
-                        style={{ backgroundColor: category.colorHex }}
-                      />
-                      
-                      <div className="relative h-full p-4 flex flex-col justify-between">
-                        <motion.div 
-                          className="w-12 h-12 rounded-xl flex items-center justify-center"
-                          style={{ backgroundColor: `${category.colorHex}30` }}
-                          whileHover={{ rotate: 10 }}
-                        >
-                          <IconComponent 
-                            className="w-6 h-6" 
-                            style={{ color: category.colorHex }} 
-                          />
-                        </motion.div>
-                        
-                        <div>
-                          <p className="text-sm font-bold text-foreground leading-tight mb-1">
-                            {t(`tasks.categories.${categoryId}`)}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground font-medium">
-                            {t('home.promoCards.findExpert')}
-                          </p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  </Link>
-                );
-              })}
-            </div>
           </motion.div>
         )}
 
@@ -385,217 +351,287 @@ const HomeScreen = memo(function HomeScreen() {
           </motion.div>
         )}
 
-        {userRole === 'client' && (
-          <motion.div variants={itemVariants}>
-            <Link href="/post-task/1">
-              <motion.button 
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.97 }}
-                className="w-full relative overflow-hidden rounded-[24px] mb-7"
-                data-testid="button-post-task"
-              >
-                <div className="absolute inset-0 glass-premium" />
-                <div className="absolute inset-0 gradient-border" />
-                
-                <div className="relative flex items-center justify-center gap-3.5 py-4 px-6">
-                  <motion.div 
-                    animate={{ rotate: [0, 10, -10, 0] }}
-                    transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-                    className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-lg shadow-primary/30"
+        {/* ============ CLIENT: Service Selection Dashboard ============ */}
+        {isClient && (
+          <>
+            {/* What do you need help with? */}
+            <motion.div variants={itemVariants} className="mb-6">
+              <h2 className="text-lg font-bold text-foreground mb-1">
+                {isArabic ? 'ماذا تحتاج اليوم؟' : 'What do you need today?'}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {isArabic ? 'اختر خدمة وسنربطك بأفضل مقدمي الخدمة' : 'Choose a service and we\'ll connect you with the best providers'}
+              </p>
+            </motion.div>
+
+            {/* Service Grid - Main Dashboard */}
+            <motion.div variants={itemVariants} className="mb-8">
+              <div className="grid grid-cols-2 gap-3">
+                {serviceCategories.map((service, index) => {
+                  const category = TASK_CATEGORIES_WITH_SUBS[service.id];
+                  const IconComponent = service.icon;
+                  
+                  return (
+                    <Link href={`/post-task/1?category=${service.id}`} key={service.id}>
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05, type: "spring", stiffness: 300 }}
+                        whileHover={{ scale: 1.02, y: -4 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="relative rounded-[20px] p-5 cursor-pointer overflow-hidden group"
+                        data-testid={`service-card-${service.id}`}
+                      >
+                        {/* Glassmorphism background */}
+                        <div className="absolute inset-0 bg-zinc-900/60 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/50 rounded-[20px]" />
+                        
+                        {/* Gradient glow effect on hover */}
+                        <div className={cn(
+                          "absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-[20px]",
+                          `bg-gradient-to-br ${service.gradient}`
+                        )} />
+                        
+                        {/* Ambient light */}
+                        <div 
+                          className="absolute -top-10 -right-10 w-24 h-24 rounded-full blur-2xl opacity-30 group-hover:opacity-50 transition-opacity"
+                          style={{ background: `linear-gradient(135deg, ${category?.colorHex || '#3B82F6'}, transparent)` }}
+                        />
+                        
+                        <div className="relative z-10 flex flex-col h-full min-h-[100px]">
+                          {/* Icon with gradient background */}
+                          <motion.div 
+                            className={cn(
+                              "w-12 h-12 rounded-xl flex items-center justify-center mb-3 shadow-lg",
+                              `bg-gradient-to-br ${service.gradient}`
+                            )}
+                            whileHover={{ rotate: 5, scale: 1.1 }}
+                            transition={{ type: "spring", stiffness: 400 }}
+                          >
+                            <IconComponent className="w-6 h-6 text-white" />
+                          </motion.div>
+                          
+                          {/* Service name */}
+                          <p className="text-sm font-bold text-white leading-tight mb-1">
+                            {isArabic ? category?.nameAr : category?.nameEn}
+                          </p>
+                          
+                          {/* Subcategory count hint */}
+                          <p className="text-xs text-zinc-400 mt-auto">
+                            {category?.subcategories && category.subcategories.length > 0 
+                              ? (isArabic 
+                                  ? `${category.subcategories.length} خدمات` 
+                                  : `${category.subcategories.length} services`)
+                              : (isArabic ? 'اطلب الآن' : 'Request now')
+                            }
+                          </p>
+                        </div>
+                      </motion.div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </motion.div>
+
+            {/* Quick Action - Post Custom Task */}
+            <motion.div variants={itemVariants} className="mb-8">
+              <Link href="/post-task/1">
+                <motion.button 
+                  whileHover={{ scale: 1.01, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full relative overflow-hidden rounded-[20px]"
+                  data-testid="button-post-custom-task"
+                >
+                  {/* Glassmorphism background */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 backdrop-blur-xl border border-primary/30 rounded-[20px]" />
+                  
+                  <div className="relative flex items-center gap-4 py-4 px-5">
+                    <motion.div 
+                      animate={{ rotate: [0, 5, -5, 0] }}
+                      transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                      className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/30"
+                    >
+                      <Plus className="w-6 h-6 text-white" strokeWidth={2.5} />
+                    </motion.div>
+                    <div className="flex-1 text-start">
+                      <p className="text-base font-bold text-foreground">
+                        {isArabic ? 'طلب خدمة مخصصة' : 'Request Custom Service'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {isArabic ? 'لم تجد ما تبحث عنه؟ أخبرنا' : "Can't find what you need? Tell us"}
+                      </p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground rtl:rotate-180" />
+                  </div>
+                </motion.button>
+              </Link>
+            </motion.div>
+
+            {/* Active Tasks Section */}
+            {activeClientTasks.length > 0 && (
+              <>
+                <motion.div 
+                  variants={itemVariants}
+                  className="flex items-center justify-between mb-4"
+                >
+                  <h2 className="text-lg font-bold text-foreground">
+                    {isArabic ? 'مهامي النشطة' : 'My Active Tasks'}
+                  </h2>
+                  <Link 
+                    href="/my-tasks"
+                    className="text-sm text-primary font-semibold flex items-center gap-1.5 hover:gap-2.5 transition-all duration-300"
+                    data-testid="link-see-all-my-tasks"
                   >
-                    <Plus className="w-5 h-5 text-white" strokeWidth={2.5} />
-                  </motion.div>
-                  <span className="text-base font-bold text-foreground">{t('home.postNewTask')}</span>
-                  <Sparkles className="w-4 h-4 text-primary ms-auto" />
-                </div>
-              </motion.button>
-            </Link>
-          </motion.div>
+                    {t('common.seeAll')}
+                    <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+                  </Link>
+                </motion.div>
+
+                <motion.div variants={containerVariants} className="space-y-3 mb-6">
+                  <AnimatePresence mode="wait">
+                    {myTasksLoading ? (
+                      <div className="space-y-3">
+                        {[1, 2].map((i) => (
+                          <Skeleton key={i} className="h-24 rounded-2xl" />
+                        ))}
+                      </div>
+                    ) : (
+                      activeClientTasks.map((task, index) => {
+                        const statusConfig: Record<string, { label: string; color: string; bgColor: string; dot: string }> = {
+                          open: { label: isArabic ? 'مفتوحة' : 'Open', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10', dot: 'bg-emerald-400' },
+                          assigned: { label: isArabic ? 'تم التعيين' : 'Assigned', color: 'text-blue-400', bgColor: 'bg-blue-500/10', dot: 'bg-blue-400' },
+                          in_progress: { label: isArabic ? 'في انتظار الدفع' : 'Waiting Payment', color: 'text-amber-400', bgColor: 'bg-amber-500/10', dot: 'bg-amber-400' },
+                        };
+                        const config = statusConfig[task.status] || statusConfig.open;
+                        const categoryInfo = getCategoryInfo(task.category);
+                        const category = categoryInfo 
+                          ? TASK_CATEGORIES_WITH_SUBS[categoryInfo.mainCategory]
+                          : null;
+
+                        return (
+                          <motion.div
+                            key={task.id}
+                            variants={itemVariants}
+                            custom={index}
+                          >
+                            <Link href={`/task/${task.id}`}>
+                              <motion.div
+                                whileHover={{ scale: 1.01, y: -2 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="relative rounded-[20px] p-4 cursor-pointer overflow-hidden"
+                                data-testid={`card-active-task-${task.id}`}
+                              >
+                                {/* Glassmorphism background */}
+                                <div className="absolute inset-0 bg-zinc-900/60 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/50 rounded-[20px]" />
+                                
+                                <div className="relative z-10 flex items-start gap-3">
+                                  <div 
+                                    className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                                    style={{ backgroundColor: category ? `${category.colorHex}20` : 'var(--primary-10)' }}
+                                  >
+                                    {category && categoryIcons[categoryInfo?.mainCategory || ''] ? (
+                                      (() => {
+                                        const Icon = categoryIcons[categoryInfo?.mainCategory || ''];
+                                        return <Icon className="w-6 h-6" style={{ color: category.colorHex }} />;
+                                      })()
+                                    ) : (
+                                      <ListTodo className="w-6 h-6 text-primary" />
+                                    )}
+                                  </div>
+                                  
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                      <p className="font-bold text-foreground truncate">
+                                        {task.title}
+                                      </p>
+                                      <span className={cn(
+                                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
+                                        config.bgColor, config.color
+                                      )}>
+                                        <span className={cn("w-1.5 h-1.5 rounded-full", config.dot)} />
+                                        {config.label}
+                                      </span>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
+                                      <span className="flex items-center gap-1">
+                                        <MapPin className="w-3.5 h-3.5" />
+                                        <span className="truncate max-w-[100px]">{task.location}</span>
+                                      </span>
+                                      <span className="flex items-center gap-1">
+                                        <Calendar className="w-3.5 h-3.5" />
+                                        {task.date}
+                                      </span>
+                                      <span className="font-semibold text-primary ms-auto">
+                                        {formatCurrency(task.budget, { locale: isArabic ? 'ar' : 'en' })}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  
+                                  <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0 rtl:rotate-180 mt-2" />
+                                </div>
+                              </motion.div>
+                            </Link>
+                          </motion.div>
+                        );
+                      })
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              </>
+            )}
+          </>
         )}
 
-        {userRole === 'client' && clientDirectRequests.length > 0 && (
+        {/* ============ TASKER/EXECUTOR: Available Tasks Feed ============ */}
+        {isTasker && (
           <>
             <motion.div 
               variants={itemVariants}
-              className="flex items-center justify-between mb-4"
+              className="flex items-center justify-between mb-5"
             >
               <h2 className="text-lg font-bold text-foreground">
-                {i18n.language === 'ar' ? 'طلباتي المباشرة' : 'My Direct Requests'}
+                {isArabic ? 'المهام المتاحة' : 'Available Tasks'}
               </h2>
               <Link 
-                href="/my-direct-requests"
+                href="/tasks-feed"
                 className="text-sm text-primary font-semibold flex items-center gap-1.5 hover:gap-2.5 transition-all duration-300"
-                data-testid="link-see-all-direct-requests"
+                data-testid="link-see-all-tasks"
               >
                 {t('common.seeAll')}
                 <ArrowRight className="w-4 h-4 rtl:rotate-180" />
               </Link>
             </motion.div>
 
-            <motion.div variants={containerVariants} className="space-y-3 mb-7">
-              {clientDirectRequests.map((request, index) => {
-                const statusConfig = {
-                  pending: { 
-                    icon: Clock, 
-                    color: 'text-warning', 
-                    bgColor: 'bg-warning/10',
-                    label: i18n.language === 'ar' ? 'قيد الانتظار' : 'Pending'
-                  },
-                  accepted: { 
-                    icon: CheckCircle2, 
-                    color: 'text-success', 
-                    bgColor: 'bg-success/10',
-                    label: i18n.language === 'ar' ? 'مقبول' : 'Accepted'
-                  },
-                  rejected: { 
-                    icon: XCircle, 
-                    color: 'text-destructive', 
-                    bgColor: 'bg-destructive/10',
-                    label: i18n.language === 'ar' ? 'مرفوض' : 'Rejected'
-                  },
-                  cancelled: { 
-                    icon: XCircle, 
-                    color: 'text-muted-foreground', 
-                    bgColor: 'bg-muted/10',
-                    label: i18n.language === 'ar' ? 'ملغي' : 'Cancelled'
-                  },
-                };
-                const config = statusConfig[request.status as keyof typeof statusConfig] || statusConfig.pending;
-                const StatusIcon = config.icon;
-                const categoryInfo = getCategoryInfo(request.category);
-                const category = categoryInfo 
-                  ? TASK_CATEGORIES_WITH_SUBS[categoryInfo.mainCategory]
-                  : null;
-
-                const linkHref = request.status === 'accepted' && request.linkedTaskId 
-                  ? `/task/${request.linkedTaskId}` 
-                  : '/my-direct-requests';
-
-                return (
-                  <motion.div
-                    key={request.id}
-                    variants={itemVariants}
-                    custom={index}
-                  >
-                    <Link href={linkHref}>
-                      <motion.div
-                        whileHover={{ scale: 1.01, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="glass rounded-[20px] p-4 cursor-pointer"
-                        data-testid={`card-direct-request-${request.id}`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <Avatar className="w-12 h-12 border-2 border-white/10">
-                            <AvatarImage src={request.tasker?.avatar || undefined} />
-                            <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                              {request.tasker?.name?.charAt(0) || 'T'}
-                            </AvatarFallback>
-                          </Avatar>
-                          
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                              <p className="font-bold text-foreground truncate">
-                                {request.tasker?.name || (i18n.language === 'ar' ? 'منفذ' : 'Tasker')}
-                              </p>
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${config.bgColor} ${config.color}`}>
-                                <StatusIcon className="w-3 h-3" />
-                                {config.label}
-                              </span>
-                            </div>
-                            
-                            <p className="text-sm text-muted-foreground truncate mb-2">
-                              {request.title}
-                            </p>
-                            
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                              {category && categoryInfo && (
-                                <span 
-                                  className="px-2 py-0.5 rounded-full"
-                                  style={{ backgroundColor: `${category.colorHex}20`, color: category.colorHex }}
-                                >
-                                  {categoryInfo.subcategory 
-                                    ? (i18n.language === 'ar' ? categoryInfo.subcategory.nameAr : categoryInfo.subcategory.nameEn)
-                                    : (i18n.language === 'ar' ? category.nameAr : category.nameEn)}
-                                </span>
-                              )}
-                              <span className="font-semibold text-primary">
-                                {formatCurrency(request.budget, { locale: i18n.language === 'ar' ? 'ar' : 'en' })}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <ArrowRight className="w-5 h-5 text-muted-foreground flex-shrink-0 rtl:rotate-180" />
-                        </div>
-                      </motion.div>
-                    </Link>
+            <motion.div 
+              variants={containerVariants}
+              className="space-y-3"
+            >
+              <AnimatePresence mode="wait">
+                {tasksLoading ? (
+                  <TaskCardSkeleton count={3} />
+                ) : recentTasks.length > 0 ? (
+                  recentTasks.map((task, index) => (
+                    <motion.div
+                      key={task.id}
+                      variants={itemVariants}
+                      custom={index}
+                    >
+                      <TaskCard task={task} index={index} />
+                    </motion.div>
+                  ))
+                ) : (
+                  <motion.div variants={itemVariants}>
+                    <EmptyState
+                      icon={<Search className="w-8 h-8" />}
+                      title={isArabic ? 'لا توجد مهام متاحة' : 'No Tasks Available'}
+                      description={isArabic ? 'تحقق لاحقاً للحصول على مهام جديدة' : 'Check back later for new tasks'}
+                    />
                   </motion.div>
-                );
-              })}
+                )}
+              </AnimatePresence>
             </motion.div>
           </>
         )}
-
-        <motion.div 
-          variants={itemVariants}
-          className="flex items-center justify-between mb-5"
-        >
-          <h2 className="text-lg font-bold text-foreground">
-            {userRole === 'tasker' ? t('home.availableTasks') : t('home.yourTasks')}
-          </h2>
-          <Link 
-            href={userRole === 'tasker' ? '/tasks-feed' : '/my-tasks'}
-            className="text-sm text-primary font-semibold flex items-center gap-1.5 hover:gap-2.5 transition-all duration-300"
-            data-testid="link-see-all-tasks"
-          >
-            {t('common.seeAll')}
-            <ArrowRight className="w-4 h-4 rtl:rotate-180" />
-          </Link>
-        </motion.div>
-
-        <motion.div 
-          variants={containerVariants}
-          className="space-y-3"
-        >
-          <AnimatePresence mode="wait">
-            {tasksLoading ? (
-              <TaskCardSkeleton count={3} />
-            ) : recentTasks.length > 0 ? (
-              recentTasks.map((task, index) => (
-                <motion.div
-                  key={task.id}
-                  variants={itemVariants}
-                  custom={index}
-                >
-                  <TaskCard task={task} index={index} />
-                </motion.div>
-              ))
-            ) : (
-              <motion.div variants={itemVariants}>
-                <EmptyState
-                  icon={userRole === 'tasker' ? <Search className="w-8 h-8" /> : <Plus className="w-8 h-8" />}
-                  title={userRole === 'tasker' ? t('home.noTasksAvailable') : t('home.noTasksYet')}
-                  description={userRole === 'tasker' 
-                    ? t('home.checkBackLater') 
-                    : t('home.postFirstTask')}
-                  action={
-                    userRole === 'client' && (
-                      <Link href="/post-task/1">
-                        <motion.button
-                          whileHover={{ scale: 1.03 }}
-                          whileTap={{ scale: 0.97 }}
-                          className="gradient-primary text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-primary/30 flex items-center gap-2"
-                        >
-                          <Plus className="w-4 h-4" />
-                          {t('tasks.postTask')}
-                        </motion.button>
-                      </Link>
-                    )
-                  }
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
       </motion.div>
     </div>
   );
